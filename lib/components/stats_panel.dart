@@ -8,7 +8,7 @@ class StatsPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.85),
+        color: Colors.black.withValues(alpha: 0.85),
         border: const Border(
           top: BorderSide(color: Colors.white24, width: 1),
         ),
@@ -60,7 +60,7 @@ class StatsPanel extends StatelessWidget {
             Text(
               'Rank ',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 12,
               ),
             ),
@@ -72,7 +72,7 @@ class StatsPanel extends StatelessWidget {
                 fontWeight: FontWeight.w900,
                 shadows: [
                   Shadow(
-                    color: tierColor.withOpacity(0.6),
+                    color: tierColor.withValues(alpha: 0.6),
                     blurRadius: 8,
                   )
                 ],

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'components/custom_navbar.dart';
 import 'components/custom_bottom_navbar.dart';
 import 'components/stats_panel.dart';
+import 'components/ghetto_environment.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,9 +42,7 @@ class HomePage extends StatelessWidget {
           children: [
             SizedBox(height: 100), // Space for top navbar
             Expanded(
-              child: Center(
-                child: Text('Game Content Goes Here', style: TextStyle(fontSize: 24, color: Colors.grey)),
-              ),
+              child: GhettoEnvironment(),
             ),
             StatsPanel(),
           ],
