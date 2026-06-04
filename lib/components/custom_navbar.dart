@@ -1,7 +1,37 @@
 import 'package:flutter/material.dart';
+import 'profile_edit_modal.dart';
 
-class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
+class CustomNavbar extends StatefulWidget implements PreferredSizeWidget {
   const CustomNavbar({super.key});
+
+  @override
+  State<CustomNavbar> createState() => _CustomNavbarState();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(100);
+}
+
+class _CustomNavbarState extends State<CustomNavbar> {
+  String _characterName = 'Player';
+  IconData _profilePic = Icons.person;
+
+  void _showProfileModal() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return ProfileEditModal(
+          initialName: _characterName,
+          initialIcon: _profilePic,
+          onSave: (newName, newIcon) {
+            setState(() {
+              _characterName = newName;
+              _profilePic = newIcon;
+            });
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,9 +46,24 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                icon: const Icon(Icons.person, color: Colors.white),
-                onPressed: () {},
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(_profilePic, color: Colors.white),
+                      onPressed: _showProfileModal,
+                    ),
+                    Flexible(
+                      child: Text(
+                        _characterName,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -45,7 +90,4 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
       ),
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(100);
 }

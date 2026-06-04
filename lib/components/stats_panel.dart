@@ -9,7 +9,6 @@ class StatsPanel extends StatelessWidget {
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.85),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: const Border(
           top: BorderSide(color: Colors.white24, width: 1),
         ),
