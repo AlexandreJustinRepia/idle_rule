@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'components/custom_navbar.dart';
+import 'components/custom_bottom_navbar.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: const CustomNavbar(),
+      bottomNavigationBar: const CustomBottomNavbar(),
       body: Container(
         color: Colors.grey[200],
         child: const Center(
