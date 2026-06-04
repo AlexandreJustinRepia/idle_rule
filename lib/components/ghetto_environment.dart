@@ -160,18 +160,58 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment> with TickerProvid
   late AnimationController _walkController;
   final double sceneWidth = 900.0; // Must be a multiple of 60 for seamless bricks
 
+  bool _isFighting = false;
+  int _enemyHealth = 5;
+
   @override
   void initState() {
     super.initState();
     _scrollController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8), // Scroll speed
-    )..repeat();
+    );
 
     _walkController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300), // Walk cycle speed
-    )..repeat(reverse: true);
+    );
+
+    _startWalking();
+  }
+
+  void _startWalking() {
+    _scrollController.repeat();
+    _walkController.repeat(reverse: true);
+    
+    // Spawn an enemy after 3 seconds of walking
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _isFighting = true;
+          _enemyHealth = 5;
+        });
+        _scrollController.stop();
+        _walkController.value = 0.5; // Neutral pose
+        _walkController.stop();
+      }
+    });
+  }
+
+  void _attackEnemy() {
+    if (!_isFighting) return;
+    
+    // Quick attack animation lunge
+    _walkController.forward(from: 0).then((_) {
+      if (mounted) _walkController.value = 0.5;
+    });
+
+    setState(() {
+      _enemyHealth--;
+      if (_enemyHealth <= 0) {
+        _isFighting = false;
+        _startWalking(); // Enemy defeated, resume walking
+      }
+    });
   }
 
   @override
@@ -220,18 +260,21 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment> with TickerProvid
           },
         ),
 
-        // Walking Character Placeholder (Center)
+        // Hero Character
         Align(
-          alignment: Alignment.bottomCenter,
+          alignment: Alignment.bottomLeft,
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 70.0),
+            padding: const EdgeInsets.only(bottom: 70.0, left: 60.0),
             child: AnimatedBuilder(
               animation: _walkController,
               builder: (context, child) {
                 return Transform.translate(
-                  offset: Offset(0, -_walkController.value * 12),
+                  offset: Offset(
+                    _isFighting ? _walkController.value * 30 : 0, // Lunge forward if fighting
+                    _isFighting ? 0 : -_walkController.value * 12 // Bob up and down if walking
+                  ),
                   child: Transform.rotate(
-                    angle: (_walkController.value - 0.5) * 0.05,
+                    angle: _isFighting ? _walkController.value * 0.2 : (_walkController.value - 0.5) * 0.05,
                     child: child,
                   ),
                 );
@@ -240,6 +283,19 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment> with TickerProvid
             ),
           ),
         ),
+
+        // Enemy Character
+        if (_isFighting)
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 70.0, right: 60.0),
+              child: GestureDetector(
+                onTap: _attackEnemy,
+                child: EnemyCharacterPlaceholder(health: _enemyHealth),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -298,6 +354,74 @@ class HeroCharacterPlaceholder extends StatelessWidget {
             Container(width: 18, height: 35, decoration: BoxDecoration(color: Colors.blueGrey[900], borderRadius: BorderRadius.circular(4))),
             const SizedBox(width: 12),
             Container(width: 18, height: 35, decoration: BoxDecoration(color: Colors.blueGrey[900], borderRadius: BorderRadius.circular(4))),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class EnemyCharacterPlaceholder extends StatelessWidget {
+  final int health;
+
+  const EnemyCharacterPlaceholder({super.key, required this.health});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Health Bar
+        Text(
+          'HP: $health/5',
+          style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 5),
+        // Head
+        Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            color: Colors.red[800],
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.redAccent.withValues(alpha: 0.5),
+                blurRadius: 15,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 5),
+        // Body
+        Container(
+          width: 60,
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.red[900],
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: const Center(
+            child: Text('THUG', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 2)),
+          ),
+        ),
+        const SizedBox(height: 4),
+        // Legs
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 18, height: 35, decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4))),
+            const SizedBox(width: 12),
+            Container(width: 18, height: 35, decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4))),
           ],
         ),
       ],
