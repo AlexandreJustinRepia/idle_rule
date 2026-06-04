@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'components/custom_navbar.dart';
 import 'components/custom_bottom_navbar.dart';
+import 'components/stats_panel.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,9 +36,17 @@ class HomePage extends StatelessWidget {
       appBar: const CustomNavbar(),
       bottomNavigationBar: const CustomBottomNavbar(),
       body: Container(
-        color: Colors.grey[200],
-        child: const Center(
-          child: Text('Game Content Goes Here', style: TextStyle(fontSize: 24, color: Colors.grey)),
+        color: Colors.grey[900], // Darker background for game feel
+        child: const Column(
+          children: [
+            SizedBox(height: 100), // Space for top navbar
+            Expanded(
+              child: Center(
+                child: Text('Game Content Goes Here', style: TextStyle(fontSize: 24, color: Colors.grey)),
+              ),
+            ),
+            StatsPanel(),
+          ],
         ),
       ),
     );
