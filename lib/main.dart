@@ -40,7 +40,6 @@ class HomePage extends StatelessWidget {
         color: Colors.grey[900], // Darker background for game feel
         child: const Column(
           children: [
-            SizedBox(height: 100), // Space for top navbar
             Expanded(
               child: GhettoEnvironment(),
             ),
