@@ -21,6 +21,7 @@ class MyApp extends StatelessWidget {
       title: 'Idle Rule',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
       home: const HomePage(),
       debugShowCheckedModeBanner: false,
@@ -40,6 +41,8 @@ class _HomePageState extends State<HomePage> {
   int _playerHealth = 30;
   double _playerStamina = const PlayerStats().maxStamina;
   double _playerHunger = const PlayerStats().maxHunger;
+  Boss? _activeBoss;
+  int _bossIndex = 0;
 
   void _gainStats({
     double strength = 0,
@@ -67,9 +70,7 @@ class _HomePageState extends State<HomePage> {
 
   void _takeDamage(int damage) {
     setState(() {
-      _playerHealth = (_playerHealth - damage)
-          .clamp(0, _stats.maxHealth)
-          .toInt();
+      _playerHealth = (_playerHealth - damage).clamp(0, _stats.maxHealth).toInt();
     });
   }
 
@@ -78,6 +79,7 @@ class _HomePageState extends State<HomePage> {
       _playerHealth = _stats.maxHealth;
       _playerStamina = _stats.maxStamina;
       _playerHunger = _stats.maxHunger;
+      _activeBoss = null; // Retreat from boss if defeated
     });
   }
 
@@ -103,6 +105,21 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _startBossFight() {
+    if (_activeBoss != null) return;
+    setState(() {
+      _activeBoss = gameBosses[_bossIndex % gameBosses.length];
+      _playerHealth = _stats.maxHealth; // Full health for boss fight
+    });
+  }
+
+  void _onBossDefeated() {
+    setState(() {
+      _activeBoss = null;
+      _bossIndex++;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,27 +127,97 @@ class _HomePageState extends State<HomePage> {
       appBar: const CustomNavbar(),
       bottomNavigationBar: const CustomBottomNavbar(),
       body: Container(
-        color: Colors.grey[900], // Darker background for game feel
+        color: Colors.grey[900],
         child: Column(
           children: [
             Expanded(
-              child: GhettoEnvironment(
-                stats: _stats,
-                playerHealth: _playerHealth,
-                playerMaxHealth: _stats.maxHealth,
-                playerStamina: _playerStamina,
-                playerMaxStamina: _stats.maxStamina,
-                playerHunger: _playerHunger,
-                playerMaxHunger: _stats.maxHunger,
-                onStatsGained: _gainStats,
-                onPlayerDamaged: _takeDamage,
-                onPlayerDefeated: _recoverFromDefeat,
-                onNewEnemyApproached: _recoverHealthForNewEnemy,
-                onStaminaSpent: _spendStamina,
-                onNeedsRecovered: _recoverNeeds,
+              flex: 3,
+              child: Stack(
+                children: [
+                  GhettoEnvironment(
+                    stats: _stats,
+                    playerHealth: _playerHealth,
+                    playerMaxHealth: _stats.maxHealth,
+                    playerStamina: _playerStamina,
+                    playerMaxStamina: _stats.maxStamina,
+                    playerHunger: _playerHunger,
+                    playerMaxHunger: _stats.maxHunger,
+                    onStatsGained: _gainStats,
+                    onPlayerDamaged: _takeDamage,
+                    onPlayerDefeated: _recoverFromDefeat,
+                    onNewEnemyApproached: _recoverHealthForNewEnemy,
+                    onStaminaSpent: _spendStamina,
+                    onNeedsRecovered: _recoverNeeds,
+                    activeBoss: _activeBoss,
+                    onBossDefeated: _onBossDefeated,
+                  ),
+                  if (_activeBoss == null)
+                    Positioned(
+                      bottom: 20,
+                      right: 20,
+                      child: _FightBossButton(
+                        onPressed: _startBossFight,
+                        nextBossName: gameBosses[_bossIndex % gameBosses.length].name,
+                      ),
+                    ),
+                ],
               ),
             ),
-            StatsPanel(stats: _stats),
+            Flexible(
+              flex: 2,
+              child: StatsPanel(stats: _stats),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FightBossButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final String nextBossName;
+
+  const _FightBossButton({required this.onPressed, required this.nextBossName});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.redAccent.withValues(alpha: 0.6),
+              blurRadius: 15,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'FIGHT BOSS',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                letterSpacing: 2,
+              ),
+            ),
+            Text(
+              nextBossName,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+                fontSize: 9,
+              ),
+            ),
           ],
         ),
       ),

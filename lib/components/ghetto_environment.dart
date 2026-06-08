@@ -168,6 +168,8 @@ class GhettoEnvironment extends StatefulWidget {
   final VoidCallback onNewEnemyApproached;
   final bool Function(double amount) onStaminaSpent;
   final void Function({double stamina, double hunger}) onNeedsRecovered;
+  final Boss? activeBoss;
+  final VoidCallback? onBossDefeated;
 
   const GhettoEnvironment({
     super.key,
@@ -184,6 +186,8 @@ class GhettoEnvironment extends StatefulWidget {
     required this.onNewEnemyApproached,
     required this.onStaminaSpent,
     required this.onNeedsRecovered,
+    this.activeBoss,
+    this.onBossDefeated,
   });
 
   @override
@@ -254,6 +258,19 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _startWalking();
   }
 
+  @override
+  void didUpdateWidget(GhettoEnvironment oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.activeBoss != null && oldWidget.activeBoss == null) {
+      _startBossEncounter();
+    }
+  }
+
+  void _startBossEncounter() {
+    _encounterTimer?.cancel();
+    _startEncounter(isBoss: true);
+  }
+
   void _startWalking() {
     _encounterTimer?.cancel();
     _attackTimer?.cancel();
@@ -270,6 +287,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _playerWasHit = false;
       _playerWasDefeated = false;
       _enemyHealth = 0;
+      _isFighting = false;
     });
     _scrollController.repeat();
     _walkController.repeat(reverse: true);
@@ -284,16 +302,24 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
     // Spawn the next enemy after a short stretch of walking.
     _encounterTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
+      if (mounted && widget.activeBoss == null) {
         _startEncounter();
       }
     });
   }
 
-  void _startEncounter() {
-    _enemyNumber++;
-    _enemyMaxHealth = 5 + ((_enemyNumber - 1) * 2);
-    widget.onNewEnemyApproached();
+  void _startEncounter({bool isBoss = false}) {
+    if (isBoss && widget.activeBoss != null) {
+      _enemyMaxHealth = widget.activeBoss!.health;
+    } else {
+      _enemyNumber++;
+      _enemyMaxHealth = 5 + ((_enemyNumber - 1) * 2);
+    }
+    
+    // Use microtask to avoid setState() during build if called from didUpdateWidget
+    Future.microtask(() {
+      if (mounted) widget.onNewEnemyApproached();
+    });
 
     setState(() {
       _isFighting = true;
@@ -311,8 +337,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _schedulePlayerAttack();
 
     _enemyAttackTimer?.cancel();
-    _enemyAttackTimer = Timer.periodic(const Duration(milliseconds: 1250), (_) {
-      _enemyAttackPlayer();
+    final attackInterval =
+        isBoss && widget.activeBoss != null
+            ? widget.activeBoss!.attackDelay
+            : const Duration(milliseconds: 1250);
+
+    _enemyAttackTimer = Timer.periodic(attackInterval, (_) {
+      _enemyAttackPlayer(isBoss: isBoss);
     });
   }
 
@@ -334,6 +365,14 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       return;
     }
 
+    // Check boss dodge
+    if (widget.activeBoss != null &&
+        _random.nextDouble() < widget.activeBoss!.dodgeChance) {
+      // Boss dodged!
+      await _attackController.forward(from: 0);
+      return;
+    }
+
     await _attackController.forward(from: 0);
     if (!mounted || !_isFighting) return;
 
@@ -348,7 +387,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         _isEnemyDying = true;
       }
     });
-    widget.onStatsGained(strength: 0.65, speed: 0.12, endurance: 0);
+
+    double gainMult = widget.activeBoss != null ? 3.0 : 1.0;
+    widget.onStatsGained(
+      strength: 0.65 * gainMult,
+      speed: 0.12 * gainMult,
+      endurance: 0,
+    );
 
     Future.delayed(const Duration(milliseconds: 120), () {
       if (mounted) {
@@ -359,12 +404,15 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     if (_enemyHealth <= 0) {
       await _deathController.forward(from: 0);
       if (mounted) {
+        if (widget.activeBoss != null) {
+          widget.onBossDefeated?.call();
+        }
         _startWalking(); // Enemy defeated, resume walking to find another one.
       }
     }
   }
 
-  Future<void> _enemyAttackPlayer() async {
+  Future<void> _enemyAttackPlayer({bool isBoss = false}) async {
     if (!_isFighting || _enemyAttackController.isAnimating || _isEnemyDying) {
       return;
     }
@@ -383,7 +431,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       return;
     }
 
-    final damage = 2 + (_enemyNumber / 3).floor();
+    int damage;
+    if (isBoss && widget.activeBoss != null) {
+      damage = widget.activeBoss!.damage;
+    } else {
+      damage = 2 + (_enemyNumber / 3).floor();
+    }
+
     final willDefeatPlayer = widget.playerHealth - damage <= 0;
     widget.onPlayerDamaged(damage);
     widget.onStatsGained(strength: 0, speed: 0, endurance: 0.8);
@@ -421,6 +475,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   void _handlePlayerDefeated() {
+    final wasBossFight = widget.activeBoss != null;
     _encounterTimer?.cancel();
     _attackTimer?.cancel();
     _enemyAttackTimer?.cancel();
@@ -437,18 +492,23 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
     Future.delayed(const Duration(milliseconds: 900), () {
       if (mounted) {
-        setState(() {
-          _isFighting = true;
-          _playerWasHit = false;
-          _playerWasDefeated = false;
-        });
-        _schedulePlayerAttack();
-        _enemyAttackTimer?.cancel();
-        _enemyAttackTimer = Timer.periodic(const Duration(milliseconds: 1250), (
-          _,
-        ) {
-          _enemyAttackPlayer();
-        });
+        if (wasBossFight) {
+          // If defeated by boss, just go back to walking for now to recover
+          _startWalking();
+        } else {
+          setState(() {
+            _isFighting = true;
+            _playerWasHit = false;
+            _playerWasDefeated = false;
+          });
+          _schedulePlayerAttack();
+          _enemyAttackTimer?.cancel();
+          _enemyAttackTimer = Timer.periodic(const Duration(milliseconds: 1250), (
+            _,
+          ) {
+            _enemyAttackPlayer();
+          });
+        }
       }
     });
   }
@@ -608,9 +668,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
                   child: EnemyCharacterPlaceholder(
                     health: _enemyHealth,
                     maxHealth: _enemyMaxHealth,
-                    name: _enemyNames[(_enemyNumber - 1) % _enemyNames.length],
-                    enemyNumber: _enemyNumber,
+                    name:
+                        widget.activeBoss?.name ??
+                        _enemyNames[(_enemyNumber - 1) % _enemyNames.length],
+                    enemyNumber: widget.activeBoss != null ? 0 : _enemyNumber,
                     wasHit: _enemyWasHit,
+                    isBoss: widget.activeBoss != null,
+                    themeColor: widget.activeBoss?.themeColor,
                   ),
                 ),
               ),
@@ -624,13 +688,18 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             right: 0,
             child: Center(
               child: Text(
-                _isEnemyDying ? 'ENEMY DEFEATED' : 'RECOVERING',
-                style: const TextStyle(
-                  color: Colors.amberAccent,
-                  fontSize: 20,
+                _isEnemyDying
+                    ? (widget.activeBoss != null
+                        ? 'BOSS DEFEATED!'
+                        : 'ENEMY DEFEATED')
+                    : 'RECOVERING',
+                style: TextStyle(
+                  color:
+                      _isEnemyDying ? Colors.amberAccent : Colors.redAccent,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 3,
-                  shadows: [Shadow(color: Colors.black, blurRadius: 8)],
+                  shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
                 ),
               ),
             ),
@@ -832,6 +901,8 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
   final String name;
   final int enemyNumber;
   final bool wasHit;
+  final bool isBoss;
+  final Color? themeColor;
 
   const EnemyCharacterPlaceholder({
     super.key,
@@ -840,36 +911,39 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
     required this.name,
     required this.enemyNumber,
     required this.wasHit,
+    this.isBoss = false,
+    this.themeColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final visibleHealth = health.clamp(0, maxHealth);
     final healthPercent = maxHealth == 0 ? 0.0 : visibleHealth / maxHealth;
+    final displayColor = themeColor ?? Colors.redAccent;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Health Bar
         Text(
-          '$name #$enemyNumber',
-          style: const TextStyle(
-            color: Colors.redAccent,
+          isBoss ? 'BOSS: $name' : '$name #$enemyNumber',
+          style: TextStyle(
+            color: displayColor,
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: isBoss ? 18 : 16,
           ),
         ),
         const SizedBox(height: 4),
         SizedBox(
-          width: 92,
+          width: isBoss ? 140 : 92,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
-              minHeight: 8,
+              minHeight: isBoss ? 12 : 8,
               value: healthPercent,
               backgroundColor: Colors.black54,
               valueColor: AlwaysStoppedAnimation<Color>(
-                wasHit ? Colors.white : Colors.redAccent,
+                wasHit ? Colors.white : displayColor,
               ),
             ),
           ),
@@ -886,16 +960,17 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
         const SizedBox(height: 5),
         // Head
         Container(
-          width: 45,
-          height: 45,
+          width: isBoss ? 65 : 45,
+          height: isBoss ? 65 : 45,
           decoration: BoxDecoration(
-            color: Colors.red[800],
+            color: isBoss ? Colors.black : Colors.red[800],
             shape: BoxShape.circle,
+            border: isBoss ? Border.all(color: displayColor, width: 3) : null,
             boxShadow: [
               BoxShadow(
-                color: Colors.redAccent.withValues(alpha: 0.5),
-                blurRadius: 15,
-                spreadRadius: 2,
+                color: displayColor.withValues(alpha: 0.5),
+                blurRadius: isBoss ? 25 : 15,
+                spreadRadius: isBoss ? 5 : 2,
               ),
             ],
           ),
@@ -903,13 +978,13 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
         const SizedBox(height: 5),
         // Body
         Container(
-          width: 60,
-          height: 80,
+          width: isBoss ? 90 : 60,
+          height: isBoss ? 120 : 80,
           decoration: BoxDecoration(
-            color: Colors.red[900],
+            color: isBoss ? Colors.black : Colors.red[900],
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
-              color: Colors.redAccent.withValues(alpha: 0.5),
+              color: displayColor.withValues(alpha: 0.5),
               width: 2,
             ),
             boxShadow: [
@@ -920,10 +995,10 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
               ),
             ],
           ),
-          child: const Center(
+          child: Center(
             child: Text(
-              'ENEMY',
-              style: TextStyle(
+              isBoss ? 'BOSS' : 'ENEMY',
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2,
@@ -937,17 +1012,17 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 18,
-              height: 35,
+              width: isBoss ? 25 : 18,
+              height: isBoss ? 50 : 35,
               decoration: BoxDecoration(
                 color: Colors.black87,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: isBoss ? 18 : 12),
             Container(
-              width: 18,
-              height: 35,
+              width: isBoss ? 25 : 18,
+              height: isBoss ? 50 : 35,
               decoration: BoxDecoration(
                 color: Colors.black87,
                 borderRadius: BorderRadius.circular(4),
