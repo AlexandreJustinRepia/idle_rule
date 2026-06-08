@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import '../game_state.dart';
 
 class StatsPanel extends StatelessWidget {
-  const StatsPanel({super.key});
+  final PlayerStats stats;
+
+  const StatsPanel({super.key, required this.stats});
 
   @override
   Widget build(BuildContext context) {
@@ -9,9 +12,7 @@ class StatsPanel extends StatelessWidget {
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.85),
-        border: const Border(
-          top: BorderSide(color: Colors.white24, width: 1),
-        ),
+        border: const Border(top: BorderSide(color: Colors.white24, width: 1)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -28,21 +29,27 @@ class StatsPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildStatRow('Strength', 'F', Colors.grey),
+          _buildStatRow('Strength', stats.strength, Colors.redAccent),
           const SizedBox(height: 12),
-          _buildStatRow('Speed', 'E', Colors.blueGrey),
+          _buildStatRow('Speed', stats.speed, Colors.lightBlueAccent),
           const SizedBox(height: 12),
-          _buildStatRow('Endurance', 'C', Colors.blueAccent),
+          _buildStatRow('Endurance', stats.endurance, Colors.greenAccent),
           const SizedBox(height: 12),
-          _buildStatRow('Intelligence', 'S-', Colors.purpleAccent),
+          _buildStatRow(
+            'Intelligence',
+            stats.intelligence,
+            Colors.purpleAccent,
+          ),
           const SizedBox(height: 12),
-          _buildStatRow('Potential', 'SSR', Colors.orangeAccent),
+          _buildStatRow('Potential', stats.potential, Colors.orangeAccent),
         ],
       ),
     );
   }
 
-  Widget _buildStatRow(String name, String tier, Color tierColor) {
+  Widget _buildStatRow(String name, double value, Color tierColor) {
+    final tier = _rankFor(value);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -58,7 +65,7 @@ class StatsPanel extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Rank ',
+              '${value.floor()} xp  ',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 12,
@@ -74,7 +81,7 @@ class StatsPanel extends StatelessWidget {
                   Shadow(
                     color: tierColor.withValues(alpha: 0.6),
                     blurRadius: 8,
-                  )
+                  ),
                 ],
               ),
             ),
@@ -82,5 +89,16 @@ class StatsPanel extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _rankFor(double value) {
+    if (value >= 100) return 'SSR';
+    if (value >= 80) return 'S';
+    if (value >= 60) return 'A';
+    if (value >= 40) return 'B';
+    if (value >= 25) return 'C';
+    if (value >= 12) return 'D';
+    if (value >= 5) return 'E';
+    return 'F';
   }
 }
