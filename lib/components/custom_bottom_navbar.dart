@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-class CustomBottomNavbar extends StatefulWidget {
-  const CustomBottomNavbar({super.key});
+class CustomBottomNavbar extends StatelessWidget {
+  final int currentIndex;
+  final Function(int) onTap;
 
-  @override
-  State<CustomBottomNavbar> createState() => _CustomBottomNavbarState();
-}
-
-class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
-  int _selectedIndex = 0;
+  const CustomBottomNavbar({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,16 +17,12 @@ class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
       backgroundColor: Colors.black,
       selectedItemColor: Colors.white,
       unselectedItemColor: Colors.grey,
-      currentIndex: _selectedIndex,
-      onTap: (index) {
-        setState(() {
-          _selectedIndex = index;
-        });
-      },
+      currentIndex: currentIndex,
+      onTap: onTap,
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.store),
-          label: 'Shop',
+          icon: Icon(Icons.location_on),
+          label: 'Street',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.fitness_center),

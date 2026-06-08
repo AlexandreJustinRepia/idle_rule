@@ -4,6 +4,7 @@ import 'components/custom_navbar.dart';
 import 'components/custom_bottom_navbar.dart';
 import 'components/stats_panel.dart';
 import 'components/ghetto_environment.dart';
+import 'components/gym_environment.dart';
 import 'game_state.dart';
 
 void main() {
@@ -43,6 +44,7 @@ class _HomePageState extends State<HomePage> {
   double _playerHunger = const PlayerStats().maxHunger;
   Boss? _activeBoss;
   int _bossIndex = 0;
+  int _currentTabIndex = 0;
 
   void _gainStats({
     double strength = 0,
@@ -80,6 +82,7 @@ class _HomePageState extends State<HomePage> {
       _playerStamina = _stats.maxStamina;
       _playerHunger = _stats.maxHunger;
       _activeBoss = null; // Retreat from boss if defeated
+      _currentTabIndex = 0; // Back to street
     });
   }
 
@@ -125,46 +128,77 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: const CustomNavbar(),
-      bottomNavigationBar: const CustomBottomNavbar(),
+      bottomNavigationBar: CustomBottomNavbar(
+        currentIndex: _currentTabIndex,
+        onTap: (index) {
+          setState(() {
+            _currentTabIndex = index;
+            // Stop boss fight if leaving street? 
+            // For now, let's keep it simple.
+          });
+        },
+      ),
       body: Container(
         color: Colors.grey[900],
         child: Column(
           children: [
             Expanded(
-              flex: 3,
-              child: Stack(
+              flex: 5,
+              child: IndexedStack(
+                index: _currentTabIndex,
                 children: [
-                  GhettoEnvironment(
+                  // Street Tab
+                  Stack(
+                    children: [
+                      GhettoEnvironment(
+                        stats: _stats,
+                        playerHealth: _playerHealth,
+                        playerMaxHealth: _stats.maxHealth,
+                        playerStamina: _playerStamina,
+                        playerMaxStamina: _stats.maxStamina,
+                        playerHunger: _playerHunger,
+                        playerMaxHunger: _stats.maxHunger,
+                        onStatsGained: _gainStats,
+                        onPlayerDamaged: _takeDamage,
+                        onPlayerDefeated: _recoverFromDefeat,
+                        onNewEnemyApproached: _recoverHealthForNewEnemy,
+                        onStaminaSpent: _spendStamina,
+                        onNeedsRecovered: _recoverNeeds,
+                        activeBoss: _activeBoss,
+                        onBossDefeated: _onBossDefeated,
+                      ),
+                      if (_activeBoss == null)
+                        Positioned(
+                          bottom: 20,
+                          right: 20,
+                          child: _FightBossButton(
+                            onPressed: _startBossFight,
+                            nextBossName: gameBosses[_bossIndex % gameBosses.length].name,
+                          ),
+                        ),
+                    ],
+                  ),
+                  // Gym Tab
+                  GymEnvironment(
                     stats: _stats,
-                    playerHealth: _playerHealth,
-                    playerMaxHealth: _stats.maxHealth,
                     playerStamina: _playerStamina,
-                    playerMaxStamina: _stats.maxStamina,
                     playerHunger: _playerHunger,
-                    playerMaxHunger: _stats.maxHunger,
                     onStatsGained: _gainStats,
-                    onPlayerDamaged: _takeDamage,
-                    onPlayerDefeated: _recoverFromDefeat,
-                    onNewEnemyApproached: _recoverHealthForNewEnemy,
                     onStaminaSpent: _spendStamina,
                     onNeedsRecovered: _recoverNeeds,
-                    activeBoss: _activeBoss,
-                    onBossDefeated: _onBossDefeated,
                   ),
-                  if (_activeBoss == null)
-                    Positioned(
-                      bottom: 20,
-                      right: 20,
-                      child: _FightBossButton(
-                        onPressed: _startBossFight,
-                        nextBossName: gameBosses[_bossIndex % gameBosses.length].name,
-                      ),
+                  // Gangs Tab (Placeholder)
+                  const Center(
+                    child: Text(
+                      'GANGS COMING SOON',
+                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                     ),
+                  ),
                 ],
               ),
             ),
             Flexible(
-              flex: 2,
+              flex: 4,
               child: StatsPanel(stats: _stats),
             ),
           ],
