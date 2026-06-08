@@ -35,7 +35,7 @@ class PlayerStats {
   double get maxStamina => 24 + endurance * 0.8;
   double get maxHunger => 60 + endurance * 1.4;
   double get staminaRecovery => 2 + endurance * 0.06;
-  double get dodgeChance => (speed * 0.006).clamp(0.0, 0.45);
+  double get dodgeChance => (speed / (speed + 180)).clamp(0.0, 0.45);
   Duration get attackDelay {
     final milliseconds = (950 - speed * 6).clamp(360, 950).round();
     return Duration(milliseconds: milliseconds);

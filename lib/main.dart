@@ -81,6 +81,12 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _recoverHealthForNewEnemy() {
+    setState(() {
+      _playerHealth = _stats.maxHealth;
+    });
+  }
+
   bool _spendStamina(double amount) {
     if (_playerStamina < amount) return false;
 
@@ -119,6 +125,7 @@ class _HomePageState extends State<HomePage> {
                 onStatsGained: _gainStats,
                 onPlayerDamaged: _takeDamage,
                 onPlayerDefeated: _recoverFromDefeat,
+                onNewEnemyApproached: _recoverHealthForNewEnemy,
                 onStaminaSpent: _spendStamina,
                 onNeedsRecovered: _recoverNeeds,
               ),

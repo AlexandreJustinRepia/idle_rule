@@ -165,6 +165,7 @@ class GhettoEnvironment extends StatefulWidget {
   onStatsGained;
   final void Function(int damage) onPlayerDamaged;
   final VoidCallback onPlayerDefeated;
+  final VoidCallback onNewEnemyApproached;
   final bool Function(double amount) onStaminaSpent;
   final void Function({double stamina, double hunger}) onNeedsRecovered;
 
@@ -180,6 +181,7 @@ class GhettoEnvironment extends StatefulWidget {
     required this.onStatsGained,
     required this.onPlayerDamaged,
     required this.onPlayerDefeated,
+    required this.onNewEnemyApproached,
     required this.onStaminaSpent,
     required this.onNeedsRecovered,
   });
@@ -211,6 +213,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   Timer? _enemyAttackTimer;
   Timer? _trainingTimer;
   final math.Random _random = math.Random();
+  static const double _dodgeStaminaCost = 5;
+  static const double _dodgeHungerCost = 2;
 
   static const List<String> _enemyNames = [
     'THUG',
@@ -289,6 +293,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   void _startEncounter() {
     _enemyNumber++;
     _enemyMaxHealth = 5 + ((_enemyNumber - 1) * 2);
+    widget.onNewEnemyApproached();
 
     setState(() {
       _isFighting = true;
@@ -367,7 +372,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     await _enemyAttackController.forward(from: 0);
     if (!mounted || !_isFighting || _isEnemyDying) return;
 
-    if (_random.nextDouble() < widget.stats.dodgeChance) {
+    if (_random.nextDouble() < widget.stats.dodgeChance && _payDodgeCost()) {
       widget.onStatsGained(strength: 0, speed: 0.9, endurance: 0);
       setState(() => _playerWasHit = true);
       Future.delayed(const Duration(milliseconds: 140), () {
@@ -401,6 +406,20 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
   }
 
+  bool _payDodgeCost() {
+    if (widget.onStaminaSpent(_dodgeStaminaCost)) {
+      return true;
+    }
+
+    if (widget.playerHunger >= _dodgeHungerCost) {
+      widget.onNeedsRecovered(stamina: 0, hunger: -_dodgeHungerCost);
+      return true;
+    }
+
+    widget.onStatsGained(strength: 0, speed: 0, endurance: 0.25);
+    return false;
+  }
+
   void _handlePlayerDefeated() {
     _encounterTimer?.cancel();
     _attackTimer?.cancel();
@@ -413,6 +432,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _isFighting = false;
       _isEnemyDying = false;
       _playerWasDefeated = true;
+      _enemyHealth = _enemyMaxHealth;
     });
 
     Future.delayed(const Duration(milliseconds: 900), () {
