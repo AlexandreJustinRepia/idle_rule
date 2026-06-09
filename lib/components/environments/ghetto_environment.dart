@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../game_state.dart';
+import '../../logic/combat_engine.dart';
+import '../../logic/player_needs_logic.dart';
 import '../ui/player_health_bar.dart';
 import 'ghetto/ghetto_background.dart';
 import 'ghetto/ghetto_enemy_factory.dart';
@@ -73,13 +74,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   Timer? _attackTimer;
   Timer? _enemyAttackTimer;
   Timer? _trainingTimer;
-  final math.Random _random = math.Random();
-  static const double _dodgeStaminaCost = 5;
-  static const double _dodgeHungerCost = 2;
 
-  double get _hungerRatio => widget.playerMaxHunger > 0 ? widget.playerHunger / widget.playerMaxHunger : 0;
-  bool get _isLowHunger => _hungerRatio < 0.25;
-  bool get _isCriticalHunger => _hungerRatio < 0.10;
+  bool get _isLowHunger => PlayerNeedsLogic.isLowHunger(widget.playerHunger, widget.playerMaxHunger);
+  bool get _isCriticalHunger => PlayerNeedsLogic.isCriticalHunger(widget.playerHunger, widget.playerMaxHunger);
 
   @override
   void initState() {
@@ -109,17 +106,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   void _startWalking() {
-    _attackTimer?.cancel();
-    _enemyAttackTimer?.cancel();
-    _attackController.stop();
-    _attackController.value = 0;
-    _enemyAttackController.stop();
-    _enemyAttackController.value = 0;
-    _deathController.stop();
-    _deathController.value = 0;
-    _enemyChargeController.stop();
-    _enemyChargeController.value = 0;
-
+    _stopAllCombatAnimations();
     setState(() {
       _isEnemyDying = false;
       _enemyWasHit = false;
@@ -136,8 +123,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _trainingTimer?.cancel();
     _trainingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       widget.onStatsGained(strength: 0, speed: 0.25, endurance: 0);
-      double recovery = widget.stats.staminaRecovery;
-      if (_isLowHunger) recovery *= 0.5;
+      double recovery = widget.stats.staminaRecovery * PlayerNeedsLogic.getRecoveryMultiplier(widget.playerHunger, widget.playerMaxHunger);
       widget.onNeedsRecovered(stamina: recovery, hunger: -0.45);
     });
 
@@ -146,6 +132,15 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         _startEncounter();
       }
     });
+  }
+
+  void _stopAllCombatAnimations() {
+    _attackTimer?.cancel();
+    _enemyAttackTimer?.cancel();
+    for (var controller in [_attackController, _enemyAttackController, _deathController, _enemyChargeController]) {
+      controller.stop();
+      controller.value = 0;
+    }
   }
 
   void _startEncounter({bool isBoss = false}) {
@@ -198,9 +193,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _attackTimer?.cancel();
     _attackTimer = Timer(widget.stats.attackDelay, () async {
       await _attackEnemy();
-      if (mounted && _isFighting) {
-        _schedulePlayerAttack();
-      }
+      if (mounted && _isFighting) _schedulePlayerAttack();
     });
   }
 
@@ -212,12 +205,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       return;
     }
 
-    if (_random.nextDouble() < _currentEnemy!.dodgeChance) {
+    if (CombatEngine.rollDodge(_currentEnemy!.dodgeChance)) {
       await _attackController.forward(from: 0);
       return;
     }
 
-    if (_isCriticalHunger && _random.nextDouble() < 0.25) {
+    if (CombatEngine.rollMiss(_isCriticalHunger)) {
       setState(() => _playerMissed = true);
       await _attackController.forward(from: 0);
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -229,24 +222,22 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     await _attackController.forward(from: 0);
     if (!mounted || !_isFighting) return;
 
-    int damage = widget.stats.attackDamage;
-    if (_isLowHunger) damage = (damage * 0.8).floor().clamp(1, 999);
+    int damage = CombatEngine.calculatePlayerDamage(widget.stats, _isLowHunger);
 
     setState(() {
       _enemyHealth -= damage;
       _enemyWasHit = true;
       if (_enemyHealth <= 0) {
-        _attackTimer?.cancel();
-        _enemyChargeController.stop();
         _isFighting = false;
         _isEnemyDying = true;
+        _enemyChargeController.stop();
       }
     });
 
     double gainMult = widget.activeBoss != null ? 3.0 : 1.0;
     widget.onStatsGained(strength: 0.65 * gainMult, speed: 0.12 * gainMult, endurance: 0);
 
-    if (_enemyHealth > 0 && _random.nextDouble() < _currentEnemy!.counterChance) {
+    if (_enemyHealth > 0 && CombatEngine.rollDodge(_currentEnemy!.counterChance)) {
       _enemyAttackPlayer(isCounter: true);
     }
 
@@ -266,15 +257,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   Future<void> _enemyAttackPlayer({bool isCounter = false}) async {
     if (!_isFighting || (_enemyAttackController.isAnimating && !isCounter) || _isEnemyDying || _currentEnemy == null) return;
 
-    if (isCounter) {
-      _enemyAttackController.forward(from: 0.5);
-    } else {
-      await _enemyAttackController.forward(from: 0);
-    }
+    if (isCounter) _enemyAttackController.forward(from: 0.5);
+    else await _enemyAttackController.forward(from: 0);
 
     if (!mounted || !_isFighting || _isEnemyDying) return;
 
-    if (_random.nextDouble() < widget.stats.dodgeChance && _payDodgeCost()) {
+    if (CombatEngine.rollDodge(widget.stats.dodgeChance) && _payDodgeCost()) {
       widget.onStatsGained(strength: 0, speed: 0.9, endurance: 0);
       setState(() => _playerWasHit = true);
       Future.delayed(const Duration(milliseconds: 140), () {
@@ -283,15 +271,14 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       return;
     }
 
-    int damage = _currentEnemy!.damage;
-    if (_isLowHunger) damage = (damage * 1.3).ceil();
+    int damage = CombatEngine.calculateEnemyDamage(_currentEnemy!.damage, _isLowHunger);
 
     final willDefeatPlayer = widget.playerHealth - damage <= 0;
     widget.onPlayerDamaged(damage);
     widget.onStatsGained(strength: 0, speed: 0, endurance: 0.8);
-    double stmRecovery = widget.stats.staminaRecovery * 0.35;
-    if (_isLowHunger) stmRecovery *= 0.5;
-    widget.onNeedsRecovered(stamina: stmRecovery, hunger: -0.25);
+    
+    double recoveryMult = PlayerNeedsLogic.getRecoveryMultiplier(widget.playerHunger, widget.playerMaxHunger);
+    widget.onNeedsRecovered(stamina: widget.stats.staminaRecovery * 0.35 * recoveryMult, hunger: -0.25);
 
     setState(() => _playerWasHit = true);
     if (willDefeatPlayer) {
@@ -305,9 +292,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   bool _payDodgeCost() {
-    if (widget.onStaminaSpent(_dodgeStaminaCost)) return true;
-    if (widget.playerHunger >= _dodgeHungerCost) {
-      widget.onNeedsRecovered(stamina: 0, hunger: -_dodgeHungerCost);
+    if (widget.onStaminaSpent(5)) return true;
+    if (widget.playerHunger >= 2) {
+      widget.onNeedsRecovered(stamina: 0, hunger: -2);
       return true;
     }
     widget.onStatsGained(strength: 0, speed: 0, endurance: 0.25);
@@ -316,9 +303,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   void _handlePlayerDefeated() {
     final wasBossFight = widget.activeBoss != null;
+    _stopAllCombatAnimations();
     _encounterProgressController.stop();
-    _attackTimer?.cancel();
-    _enemyChargeController.stop();
     _trainingTimer?.cancel();
 
     widget.onPlayerDefeated();
@@ -348,7 +334,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   @override
   void dispose() {
-    _attackTimer?.cancel();
+    _stopAllCombatAnimations();
     _trainingTimer?.cancel();
     _scrollController.dispose();
     _walkController.dispose();
@@ -365,11 +351,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     return Stack(
       children: [
         GhettoBackground(scrollAnimation: _scrollController, sceneWidth: sceneWidth),
-
         Positioned(
-          top: 80,
-          left: 20,
-          right: 20,
+          top: 80, left: 20, right: 20,
           child: PlayerHealthBar(
             health: widget.playerHealth,
             maxHealth: widget.playerMaxHealth,
@@ -382,52 +365,25 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             dodge: (widget.stats.dodgeChance * 100).toInt(),
           ),
         ),
-
         if (!_isFighting && !_isEnemyDying && !_playerWasDefeated)
           GhettoSearchingIndicator(progress: _encounterProgressController),
-
         GhettoHungerIndicator(isLowHunger: _isLowHunger, isCriticalHunger: _isCriticalHunger),
-
         GhettoHeroUnit(
-          walkAnimation: _walkController,
-          attackAnimation: _attackController,
-          enemyAttackAnimation: _enemyAttackController,
-          isFighting: _isFighting,
-          wasHit: _playerWasHit,
-          missed: _playerMissed,
+          walkAnimation: _walkController, attackAnimation: _attackController,
+          enemyAttackAnimation: _enemyAttackController, isFighting: _isFighting,
+          wasHit: _playerWasHit, missed: _playerMissed,
         ),
-
         if (_playerMissed)
-          Positioned(
-            bottom: 120,
-            left: 100,
-            child: const Text(
-              'MISS!',
-              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 16),
-            ),
-          ),
-
+          const Positioned(bottom: 120, left: 100, child: Text('MISS!', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 16))),
         GhettoEnemyUnit(
-          isFighting: _isFighting,
-          isEnemyDying: _isEnemyDying,
-          playerWasDefeated: _playerWasDefeated,
-          currentEnemy: _currentEnemy,
-          enemyHealth: _enemyHealth,
-          enemyNumber: _enemyNumber,
-          enemyWasHit: _enemyWasHit,
-          attackAnimation: _attackController,
-          enemyAttackAnimation: _enemyAttackController,
-          deathAnimation: _deathController,
-          enemyChargeController: _enemyChargeController,
-          onTap: _attackEnemy,
+          isFighting: _isFighting, isEnemyDying: _isEnemyDying, playerWasDefeated: _playerWasDefeated,
+          currentEnemy: _currentEnemy, enemyHealth: _enemyHealth, enemyNumber: _enemyNumber,
+          enemyWasHit: _enemyWasHit, attackAnimation: _attackController,
+          enemyAttackAnimation: _enemyAttackController, deathAnimation: _deathController,
+          enemyChargeController: _enemyChargeController, onTap: _attackEnemy,
           isBoss: widget.activeBoss != null,
         ),
-
-        GhettoBattleStatusOverlay(
-          isEnemyDying: _isEnemyDying,
-          playerWasDefeated: _playerWasDefeated,
-          isBoss: widget.activeBoss != null,
-        ),
+        GhettoBattleStatusOverlay(isEnemyDying: _isEnemyDying, playerWasDefeated: _playerWasDefeated, isBoss: widget.activeBoss != null),
       ],
     );
   }
