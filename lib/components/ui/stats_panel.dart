@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../game_state.dart';
+import '../../game_state.dart';
 
 class StatsPanel extends StatelessWidget {
   final PlayerStats stats;

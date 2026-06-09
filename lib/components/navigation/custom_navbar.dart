@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'profile_edit_modal.dart';
+import '../ui/profile_edit_modal.dart';
 
 class CustomNavbar extends StatefulWidget implements PreferredSizeWidget {
   const CustomNavbar({super.key});

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
 @immutable
 class PlayerStats {
@@ -30,16 +31,34 @@ class PlayerStats {
     );
   }
 
-  int get attackDamage => 1 + (strength / 10).floor();
-  int get maxHealth => 30 + (strength / 3).floor();
-  double get maxStamina => 24 + endurance * 0.8;
-  double get maxHunger => 60 + endurance * 1.4;
-  double get staminaRecovery => 2 + endurance * 0.06;
-  double get dodgeChance => (speed / (speed + 180)).clamp(0.0, 0.45);
+  // DIMINISHING RETURNS FORMULAS
+  // Using Square Root or Hyperbolic curves to ensure early gains feel impactful but late stacking flattens.
+
+  int get attackDamage => 1 + (math.sqrt(strength) * 1.2).floor();
+  
+  int get maxHealth => 30 + (math.sqrt(strength) * 4).floor();
+
+  double get maxStamina => 24 + (math.sqrt(endurance) * 10);
+  
+  double get maxHunger => 60 + (math.sqrt(endurance) * 15);
+  
+  double get staminaRecovery => 2 + (math.sqrt(endurance) * 0.6);
+
+  // Hyperbolic Dodge: harder to hit 45% cap
+  double get dodgeChance => (speed / (speed + 220)).clamp(0.0, 0.45);
+
+  // Hyperbolic Attack Delay: prevents "instant" attacks
   Duration get attackDelay {
-    final milliseconds = (950 - speed * 6).clamp(360, 950).round();
+    final milliseconds = (300 + 650 * (180 / (speed + 180))).round();
     return Duration(milliseconds: milliseconds);
   }
+
+  // INTELLIGENCE & VARIETY STATS
+  // Hit Chance: Reduces miss chance against "Fast" enemies.
+  double get hitChance => 0.7 + (intelligence / (intelligence + 120)) * 0.28;
+
+  // Counter Mitigation: Reduces damage taken from "Counter" strikes.
+  double get counterMitigation => (intelligence / (intelligence + 250)) * 0.5;
 }
 
 enum EnemyType { regular, fast, tank, counter }

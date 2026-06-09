@@ -58,7 +58,7 @@ class _ProfileEditModalState extends State<ProfileEditModal> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const SizedBox(width: 48), // Spacer to balance the close button and keep text centered
+                const SizedBox(width: 48), 
                 const Expanded(
                   child: Text(
                     'EDIT PROFILE',

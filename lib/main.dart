@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'components/custom_navbar.dart';
-import 'components/custom_bottom_navbar.dart';
-import 'components/stats_panel.dart';
-import 'components/ghetto_environment.dart';
-import 'components/gym_environment.dart';
+import 'components/navigation/custom_navbar.dart';
+import 'components/navigation/custom_bottom_navbar.dart';
+import 'components/ui/stats_panel.dart';
+import 'components/environments/ghetto_environment.dart';
+import 'components/environments/gym_environment.dart';
 import 'game_state.dart';
 
 void main() {
@@ -81,8 +81,8 @@ class _HomePageState extends State<HomePage> {
       _playerHealth = _stats.maxHealth;
       _playerStamina = _stats.maxStamina;
       _playerHunger = _stats.maxHunger;
-      _activeBoss = null; // Retreat from boss if defeated
-      _currentTabIndex = 0; // Back to street
+      _activeBoss = null; 
+      _currentTabIndex = 0; 
     });
   }
 
@@ -112,7 +112,7 @@ class _HomePageState extends State<HomePage> {
     if (_activeBoss != null) return;
     setState(() {
       _activeBoss = gameBosses[_bossIndex % gameBosses.length];
-      _playerHealth = _stats.maxHealth; // Full health for boss fight
+      _playerHealth = _stats.maxHealth; 
     });
   }
 
@@ -145,7 +145,6 @@ class _HomePageState extends State<HomePage> {
               child: IndexedStack(
                 index: _currentTabIndex,
                 children: [
-                  // Index 0: Street Tab
                   Stack(
                     children: [
                       GhettoEnvironment(
@@ -176,7 +175,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                     ],
                   ),
-                  // Index 1: Gym Tab
                   GymEnvironment(
                     stats: _stats,
                     playerStamina: _playerStamina,
@@ -185,14 +183,12 @@ class _HomePageState extends State<HomePage> {
                     onStaminaSpent: _spendStamina,
                     onNeedsRecovered: _recoverNeeds,
                   ),
-                  // Index 2: Turfs Tab
                   const Center(
                     child: Text(
                       'TURFS COMING SOON',
                       style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  // Index 3: Gangs Tab
                   const Center(
                     child: Text(
                       'GANGS COMING SOON',
