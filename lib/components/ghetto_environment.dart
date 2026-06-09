@@ -191,15 +191,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _playerMissed = false;
   int _enemyNumber = 0;
   int _enemyHealth = 0;
-  int _enemyMaxHealth = 0;
+  Enemy? _currentEnemy;
   Timer? _attackTimer;
   Timer? _enemyAttackTimer;
   Timer? _trainingTimer;
   final math.Random _random = math.Random();
   static const double _dodgeStaminaCost = 5;
   static const double _dodgeHungerCost = 2;
-
-  static const List<String> _enemyNames = ['THUG', 'BRAWLER', 'ENFORCER', 'RIVAL'];
 
   double get _hungerRatio => widget.playerMaxHunger > 0 ? widget.playerHunger / widget.playerMaxHunger : 0;
   bool get _isLowHunger => _hungerRatio < 0.25;
@@ -253,6 +251,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _playerMissed = false;
       _enemyHealth = 0;
       _isFighting = false;
+      _currentEnemy = null;
     });
 
     _scrollController.repeat();
@@ -261,7 +260,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _trainingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       widget.onStatsGained(strength: 0, speed: 0.25, endurance: 0);
       
-      // Penalty: Slower stamina regen when hungry
       double recovery = widget.stats.staminaRecovery;
       if (_isLowHunger) recovery *= 0.5;
       
@@ -277,14 +275,21 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   void _startEncounter({bool isBoss = false}) {
     if (isBoss && widget.activeBoss != null) {
-      _enemyMaxHealth = widget.activeBoss!.health;
-      _enemyChargeController.duration = widget.activeBoss!.attackDelay;
+      _currentEnemy = Enemy(
+        name: widget.activeBoss!.name,
+        health: widget.activeBoss!.health,
+        damage: widget.activeBoss!.damage,
+        attackDelay: widget.activeBoss!.attackDelay,
+        dodgeChance: widget.activeBoss!.dodgeChance,
+        themeColor: widget.activeBoss!.themeColor,
+      );
     } else {
       _enemyNumber++;
-      _enemyMaxHealth = 5 + ((_enemyNumber - 1) * 2);
-      _enemyChargeController.duration = const Duration(milliseconds: 1300);
+      _currentEnemy = _generateRandomEnemy(_enemyNumber);
     }
     
+    _enemyChargeController.duration = _currentEnemy!.attackDelay;
+
     Future.microtask(() {
       if (mounted) widget.onNewEnemyApproached();
     });
@@ -295,7 +300,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _enemyWasHit = false;
       _playerWasDefeated = false;
       _playerMissed = false;
-      _enemyHealth = _enemyMaxHealth;
+      _enemyHealth = _currentEnemy!.health;
     });
 
     _scrollController.stop();
@@ -307,14 +312,61 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _schedulePlayerAttack();
 
     _enemyAttackTimer?.cancel();
-    _startEnemyAttackCycle(isBoss);
+    _startEnemyAttackCycle();
   }
 
-  void _startEnemyAttackCycle(bool isBoss) {
+  Enemy _generateRandomEnemy(int level) {
+    final typeIndex = _random.nextInt(4);
+    final enemyType = EnemyType.values[typeIndex];
+    
+    switch (enemyType) {
+      case EnemyType.fast:
+        return Enemy(
+          name: 'PUNK',
+          type: EnemyType.fast,
+          health: 5 + (level * 1.5).floor(),
+          damage: 1 + (level / 5).floor(),
+          attackDelay: const Duration(milliseconds: 700),
+          dodgeChance: 0.35,
+          themeColor: Colors.yellowAccent,
+        );
+      case EnemyType.tank:
+        return Enemy(
+          name: 'BRUISER',
+          type: EnemyType.tank,
+          health: 15 + (level * 3.5).floor(),
+          damage: 4 + (level / 2.5).floor(),
+          attackDelay: const Duration(milliseconds: 2200),
+          dodgeChance: 0.0,
+          themeColor: Colors.blueAccent,
+        );
+      case EnemyType.counter:
+        return Enemy(
+          name: 'REBEL',
+          type: EnemyType.counter,
+          health: 8 + (level * 2).floor(),
+          damage: 2 + (level / 4).floor(),
+          attackDelay: const Duration(milliseconds: 1400),
+          counterChance: 0.4,
+          themeColor: Colors.deepPurpleAccent,
+        );
+      case EnemyType.regular:
+      default:
+        return Enemy(
+          name: 'THUG',
+          type: EnemyType.regular,
+          health: 8 + (level * 2.2).floor(),
+          damage: 2 + (level / 3.5).floor(),
+          attackDelay: const Duration(milliseconds: 1300),
+        );
+    }
+  }
+
+  void _startEnemyAttackCycle() {
     _enemyChargeController.forward(from: 0).then((_) {
       if (mounted && _isFighting && !_isEnemyDying) {
-        _enemyAttackPlayer(isBoss: isBoss);
-        _startEnemyAttackCycle(isBoss);
+        _enemyAttackPlayer();
+        _startEnemyAttackCycle();
       }
     });
   }
@@ -330,19 +382,18 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   Future<void> _attackEnemy() async {
-    if (!_isFighting || _attackController.isAnimating) return;
+    if (!_isFighting || _attackController.isAnimating || _currentEnemy == null) return;
 
     if (!widget.onStaminaSpent(8)) {
       widget.onStatsGained(strength: 0, speed: 0, endurance: 0.35);
       return;
     }
 
-    if (widget.activeBoss != null && _random.nextDouble() < widget.activeBoss!.dodgeChance) {
+    if (_random.nextDouble() < _currentEnemy!.dodgeChance) {
       await _attackController.forward(from: 0);
       return;
     }
 
-    // MISS CHANCE: Critical hunger shaky state
     if (_isCriticalHunger && _random.nextDouble() < 0.25) {
       setState(() => _playerMissed = true);
       await _attackController.forward(from: 0);
@@ -355,7 +406,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     await _attackController.forward(from: 0);
     if (!mounted || !_isFighting) return;
 
-    // DAMAGE REDUCTION: Reduced ATK slightly when hungry
     int damage = widget.stats.attackDamage;
     if (_isLowHunger) damage = (damage * 0.8).floor().clamp(1, 999);
 
@@ -373,6 +423,11 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     double gainMult = widget.activeBoss != null ? 3.0 : 1.0;
     widget.onStatsGained(strength: 0.65 * gainMult, speed: 0.12 * gainMult, endurance: 0);
 
+    // COUNTER ATTACK LOGIC
+    if (_enemyHealth > 0 && _random.nextDouble() < _currentEnemy!.counterChance) {
+       _enemyAttackPlayer(isCounter: true);
+    }
+
     Future.delayed(const Duration(milliseconds: 120), () {
       if (mounted) setState(() => _enemyWasHit = false);
     });
@@ -386,10 +441,16 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     }
   }
 
-  Future<void> _enemyAttackPlayer({bool isBoss = false}) async {
-    if (!_isFighting || _enemyAttackController.isAnimating || _isEnemyDying) return;
+  Future<void> _enemyAttackPlayer({bool isCounter = false}) async {
+    if (!_isFighting || (_enemyAttackController.isAnimating && !isCounter) || _isEnemyDying || _currentEnemy == null) return;
 
-    await _enemyAttackController.forward(from: 0);
+    if (isCounter) {
+        // Sudden strike visual
+        _enemyAttackController.forward(from: 0.5);
+    } else {
+        await _enemyAttackController.forward(from: 0);
+    }
+    
     if (!mounted || !_isFighting || _isEnemyDying) return;
 
     if (_random.nextDouble() < widget.stats.dodgeChance && _payDodgeCost()) {
@@ -401,16 +462,14 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       return;
     }
 
-    int damage = isBoss && widget.activeBoss != null ? widget.activeBoss!.damage : 2 + (_enemyNumber / 3).floor();
+    int damage = _currentEnemy!.damage;
 
-    // DEFENSE PENALTY: Increased damage taken when hungry
     if (_isLowHunger) damage = (damage * 1.3).ceil();
 
     final willDefeatPlayer = widget.playerHealth - damage <= 0;
     widget.onPlayerDamaged(damage);
     widget.onStatsGained(strength: 0, speed: 0, endurance: 0.8);
     
-    // Stamina recovery during hit is also penalized
     double stmRecovery = widget.stats.staminaRecovery * 0.35;
     if (_isLowHunger) stmRecovery *= 0.5;
     
@@ -451,7 +510,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _isFighting = false;
       _isEnemyDying = false;
       _playerWasDefeated = true;
-      _enemyHealth = _enemyMaxHealth;
+      _enemyHealth = _currentEnemy?.health ?? 0;
     });
 
     Future.delayed(const Duration(milliseconds: 900), () {
@@ -465,7 +524,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             _playerWasDefeated = false;
           });
           _schedulePlayerAttack();
-          _startEnemyAttackCycle(false);
+          _startEnemyAttackCycle();
         }
       }
     });
@@ -535,7 +594,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           ),
         ),
 
-        // Zone Progression
         if (!_isFighting && !_isEnemyDying && !_playerWasDefeated)
           Positioned(
             top: 180,
@@ -565,7 +623,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             ),
           ),
 
-        // Hunger Warnings
         if (_isLowHunger)
           Positioned(
             top: 200,
@@ -591,7 +648,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             ),
           ),
 
-        // Hero Character
         Align(
           alignment: Alignment.bottomLeft,
           child: Padding(
@@ -622,7 +678,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           ),
         ),
 
-        // Miss/Warning Text
         if (_playerMissed)
           Positioned(
             bottom: 120,
@@ -633,8 +688,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             ),
           ),
 
-        // Enemy Character
-        if (_isFighting || _isEnemyDying || _playerWasDefeated)
+        if ((_isFighting || _isEnemyDying || _playerWasDefeated) && _currentEnemy != null)
           Align(
             alignment: Alignment.bottomRight,
             child: Padding(
@@ -661,14 +715,10 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
                   onTap: _attackEnemy,
                   child: EnemyCharacterPlaceholder(
                     health: _enemyHealth,
-                    maxHealth: _enemyMaxHealth,
-                    name: widget.activeBoss?.name ?? _enemyNames[(_enemyNumber - 1) % _enemyNames.length],
+                    enemy: _currentEnemy!,
                     enemyNumber: widget.activeBoss != null ? 0 : _enemyNumber,
                     wasHit: _enemyWasHit,
-                    isBoss: widget.activeBoss != null,
-                    themeColor: widget.activeBoss?.themeColor,
                     chargeProgress: _enemyChargeController,
-                    damage: widget.activeBoss?.damage ?? 2 + (_enemyNumber / 3).floor(),
                   ),
                 ),
               ),
@@ -832,33 +882,26 @@ class HeroCharacterPlaceholder extends StatelessWidget {
 
 class EnemyCharacterPlaceholder extends StatelessWidget {
   final int health;
-  final int maxHealth;
-  final String name;
+  final Enemy enemy;
   final int enemyNumber;
   final bool wasHit;
-  final bool isBoss;
-  final Color? themeColor;
   final AnimationController chargeProgress;
-  final int damage;
 
   const EnemyCharacterPlaceholder({
     super.key,
     required this.health,
-    required this.maxHealth,
-    required this.name,
+    required this.enemy,
     required this.enemyNumber,
     required this.wasHit,
-    this.isBoss = false,
-    this.themeColor,
     required this.chargeProgress,
-    required this.damage,
   });
 
   @override
   Widget build(BuildContext context) {
-    final visibleHealth = health.clamp(0, maxHealth);
-    final healthPercent = maxHealth == 0 ? 0.0 : visibleHealth / maxHealth;
-    final displayColor = themeColor ?? Colors.redAccent;
+    final visibleHealth = health.clamp(0, enemy.health);
+    final healthPercent = enemy.health == 0 ? 0.0 : visibleHealth / enemy.health;
+    final displayColor = enemy.themeColor;
+    final isBoss = enemy.type == EnemyType.regular && enemy.name != 'THUG' && enemy.name != 'PUNK' && enemy.name != 'BRUISER' && enemy.name != 'REBEL'; 
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -866,11 +909,13 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(isBoss ? 'BOSS: $name' : '$name #$enemyNumber', style: TextStyle(color: displayColor, fontWeight: FontWeight.bold, fontSize: isBoss ? 14 : 12)),
+            Text(isBoss ? 'BOSS: ${enemy.name}' : '${enemy.name} #$enemyNumber', style: TextStyle(color: displayColor, fontWeight: FontWeight.bold, fontSize: isBoss ? 14 : 12)),
             const SizedBox(width: 8),
-            Text('ATK: $damage', style: TextStyle(color: displayColor.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.bold)),
+            Text('ATK: ${enemy.damage}', style: TextStyle(color: displayColor.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.bold)),
           ],
         ),
+        if (enemy.type != EnemyType.regular)
+           Text(enemy.type.name.toUpperCase(), style: TextStyle(color: displayColor, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1)),
         const SizedBox(height: 3),
         SizedBox(
           width: isBoss ? 90 : 60,
@@ -884,7 +929,6 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
             ),
           ),
         ),
-        // Attack Charge Bar
         const SizedBox(height: 2),
         SizedBox(
           width: isBoss ? 90 : 60,
@@ -901,7 +945,6 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 3),
-        // Head
         Container(
           width: isBoss ? 44 : 30,
           height: isBoss ? 44 : 30,
@@ -919,7 +962,6 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 3),
-        // Body
         Container(
           width: isBoss ? 60 : 40,
           height: isBoss ? 85 : 55,
@@ -934,7 +976,6 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 3),
-        // Legs
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
