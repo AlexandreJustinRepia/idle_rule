@@ -7,8 +7,7 @@ class GhettoEnemyUnit extends StatelessWidget {
   final bool isFighting;
   final bool isEnemyDying;
   final bool playerWasDefeated;
-  final Enemy? currentEnemy;
-  final int enemyHealth;
+  final Enemy enemy;
   final int enemyNumber;
   final bool enemyWasHit;
   final AnimationController attackAnimation;
@@ -17,14 +16,14 @@ class GhettoEnemyUnit extends StatelessWidget {
   final AnimationController enemyChargeController;
   final VoidCallback onTap;
   final bool isBoss;
+  final int index;
 
   const GhettoEnemyUnit({
     super.key,
     required this.isFighting,
     required this.isEnemyDying,
     required this.playerWasDefeated,
-    required this.currentEnemy,
-    required this.enemyHealth,
+    required this.enemy,
     required this.enemyNumber,
     required this.enemyWasHit,
     required this.attackAnimation,
@@ -33,24 +32,26 @@ class GhettoEnemyUnit extends StatelessWidget {
     required this.enemyChargeController,
     required this.onTap,
     this.isBoss = false,
+    this.index = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    if ((!isFighting && !isEnemyDying && !playerWasDefeated) || currentEnemy == null) {
-      return const SizedBox.shrink();
-    }
-
     return Align(
       alignment: Alignment.bottomRight,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 45.0, right: 60.0),
+        padding: EdgeInsets.only(
+          bottom: 45.0, 
+          right: 60.0 + (index * 50.0), // Offset based on index
+        ),
         child: AnimatedBuilder(
-          animation: Listenable.merge([attackAnimation, enemyAttackAnimation, deathAnimation]),
+          animation: Listenable.merge([attackAnimation, enemyAttackAnimation, deathAnimation, enemyChargeController]),
           builder: (context, child) {
             final hitShake = enemyWasHit ? math.sin(attackAnimation.value * math.pi * 8) * 6 : 0.0;
             final enemyAttackProgress = math.sin(enemyAttackAnimation.value * math.pi);
-            final fallProgress = Curves.easeIn.transform(deathAnimation.value);
+            final isThisEnemyDying = enemy.hp <= 0;
+            final fallProgress = isThisEnemyDying ? Curves.easeIn.transform(deathAnimation.value) : 0.0;
+            
             return Opacity(
               opacity: (1 - fallProgress).clamp(0.0, 1.0),
               child: Transform.translate(
@@ -66,8 +67,8 @@ class GhettoEnemyUnit extends StatelessWidget {
           child: GestureDetector(
             onTap: onTap,
             child: EnemyCharacterPlaceholder(
-              health: enemyHealth,
-              enemy: currentEnemy!,
+              health: enemy.hp,
+              enemy: enemy,
               enemyNumber: isBoss ? 0 : enemyNumber,
               wasHit: enemyWasHit,
               chargeProgress: enemyChargeController,

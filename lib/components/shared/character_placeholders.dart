@@ -87,19 +87,38 @@ class AllyCharacterPlaceholder extends StatelessWidget {
   final String name;
   final Color themeColor;
   final Animation<double>? chargeProgress;
+  final int hp;
+  final int maxHp;
 
   const AllyCharacterPlaceholder({
     super.key,
     required this.name,
     required this.themeColor,
     this.chargeProgress,
+    required this.hp,
+    required this.maxHp,
   });
 
   @override
   Widget build(BuildContext context) {
+    final healthPercent = (hp / maxHp).clamp(0.0, 1.0);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        SizedBox(
+          width: 34,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: healthPercent,
+              backgroundColor: Colors.black54,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+              minHeight: 3,
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
         if (chargeProgress != null)
           SizedBox(
             width: 34,

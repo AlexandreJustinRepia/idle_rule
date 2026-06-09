@@ -9,6 +9,7 @@ class GhettoAllyUnit extends StatelessWidget {
   final Animation<double> attackAnimation;
   final Animation<double>? chargeAnimation;
   final bool isFighting;
+  final int index;
 
   const GhettoAllyUnit({
     super.key,
@@ -17,20 +18,25 @@ class GhettoAllyUnit extends StatelessWidget {
     required this.attackAnimation,
     this.chargeAnimation,
     required this.isFighting,
+    this.index = 0,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (ally.hp <= 0) return const SizedBox.shrink();
+
     return Align(
       alignment: Alignment.bottomLeft,
-      // Offset slightly to the left of the Hero
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 45.0, left: 15.0),
+        padding: EdgeInsets.only(
+          bottom: 45.0, 
+          left: 15.0 + (index * 40.0), // Offset based on index
+        ),
         child: AnimatedBuilder(
           animation: Listenable.merge([
             walkAnimation,
             attackAnimation,
-            if (chargeAnimation != null) chargeAnimation!,
+            ?chargeAnimation,
           ]),
           builder: (context, child) {
             final attackProgress = math.sin(attackAnimation.value * math.pi);
@@ -50,6 +56,8 @@ class GhettoAllyUnit extends StatelessWidget {
             name: ally.name,
             themeColor: ally.themeColor,
             chargeProgress: chargeAnimation,
+            hp: ally.hp,
+            maxHp: ally.maxHp,
           ),
         ),
       ),

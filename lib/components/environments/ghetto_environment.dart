@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../game_state.dart';
 import '../../logic/combat_engine.dart';
@@ -55,12 +56,10 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     with TickerProviderStateMixin {
   late AnimationController _scrollController;
   late AnimationController _walkController;
-  late AnimationController _attackController;
-  late AnimationController _allyAttackController;
-  late AnimationController _enemyAttackController;
+  late AnimationController _attackController; 
+  late AnimationController _playerHitController; 
   late AnimationController _deathController;
   late AnimationController _encounterProgressController;
-  late AnimationController _enemyChargeController;
 
   final double sceneWidth = 900.0;
 
@@ -71,16 +70,17 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _playerWasDefeated = false;
   bool _playerMissed = false;
 
-  // FOUNDATION: Combat lists
   final List<Ally> _allies = [];
   final List<Enemy> _enemies = [];
+  final List<Enemy> _dyingEnemies = [];
+  
   final Map<Ally, AnimationController> _allyChargeControllers = {};
+  final Map<Ally, AnimationController> _allyAttackControllers = {};
+  final Map<Enemy, AnimationController> _enemyChargeControllers = {};
+  final Map<Enemy, AnimationController> _enemyAttackControllers = {};
 
   int _enemyNumber = 0;
-  int _enemyHealth = 0;
-  Enemy? _currentEnemy;
   Timer? _attackTimer;
-  Timer? _enemyAttackTimer;
   Timer? _trainingTimer;
 
   bool get _isLowHunger => PlayerNeedsLogic.isLowHunger(widget.playerHunger, widget.playerMaxHunger);
@@ -89,38 +89,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   @override
   void initState() {
     super.initState();
-    
-    // Balanced Ally initialization: Start them weak to protect the stat economy
-    final allyAtk = (widget.stats.attackDamage * 0.5).floor().clamp(1, 999);
-    final allyMaxHp = (widget.stats.maxHealth * 0.7).floor().clamp(1, 9999);
-    final allyDelay = Duration(milliseconds: (widget.stats.attackDelay.inMilliseconds * 1.2).round());
-
-    // Initialize one ally (Homie)
-    _allies.add(Ally(
-      name: 'Homie',
-      hp: allyMaxHp,
-      maxHp: allyMaxHp,
-      atk: allyAtk,
-      attackDelay: allyDelay,
-      themeColor: Colors.greenAccent,
-    ));
-
     _scrollController = AnimationController(vsync: this, duration: const Duration(seconds: 10));
     _walkController = AnimationController(vsync: this, duration: const Duration(milliseconds: 350));
     _attackController = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
-    _allyAttackController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-    _enemyAttackController = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
+    _playerHitController = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
     _deathController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
     _encounterProgressController = AnimationController(vsync: this, duration: const Duration(seconds: 4));
-    _enemyChargeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
-
-    // Initialize ally charge controllers
-    for (var ally in _allies) {
-      _allyChargeControllers[ally] = AnimationController(
-        vsync: this,
-        duration: ally.attackDelay,
-      );
-    }
 
     _startWalking();
   }
@@ -146,10 +120,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _playerWasHit = false;
       _playerWasDefeated = false;
       _playerMissed = false;
-      _enemyHealth = 0;
       _isFighting = false;
-      _currentEnemy = null;
       _enemies.clear();
+      _dyingEnemies.clear();
+      for (var c in _enemyChargeControllers.values) c.dispose();
+      _enemyChargeControllers.clear();
+      for (var c in _enemyAttackControllers.values) c.dispose();
+      _enemyAttackControllers.clear();
     });
 
     _scrollController.repeat();
@@ -170,45 +147,71 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   void _stopAllCombatAnimations() {
     _attackTimer?.cancel();
-    _enemyAttackTimer?.cancel();
-    
-    for (var controller in _allyChargeControllers.values) {
-      controller.stop();
-      controller.value = 0;
-    }
+    _playerHitController.stop();
+    _deathController.stop();
+    for (var c in _allyChargeControllers.values) { c.stop(); c.value = 0; }
+    for (var c in _allyAttackControllers.values) { c.stop(); c.value = 0; }
+    for (var c in _enemyChargeControllers.values) { c.stop(); c.value = 0; }
+    for (var c in _enemyAttackControllers.values) { c.stop(); c.value = 0; }
+    _attackController.stop();
+    _attackController.value = 0;
+  }
 
-    for (var controller in [_attackController, _allyAttackController, _enemyAttackController, _deathController, _enemyChargeController]) {
-      controller.stop();
-      controller.value = 0;
-    }
+  void _recruitEnemy(Enemy enemy) {
+    final allyAtk = (enemy.damage * 0.5).floor().clamp(1, 999);
+    final allyMaxHp = (enemy.health * 0.7).floor().clamp(1, 9999);
+    final allyDelay = Duration(milliseconds: (enemy.attackDelay.inMilliseconds * 1.2).round());
+
+    final newAlly = Ally(
+      name: enemy.name,
+      hp: allyMaxHp,
+      maxHp: allyMaxHp,
+      atk: allyAtk,
+      attackDelay: allyDelay,
+      themeColor: Colors.blueAccent,
+    );
+
+    setState(() {
+      _allies.add(newAlly);
+      _allyChargeControllers[newAlly] = AnimationController(vsync: this, duration: newAlly.attackDelay);
+      _allyAttackControllers[newAlly] = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+      if (_isFighting) {
+        _scheduleAllyAttack(newAlly);
+      }
+    });
   }
 
   void _startEncounter({bool isBoss = false}) {
+    _enemies.clear();
+    _dyingEnemies.clear();
+    for (var c in _enemyChargeControllers.values) c.dispose();
+    _enemyChargeControllers.clear();
+    for (var c in _enemyAttackControllers.values) c.dispose();
+    _enemyAttackControllers.clear();
+
     if (isBoss && widget.activeBoss != null) {
-      _currentEnemy = Enemy(
+      _enemies.add(Enemy(
         name: widget.activeBoss!.name,
         health: widget.activeBoss!.health,
         damage: widget.activeBoss!.damage,
         attackDelay: widget.activeBoss!.attackDelay,
         dodgeChance: widget.activeBoss!.dodgeChance,
         themeColor: widget.activeBoss!.themeColor,
-      );
+      ));
     } else {
-      _enemyNumber++;
-      _currentEnemy = GhettoEnemyFactory.generateRandomEnemy(_enemyNumber, widget.stats);
-    }
-
-    _enemies.clear();
-    if (_currentEnemy != null) {
-      _enemies.add(_currentEnemy!);
-    }
-
-    _enemyChargeController.duration = _currentEnemy!.attackDelay;
-    Future.microtask(() {
-      if (mounted) {
-        widget.onNewEnemyApproached();
+      int count = (math.Random().nextInt(3) + 1);
+      for (int i = 0; i < count; i++) {
+        _enemyNumber++;
+        _enemies.add(GhettoEnemyFactory.generateRandomEnemy(_enemyNumber, widget.stats));
       }
-    });
+    }
+
+    for (var enemy in _enemies) {
+      _enemyChargeControllers[enemy] = AnimationController(vsync: this, duration: enemy.attackDelay);
+      _enemyAttackControllers[enemy] = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
+    }
+
+    Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
 
     setState(() {
       _isFighting = true;
@@ -216,7 +219,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _enemyWasHit = false;
       _playerWasDefeated = false;
       _playerMissed = false;
-      _enemyHealth = _currentEnemy!.health;
     });
 
     _scrollController.stop();
@@ -227,23 +229,35 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     
     _schedulePlayerAttack();
     _startAllyCombat();
-    
-    _enemyAttackTimer?.cancel();
-    _startEnemyAttackCycle();
+    for (var enemy in _enemies) { _startEnemyCharge(enemy); }
   }
 
-  void _startAllyCombat() {
-    for (var ally in _allies) {
-      _scheduleAllyAttack(ally);
+  void _startEnemyCharge(Enemy enemy) {
+    _enemyChargeControllers[enemy]?.forward(from: 0).then((_) {
+      if (mounted && _isFighting && _enemies.contains(enemy)) {
+        _onEnemyAttack(enemy);
+        _startEnemyCharge(enemy);
+      }
+    });
+  }
+
+  Future<void> _onEnemyAttack(Enemy enemy) async {
+    List<dynamic> targets = [null, ..._allies];
+    var target = targets[math.Random().nextInt(targets.length)];
+    if (target == null) {
+      await _enemyAttackPlayer(enemy);
+    } else {
+      await _enemyAttackAlly(enemy, target as Ally);
     }
   }
 
-  void _scheduleAllyAttack(Ally ally) {
-    final controller = _allyChargeControllers[ally];
-    if (controller == null) return;
+  void _startAllyCombat() {
+    for (var ally in _allies) { _scheduleAllyAttack(ally); }
+  }
 
-    controller.forward(from: 0).then((_) {
-      if (mounted && _isFighting) {
+  void _scheduleAllyAttack(Ally ally) {
+    _allyChargeControllers[ally]?.forward(from: 0).then((_) {
+      if (mounted && _isFighting && _allies.contains(ally)) {
         _attackEnemyFromAlly(ally);
         _scheduleAllyAttack(ally);
       }
@@ -252,44 +266,23 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   Future<void> _attackEnemyFromAlly(Ally ally) async {
     if (!_isFighting || _enemies.isEmpty || ally.hp <= 0) return;
-
-    // Ally AI: Target current enemy (v1)
     final target = _enemies.first;
+    if (CombatEngine.rollDodge(target.dodgeChance)) return;
 
-    if (CombatEngine.rollDodge(target.dodgeChance)) {
-      return;
-    }
-
-    // Trigger ally attack animation
-    _allyAttackController.forward(from: 0);
-
-    // Same damage formula as player (scaled by hunger)
+    _allyAttackControllers[ally]?.forward(from: 0);
     int damage = CombatEngine.calculateAllyDamage(ally.atk, _isLowHunger);
 
     setState(() {
       target.hp -= damage;
-      if (target == _currentEnemy) {
-        _enemyHealth = target.hp;
-      }
       _enemyWasHit = true;
-      
-      if (target.hp <= 0) {
-        if (target == _currentEnemy) {
-          _isFighting = false;
-          _isEnemyDying = true;
-          _enemyChargeController.stop();
-        }
-        _enemies.remove(target);
-      }
+      if (target.hp <= 0) { _handleEnemyDefeat(target); }
     });
 
     Future.delayed(const Duration(milliseconds: 120), () {
-      if (mounted) {
-        setState(() => _enemyWasHit = false);
-      }
+      if (mounted) setState(() => _enemyWasHit = false);
     });
 
-    if (_isEnemyDying) {
+    if (_isEnemyDying && _enemies.isEmpty) {
       await _deathController.forward(from: 0);
       if (mounted) {
         if (widget.activeBoss != null) widget.onBossDefeated?.call();
@@ -298,34 +291,35 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     }
   }
 
-  void _startEnemyAttackCycle() {
-    _enemyChargeController.forward(from: 0).then((_) {
-      if (mounted && _isFighting && !_isEnemyDying) {
-        _enemyAttackPlayer();
-        _startEnemyAttackCycle();
-      }
-    });
+  void _handleEnemyDefeat(Enemy enemy) {
+    _enemyChargeControllers[enemy]?.stop();
+    _enemies.remove(enemy);
+    _dyingEnemies.add(enemy);
+    _recruitEnemy(enemy); 
+
+    if (_enemies.isEmpty) {
+      _isFighting = false;
+      _isEnemyDying = true;
+    }
   }
 
   void _schedulePlayerAttack() {
     _attackTimer?.cancel();
     _attackTimer = Timer(widget.stats.attackDelay, () async {
       await _attackEnemy();
-      if (mounted && _isFighting) {
-        _schedulePlayerAttack();
-      }
+      if (mounted && _isFighting) { _schedulePlayerAttack(); }
     });
   }
 
   Future<void> _attackEnemy() async {
-    if (!_isFighting || _attackController.isAnimating || _currentEnemy == null) return;
-
+    if (!_isFighting || _attackController.isAnimating || _enemies.isEmpty) return;
     if (!widget.onStaminaSpent(8)) {
       widget.onStatsGained(strength: 0, speed: 0, endurance: 0.35);
       return;
     }
 
-    if (CombatEngine.rollDodge(_currentEnemy!.dodgeChance)) {
+    final target = _enemies.first;
+    if (CombatEngine.rollDodge(target.dodgeChance)) {
       await _attackController.forward(from: 0);
       return;
     }
@@ -334,9 +328,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       setState(() => _playerMissed = true);
       await _attackController.forward(from: 0);
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          setState(() => _playerMissed = false);
-        }
+        if (mounted) setState(() => _playerMissed = false);
       });
       return;
     }
@@ -345,32 +337,24 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     if (!mounted || !_isFighting) return;
 
     int damage = CombatEngine.calculatePlayerDamage(widget.stats, _isLowHunger);
-
     setState(() {
-      _enemyHealth -= damage;
-      _currentEnemy!.hp = _enemyHealth;
+      target.hp -= damage;
       _enemyWasHit = true;
-      if (_enemyHealth <= 0) {
-        _isFighting = false;
-        _isEnemyDying = true;
-        _enemyChargeController.stop();
-      }
+      if (target.hp <= 0) { _handleEnemyDefeat(target); }
     });
 
     double gainMult = widget.activeBoss != null ? 3.0 : 1.0;
     widget.onStatsGained(strength: 0.65 * gainMult, speed: 0.12 * gainMult, endurance: 0);
 
-    if (_enemyHealth > 0 && CombatEngine.rollDodge(_currentEnemy!.counterChance)) {
-      _enemyAttackPlayer(isCounter: true);
+    if (_enemies.isNotEmpty && CombatEngine.rollDodge(_enemies.first.counterChance)) {
+      _onEnemyAttack(_enemies.first);
     }
 
     Future.delayed(const Duration(milliseconds: 120), () {
-      if (mounted) {
-        setState(() => _enemyWasHit = false);
-      }
+      if (mounted) setState(() => _enemyWasHit = false);
     });
 
-    if (_enemyHealth <= 0) {
+    if (_isEnemyDying && _enemies.isEmpty) {
       await _deathController.forward(from: 0);
       if (mounted) {
         if (widget.activeBoss != null) widget.onBossDefeated?.call();
@@ -379,30 +363,24 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     }
   }
 
-  Future<void> _enemyAttackPlayer({bool isCounter = false}) async {
-    if (!_isFighting || (_enemyAttackController.isAnimating && !isCounter) || _isEnemyDying || _currentEnemy == null) return;
-
-    if (isCounter) {
-      _enemyAttackController.forward(from: 0.5);
-    } else {
-      await _enemyAttackController.forward(from: 0);
-    }
+  Future<void> _enemyAttackPlayer(Enemy enemy) async {
+    if (!_isFighting || _isEnemyDying) return;
+    final controller = _enemyAttackControllers[enemy] ?? _playerHitController;
+    await controller.forward(from: 0);
 
     if (!mounted || !_isFighting || _isEnemyDying) return;
 
     if (CombatEngine.rollDodge(widget.stats.dodgeChance) && _payDodgeCost()) {
       widget.onStatsGained(strength: 0, speed: 0.9, endurance: 0);
       setState(() => _playerWasHit = true);
+      _playerHitController.forward(from: 0);
       Future.delayed(const Duration(milliseconds: 140), () {
-        if (mounted) {
-          setState(() => _playerWasHit = false);
-        }
+        if (mounted) setState(() => _playerWasHit = false);
       });
       return;
     }
 
-    int damage = CombatEngine.calculateEnemyDamage(_currentEnemy!.damage, _isLowHunger);
-
+    int damage = CombatEngine.calculateEnemyDamage(enemy.damage, _isLowHunger);
     final willDefeatPlayer = widget.playerHealth - damage <= 0;
     widget.onPlayerDamaged(damage);
     widget.onStatsGained(strength: 0, speed: 0, endurance: 0.8);
@@ -411,22 +389,36 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     widget.onNeedsRecovered(stamina: widget.stats.staminaRecovery * 0.35 * recoveryMult, hunger: -0.25);
 
     setState(() => _playerWasHit = true);
-    if (willDefeatPlayer) {
-      _handlePlayerDefeated();
-      return;
-    }
+    _playerHitController.forward(from: 0);
+    if (willDefeatPlayer) { _handlePlayerDefeated(); return; }
 
     Future.delayed(const Duration(milliseconds: 140), () {
-      if (mounted) {
-        setState(() => _playerWasHit = false);
+      if (mounted) setState(() => _playerWasHit = false);
+    });
+  }
+
+  Future<void> _enemyAttackAlly(Enemy enemy, Ally ally) async {
+    if (!_isFighting || _isEnemyDying) return;
+    final controller = _enemyAttackControllers[enemy] ?? _playerHitController;
+    await controller.forward(from: 0);
+
+    if (!mounted || !_isFighting || _isEnemyDying || !_allies.contains(ally)) return;
+
+    int damage = CombatEngine.calculateEnemyDamage(enemy.damage, _isLowHunger);
+    setState(() {
+      ally.hp -= damage;
+      if (ally.hp <= 0) {
+        _allies.remove(ally);
+        _allyChargeControllers[ally]?.dispose();
+        _allyChargeControllers.remove(ally);
+        _allyAttackControllers[ally]?.dispose();
+        _allyAttackControllers.remove(ally);
       }
     });
   }
 
   bool _payDodgeCost() {
-    if (widget.onStaminaSpent(5)) {
-      return true;
-    }
+    if (widget.onStaminaSpent(5)) return true;
     if (widget.playerHunger >= 2) {
       widget.onNeedsRecovered(stamina: 0, hunger: -2);
       return true;
@@ -440,27 +432,25 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _stopAllCombatAnimations();
     _encounterProgressController.stop();
     _trainingTimer?.cancel();
-
     widget.onPlayerDefeated();
     setState(() {
       _isFighting = false;
       _isEnemyDying = false;
       _playerWasDefeated = true;
-      _enemyHealth = _currentEnemy?.health ?? 0;
     });
 
     Future.delayed(const Duration(milliseconds: 900), () {
       if (mounted) {
-        if (wasBossFight) {
-          _startWalking();
-        } else {
+        if (wasBossFight) { _startWalking(); }
+        else {
           setState(() {
             _isFighting = true;
             _playerWasHit = false;
             _playerWasDefeated = false;
           });
           _schedulePlayerAttack();
-          _startEnemyAttackCycle();
+          _startAllyCombat();
+          for (var enemy in _enemies) _startEnemyCharge(enemy);
         }
       }
     });
@@ -473,14 +463,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _scrollController.dispose();
     _walkController.dispose();
     _attackController.dispose();
-    _allyAttackController.dispose();
-    _enemyAttackController.dispose();
+    _playerHitController.dispose();
     _deathController.dispose();
     _encounterProgressController.dispose();
-    _enemyChargeController.dispose();
-    for (var controller in _allyChargeControllers.values) {
-      controller.dispose();
-    }
+    for (var c in _allyChargeControllers.values) c.dispose();
+    for (var c in _allyAttackControllers.values) c.dispose();
+    for (var c in _enemyChargeControllers.values) c.dispose();
+    for (var c in _enemyAttackControllers.values) c.dispose();
     super.dispose();
   }
 
@@ -507,31 +496,58 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           GhettoSearchingIndicator(progress: _encounterProgressController),
         GhettoHungerIndicator(isLowHunger: _isLowHunger, isCriticalHunger: _isCriticalHunger),
         
-        // Ally Display
-        for (var ally in _allies)
+        for (int i = 0; i < _allies.length; i++)
           GhettoAllyUnit(
-            ally: ally,
+            index: i,
+            ally: _allies[i],
             walkAnimation: _walkController,
-            attackAnimation: _allyAttackController,
-            chargeAnimation: _allyChargeControllers[ally],
+            attackAnimation: _allyAttackControllers[_allies[i]] ?? _attackController,
+            chargeAnimation: _allyChargeControllers[_allies[i]],
             isFighting: _isFighting,
           ),
 
         GhettoHeroUnit(
           walkAnimation: _walkController, attackAnimation: _attackController,
-          enemyAttackAnimation: _enemyAttackController, isFighting: _isFighting,
+          enemyAttackAnimation: _playerHitController, isFighting: _isFighting,
           wasHit: _playerWasHit, missed: _playerMissed,
         ),
+        
         if (_playerMissed)
           const Positioned(bottom: 120, left: 100, child: Text('MISS!', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 16))),
-        GhettoEnemyUnit(
-          isFighting: _isFighting, isEnemyDying: _isEnemyDying, playerWasDefeated: _playerWasDefeated,
-          currentEnemy: _currentEnemy, enemyHealth: _enemyHealth, enemyNumber: _enemyNumber,
-          enemyWasHit: _enemyWasHit, attackAnimation: _attackController,
-          enemyAttackAnimation: _enemyAttackController, deathAnimation: _deathController,
-          enemyChargeController: _enemyChargeController, onTap: _attackEnemy,
-          isBoss: widget.activeBoss != null,
-        ),
+        
+        for (int i = 0; i < _enemies.length; i++)
+          GhettoEnemyUnit(
+            index: i,
+            enemy: _enemies[i],
+            enemyNumber: _enemyNumber - (_enemies.length - 1) + i,
+            isFighting: _isFighting,
+            isEnemyDying: false,
+            playerWasDefeated: _playerWasDefeated,
+            enemyWasHit: _enemyWasHit && i == 0,
+            attackAnimation: _attackController,
+            enemyAttackAnimation: _enemyAttackControllers[_enemies[i]] ?? _playerHitController,
+            deathAnimation: _deathController,
+            enemyChargeController: _enemyChargeControllers[_enemies[i]] ?? _playerHitController,
+            onTap: _attackEnemy,
+            isBoss: widget.activeBoss != null && i == 0,
+          ),
+
+        for (var enemy in _dyingEnemies)
+          GhettoEnemyUnit(
+            index: 0,
+            enemy: enemy,
+            enemyNumber: 0,
+            isFighting: false,
+            isEnemyDying: true,
+            playerWasDefeated: false,
+            enemyWasHit: false,
+            attackAnimation: _attackController,
+            enemyAttackAnimation: _playerHitController,
+            deathAnimation: _deathController,
+            enemyChargeController: _playerHitController,
+            onTap: () {},
+          ),
+
         GhettoBattleStatusOverlay(isEnemyDying: _isEnemyDying, playerWasDefeated: _playerWasDefeated, isBoss: widget.activeBoss != null),
       ],
     );
