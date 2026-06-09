@@ -9,6 +9,11 @@ class CombatEngine {
     return isLowHunger ? (damage * 0.8).floor().clamp(1, 999) : damage;
   }
 
+  static int calculateAllyDamage(int baseAtk, bool isLowHunger) {
+    // Same formula as player (scaled by hunger)
+    return isLowHunger ? (baseAtk * 0.8).floor().clamp(1, 999) : baseAtk;
+  }
+
   static int calculateEnemyDamage(int baseDamage, bool isLowHunger) {
     return isLowHunger ? (baseDamage * 1.3).ceil() : baseDamage;
   }

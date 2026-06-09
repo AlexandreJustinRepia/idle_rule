@@ -74,7 +74,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   // FOUNDATION: Combat lists
   final List<Ally> _allies = [];
   final List<Enemy> _enemies = [];
-  final Map<Ally, Timer?> _allyAttackTimers = {};
+  final Map<Ally, AnimationController> _allyChargeControllers = {};
 
   int _enemyNumber = 0;
   int _enemyHealth = 0;
@@ -107,6 +107,14 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _deathController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
     _encounterProgressController = AnimationController(vsync: this, duration: const Duration(seconds: 4));
     _enemyChargeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
+
+    // Initialize ally charge controllers
+    for (var ally in _allies) {
+      _allyChargeControllers[ally] = AnimationController(
+        vsync: this,
+        duration: ally.attackDelay,
+      );
+    }
 
     _startWalking();
   }
@@ -157,10 +165,11 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   void _stopAllCombatAnimations() {
     _attackTimer?.cancel();
     _enemyAttackTimer?.cancel();
-    for (var timer in _allyAttackTimers.values) {
-      timer?.cancel();
+    
+    for (var controller in _allyChargeControllers.values) {
+      controller.stop();
+      controller.value = 0;
     }
-    _allyAttackTimers.clear();
 
     for (var controller in [_attackController, _allyAttackController, _enemyAttackController, _deathController, _enemyChargeController]) {
       controller.stop();
@@ -224,10 +233,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   void _scheduleAllyAttack(Ally ally) {
-    _allyAttackTimers[ally]?.cancel();
-    _allyAttackTimers[ally] = Timer(ally.attackDelay, () async {
+    final controller = _allyChargeControllers[ally];
+    if (controller == null) return;
+
+    controller.forward(from: 0).then((_) {
       if (mounted && _isFighting) {
-        await _attackEnemyFromAlly(ally);
+        _attackEnemyFromAlly(ally);
         _scheduleAllyAttack(ally);
       }
     });
@@ -246,7 +257,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     // Trigger ally attack animation
     _allyAttackController.forward(from: 0);
 
-    int damage = ally.atk;
+    // Same damage formula as player (scaled by hunger)
+    int damage = CombatEngine.calculateAllyDamage(ally.atk, _isLowHunger);
 
     setState(() {
       target.hp -= damage;
@@ -460,6 +472,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _deathController.dispose();
     _encounterProgressController.dispose();
     _enemyChargeController.dispose();
+    for (var controller in _allyChargeControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -492,6 +507,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             ally: ally,
             walkAnimation: _walkController,
             attackAnimation: _allyAttackController,
+            chargeAnimation: _allyChargeControllers[ally],
             isFighting: _isFighting,
           ),
 

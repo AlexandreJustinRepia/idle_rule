@@ -7,6 +7,7 @@ class GhettoAllyUnit extends StatelessWidget {
   final Ally ally;
   final Animation<double> walkAnimation;
   final Animation<double> attackAnimation;
+  final Animation<double>? chargeAnimation;
   final bool isFighting;
 
   const GhettoAllyUnit({
@@ -14,6 +15,7 @@ class GhettoAllyUnit extends StatelessWidget {
     required this.ally,
     required this.walkAnimation,
     required this.attackAnimation,
+    this.chargeAnimation,
     required this.isFighting,
   });
 
@@ -25,7 +27,11 @@ class GhettoAllyUnit extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(bottom: 45.0, left: 15.0),
         child: AnimatedBuilder(
-          animation: Listenable.merge([walkAnimation, attackAnimation]),
+          animation: Listenable.merge([
+            walkAnimation,
+            attackAnimation,
+            if (chargeAnimation != null) chargeAnimation!,
+          ]),
           builder: (context, child) {
             final attackProgress = math.sin(attackAnimation.value * math.pi);
             
@@ -43,6 +49,7 @@ class GhettoAllyUnit extends StatelessWidget {
           child: AllyCharacterPlaceholder(
             name: ally.name,
             themeColor: ally.themeColor,
+            chargeProgress: chargeAnimation,
           ),
         ),
       ),

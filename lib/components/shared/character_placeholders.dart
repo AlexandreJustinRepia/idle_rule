@@ -86,11 +86,13 @@ class HeroCharacterPlaceholder extends StatelessWidget {
 class AllyCharacterPlaceholder extends StatelessWidget {
   final String name;
   final Color themeColor;
+  final Animation<double>? chargeProgress;
 
   const AllyCharacterPlaceholder({
     super.key,
     required this.name,
     required this.themeColor,
+    this.chargeProgress,
   });
 
   @override
@@ -98,6 +100,24 @@ class AllyCharacterPlaceholder extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (chargeProgress != null)
+          SizedBox(
+            width: 34,
+            child: AnimatedBuilder(
+              animation: chargeProgress!,
+              builder: (context, child) {
+                return LinearProgressIndicator(
+                  value: chargeProgress!.value,
+                  backgroundColor: Colors.white10,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    themeColor.withValues(alpha: 0.6),
+                  ),
+                  minHeight: 2,
+                );
+              },
+            ),
+          ),
+        const SizedBox(height: 2),
         Container(
           width: 24,
           height: 24,
