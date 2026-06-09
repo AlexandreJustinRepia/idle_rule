@@ -89,13 +89,19 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   @override
   void initState() {
     super.initState();
+    
+    // Balanced Ally initialization: Start them weak to protect the stat economy
+    final allyAtk = (widget.stats.attackDamage * 0.5).floor().clamp(1, 999);
+    final allyMaxHp = (widget.stats.maxHealth * 0.7).floor().clamp(1, 9999);
+    final allyDelay = Duration(milliseconds: (widget.stats.attackDelay.inMilliseconds * 1.2).round());
+
     // Initialize one ally (Homie)
     _allies.add(Ally(
       name: 'Homie',
-      hp: 100,
-      maxHp: 100,
-      atk: 4,
-      attackDelay: const Duration(milliseconds: 2100),
+      hp: allyMaxHp,
+      maxHp: allyMaxHp,
+      atk: allyAtk,
+      attackDelay: allyDelay,
       themeColor: Colors.greenAccent,
     ));
 
