@@ -155,11 +155,15 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       );
     } else {
       _enemyNumber++;
-      _currentEnemy = GhettoEnemyFactory.generateRandomEnemy(_enemyNumber);
+      _currentEnemy = GhettoEnemyFactory.generateRandomEnemy(_enemyNumber, widget.stats);
     }
 
     _enemyChargeController.duration = _currentEnemy!.attackDelay;
-    Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
+    Future.microtask(() {
+      if (mounted) {
+        widget.onNewEnemyApproached();
+      }
+    });
 
     setState(() {
       _isFighting = true;
@@ -193,7 +197,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _attackTimer?.cancel();
     _attackTimer = Timer(widget.stats.attackDelay, () async {
       await _attackEnemy();
-      if (mounted && _isFighting) _schedulePlayerAttack();
+      if (mounted && _isFighting) {
+        _schedulePlayerAttack();
+      }
     });
   }
 
@@ -214,7 +220,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       setState(() => _playerMissed = true);
       await _attackController.forward(from: 0);
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) setState(() => _playerMissed = false);
+        if (mounted) {
+          setState(() => _playerMissed = false);
+        }
       });
       return;
     }
@@ -242,7 +250,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     }
 
     Future.delayed(const Duration(milliseconds: 120), () {
-      if (mounted) setState(() => _enemyWasHit = false);
+      if (mounted) {
+        setState(() => _enemyWasHit = false);
+      }
     });
 
     if (_enemyHealth <= 0) {
@@ -257,8 +267,11 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   Future<void> _enemyAttackPlayer({bool isCounter = false}) async {
     if (!_isFighting || (_enemyAttackController.isAnimating && !isCounter) || _isEnemyDying || _currentEnemy == null) return;
 
-    if (isCounter) _enemyAttackController.forward(from: 0.5);
-    else await _enemyAttackController.forward(from: 0);
+    if (isCounter) {
+      _enemyAttackController.forward(from: 0.5);
+    } else {
+      await _enemyAttackController.forward(from: 0);
+    }
 
     if (!mounted || !_isFighting || _isEnemyDying) return;
 
@@ -266,7 +279,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       widget.onStatsGained(strength: 0, speed: 0.9, endurance: 0);
       setState(() => _playerWasHit = true);
       Future.delayed(const Duration(milliseconds: 140), () {
-        if (mounted) setState(() => _playerWasHit = false);
+        if (mounted) {
+          setState(() => _playerWasHit = false);
+        }
       });
       return;
     }
@@ -287,12 +302,16 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     }
 
     Future.delayed(const Duration(milliseconds: 140), () {
-      if (mounted) setState(() => _playerWasHit = false);
+      if (mounted) {
+        setState(() => _playerWasHit = false);
+      }
     });
   }
 
   bool _payDodgeCost() {
-    if (widget.onStaminaSpent(5)) return true;
+    if (widget.onStaminaSpent(5)) {
+      return true;
+    }
     if (widget.playerHunger >= 2) {
       widget.onNeedsRecovered(stamina: 0, hunger: -2);
       return true;

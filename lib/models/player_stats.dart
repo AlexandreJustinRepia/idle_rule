@@ -31,19 +31,42 @@ class PlayerStats {
     );
   }
 
-  int get attackDamage => 1 + (math.sqrt(strength) * 1.2).floor();
-  int get maxHealth => 30 + (math.sqrt(strength) * 4).floor();
-  double get maxStamina => 24 + (math.sqrt(endurance) * 10);
-  double get maxHunger => 60 + (math.sqrt(endurance) * 15);
-  double get staminaRecovery => 2 + (math.sqrt(endurance) * 0.6);
+  /// Calculates effective stat value after applying soft caps for diminishing returns.
+  /// 0-50: 100% efficiency
+  /// 50-100: 70% efficiency
+  /// 100+: 40% efficiency
+  double _diminish(double value) {
+    if (value <= 50) return value;
+    if (value <= 100) return 50 + (value - 50) * 0.7;
+    return 85 + (value - 100) * 0.4; // 85 = 50 + (50 * 0.7)
+  }
 
-  double get dodgeChance => (speed / (speed + 220)).clamp(0.0, 0.45);
+  // ATK scaling: Diminishing returns on strength applied before sqrt
+  int get attackDamage => 1 + (math.sqrt(_diminish(strength)) * 1.2).floor();
 
+  // Health: Scales with diminished strength
+  int get maxHealth => 30 + (math.sqrt(_diminish(strength)) * 4).floor();
+
+  // Stamina/Hunger: Scales with diminished endurance
+  double get maxStamina => 24 + (math.sqrt(_diminish(endurance)) * 10);
+  double get maxHunger => 60 + (math.sqrt(_diminish(endurance)) * 15);
+  double get staminaRecovery => 2 + (math.sqrt(_diminish(endurance)) * 0.6);
+
+  // Dodge: Hyperbolic scaling + Soft Cap on speed
+  // Max dodge is still hard capped at 45%
+  double get dodgeChance {
+    final effectiveSpeed = _diminish(speed);
+    return (effectiveSpeed / (effectiveSpeed + 220)).clamp(0.0, 0.45);
+  }
+
+  // Attack Speed: Scales with diminished speed
   Duration get attackDelay {
-    final milliseconds = (300 + 650 * (180 / (speed + 180))).round();
+    final effectiveSpeed = _diminish(speed);
+    final milliseconds = (300 + 650 * (180 / (effectiveSpeed + 180))).round();
     return Duration(milliseconds: milliseconds);
   }
 
+  // Intelligence stats already use hyperbolic diminishing returns natively
   double get hitChance => 0.7 + (intelligence / (intelligence + 120)) * 0.28;
   double get counterMitigation => (intelligence / (intelligence + 250)) * 0.5;
 }

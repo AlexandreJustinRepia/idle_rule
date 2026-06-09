@@ -10,6 +10,7 @@ class Enemy {
   final Duration attackDelay;
   final double dodgeChance;
   final double counterChance;
+  final double comboChance; // Chance to strike again immediately
   final Color themeColor;
 
   const Enemy({
@@ -20,6 +21,7 @@ class Enemy {
     required this.attackDelay,
     this.dodgeChance = 0.0,
     this.counterChance = 0.0,
+    this.comboChance = 0.0,
     this.themeColor = Colors.redAccent,
   });
 }
