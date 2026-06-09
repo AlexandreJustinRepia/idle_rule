@@ -133,8 +133,6 @@ class _HomePageState extends State<HomePage> {
         onTap: (index) {
           setState(() {
             _currentTabIndex = index;
-            // Stop boss fight if leaving street? 
-            // For now, let's keep it simple.
           });
         },
       ),
@@ -147,7 +145,7 @@ class _HomePageState extends State<HomePage> {
               child: IndexedStack(
                 index: _currentTabIndex,
                 children: [
-                  // Street Tab
+                  // Index 0: Street Tab
                   Stack(
                     children: [
                       GhettoEnvironment(
@@ -169,7 +167,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       if (_activeBoss == null)
                         Positioned(
-                          bottom: 20,
+                          bottom: 16,
                           right: 20,
                           child: _FightBossButton(
                             onPressed: _startBossFight,
@@ -178,7 +176,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                     ],
                   ),
-                  // Gym Tab
+                  // Index 1: Gym Tab
                   GymEnvironment(
                     stats: _stats,
                     playerStamina: _playerStamina,
@@ -187,7 +185,14 @@ class _HomePageState extends State<HomePage> {
                     onStaminaSpent: _spendStamina,
                     onNeedsRecovered: _recoverNeeds,
                   ),
-                  // Gangs Tab (Placeholder)
+                  // Index 2: Turfs Tab
+                  const Center(
+                    child: Text(
+                      'TURFS COMING SOON',
+                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  // Index 3: Gangs Tab
                   const Center(
                     child: Text(
                       'GANGS COMING SOON',
