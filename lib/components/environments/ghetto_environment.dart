@@ -3,10 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../game_state.dart';
 import '../ui/player_health_bar.dart';
-import 'shared/graffiti_text.dart';
-import 'shared/environment_painters.dart';
-import 'shared/character_placeholders.dart';
-import 'shared/street_scene_layer.dart';
+import 'ghetto/ghetto_background.dart';
+import 'ghetto/ghetto_enemy_factory.dart';
+import 'ghetto/ghetto_enemy_unit.dart';
+import 'ghetto/ghetto_hero_unit.dart';
+import 'ghetto/ghetto_indicators.dart';
 
 class GhettoEnvironment extends StatefulWidget {
   final PlayerStats stats;
@@ -58,7 +59,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   late AnimationController _encounterProgressController;
   late AnimationController _enemyChargeController;
 
-  final double sceneWidth = 900.0; 
+  final double sceneWidth = 900.0;
 
   bool _isFighting = false;
   bool _isEnemyDying = false;
@@ -88,7 +89,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _attackController = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
     _enemyAttackController = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
     _deathController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
-    
     _encounterProgressController = AnimationController(vsync: this, duration: const Duration(seconds: 4));
     _enemyChargeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
 
@@ -136,10 +136,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _trainingTimer?.cancel();
     _trainingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       widget.onStatsGained(strength: 0, speed: 0.25, endurance: 0);
-      
       double recovery = widget.stats.staminaRecovery;
       if (_isLowHunger) recovery *= 0.5;
-      
       widget.onNeedsRecovered(stamina: recovery, hunger: -0.45);
     });
 
@@ -162,14 +160,11 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       );
     } else {
       _enemyNumber++;
-      _currentEnemy = _generateRandomEnemy(_enemyNumber);
+      _currentEnemy = GhettoEnemyFactory.generateRandomEnemy(_enemyNumber);
     }
-    
-    _enemyChargeController.duration = _currentEnemy!.attackDelay;
 
-    Future.microtask(() {
-      if (mounted) widget.onNewEnemyApproached();
-    });
+    _enemyChargeController.duration = _currentEnemy!.attackDelay;
+    Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
 
     setState(() {
       _isFighting = true;
@@ -181,62 +176,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
 
     _scrollController.stop();
-    _walkController.value = 0.5; 
+    _walkController.value = 0.5;
     _walkController.stop();
     _trainingTimer?.cancel();
     _encounterProgressController.stop();
-
     _schedulePlayerAttack();
-
     _enemyAttackTimer?.cancel();
     _startEnemyAttackCycle();
-  }
-
-  Enemy _generateRandomEnemy(int level) {
-    final typeIndex = _random.nextInt(4);
-    final enemyType = EnemyType.values[typeIndex];
-    
-    switch (enemyType) {
-      case EnemyType.fast:
-        return Enemy(
-          name: 'PUNK',
-          type: EnemyType.fast,
-          health: 5 + (level * 1.5).floor(),
-          damage: 1 + (level / 5).floor(),
-          attackDelay: const Duration(milliseconds: 700),
-          dodgeChance: 0.35,
-          themeColor: Colors.yellowAccent,
-        );
-      case EnemyType.tank:
-        return Enemy(
-          name: 'BRUISER',
-          type: EnemyType.tank,
-          health: 15 + (level * 3.5).floor(),
-          damage: 4 + (level / 2.5).floor(),
-          attackDelay: const Duration(milliseconds: 2200),
-          dodgeChance: 0.0,
-          themeColor: Colors.blueAccent,
-        );
-      case EnemyType.counter:
-        return Enemy(
-          name: 'REBEL',
-          type: EnemyType.counter,
-          health: 8 + (level * 2).floor(),
-          damage: 2 + (level / 4).floor(),
-          attackDelay: const Duration(milliseconds: 1400),
-          counterChance: 0.4,
-          themeColor: Colors.deepPurpleAccent,
-        );
-      case EnemyType.regular:
-      default:
-        return Enemy(
-          name: 'THUG',
-          type: EnemyType.regular,
-          health: 8 + (level * 2.2).floor(),
-          damage: 2 + (level / 3.5).floor(),
-          attackDelay: const Duration(milliseconds: 1300),
-        );
-    }
   }
 
   void _startEnemyAttackCycle() {
@@ -300,9 +246,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     double gainMult = widget.activeBoss != null ? 3.0 : 1.0;
     widget.onStatsGained(strength: 0.65 * gainMult, speed: 0.12 * gainMult, endurance: 0);
 
-    // COUNTER ATTACK LOGIC
     if (_enemyHealth > 0 && _random.nextDouble() < _currentEnemy!.counterChance) {
-       _enemyAttackPlayer(isCounter: true);
+      _enemyAttackPlayer(isCounter: true);
     }
 
     Future.delayed(const Duration(milliseconds: 120), () {
@@ -313,7 +258,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       await _deathController.forward(from: 0);
       if (mounted) {
         if (widget.activeBoss != null) widget.onBossDefeated?.call();
-        _startWalking(); 
+        _startWalking();
       }
     }
   }
@@ -322,12 +267,11 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     if (!_isFighting || (_enemyAttackController.isAnimating && !isCounter) || _isEnemyDying || _currentEnemy == null) return;
 
     if (isCounter) {
-        // Sudden strike visual
-        _enemyAttackController.forward(from: 0.5);
+      _enemyAttackController.forward(from: 0.5);
     } else {
-        await _enemyAttackController.forward(from: 0);
+      await _enemyAttackController.forward(from: 0);
     }
-    
+
     if (!mounted || !_isFighting || _isEnemyDying) return;
 
     if (_random.nextDouble() < widget.stats.dodgeChance && _payDodgeCost()) {
@@ -340,20 +284,16 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     }
 
     int damage = _currentEnemy!.damage;
-
     if (_isLowHunger) damage = (damage * 1.3).ceil();
 
     final willDefeatPlayer = widget.playerHealth - damage <= 0;
     widget.onPlayerDamaged(damage);
     widget.onStatsGained(strength: 0, speed: 0, endurance: 0.8);
-    
     double stmRecovery = widget.stats.staminaRecovery * 0.35;
     if (_isLowHunger) stmRecovery *= 0.5;
-    
     widget.onNeedsRecovered(stamina: stmRecovery, hunger: -0.25);
 
     setState(() => _playerWasHit = true);
-
     if (willDefeatPlayer) {
       _handlePlayerDefeated();
       return;
@@ -382,7 +322,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _trainingTimer?.cancel();
 
     widget.onPlayerDefeated();
-
     setState(() {
       _isFighting = false;
       _isEnemyDying = false;
@@ -425,34 +364,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF334155)],
-            ),
-          ),
-        ),
-
-        AnimatedBuilder(
-          animation: _scrollController,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(-_scrollController.value * sceneWidth, 0),
-              child: OverflowBox(
-                maxWidth: double.infinity,
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  children: [
-                    SizedBox(width: sceneWidth, child: const StreetSceneLayer()),
-                    SizedBox(width: sceneWidth, child: const StreetSceneLayer()),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+        GhettoBackground(scrollAnimation: _scrollController, sceneWidth: sceneWidth),
 
         Positioned(
           top: 80,
@@ -472,87 +384,17 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         ),
 
         if (!_isFighting && !_isEnemyDying && !_playerWasDefeated)
-          Positioned(
-            top: 180,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Column(
-                children: [
-                  const Text('SEARCHING FOR RIVALS...', style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 150,
-                    child: AnimatedBuilder(
-                      animation: _encounterProgressController,
-                      builder: (context, child) {
-                        return LinearProgressIndicator(
-                          value: _encounterProgressController.value,
-                          backgroundColor: Colors.white10,
-                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white54),
-                          minHeight: 2,
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          GhettoSearchingIndicator(progress: _encounterProgressController),
 
-        if (_isLowHunger)
-          Positioned(
-            top: 200,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black45,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: _isCriticalHunger ? Colors.redAccent : Colors.orangeAccent, width: 1),
-                ),
-                child: Text(
-                  _isCriticalHunger ? 'CRITICAL HUNGER: SHAKY STATE' : 'LOW HUNGER: REDUCED STATS',
-                  style: TextStyle(
-                    color: _isCriticalHunger ? Colors.redAccent : Colors.orangeAccent,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
+        GhettoHungerIndicator(isLowHunger: _isLowHunger, isCriticalHunger: _isCriticalHunger),
 
-        Align(
-          alignment: Alignment.bottomLeft,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 45.0, left: 60.0), 
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_walkController, _attackController, _enemyAttackController]),
-              builder: (context, child) {
-                final attackProgress = math.sin(_attackController.value * math.pi);
-                final hitShake = _playerWasHit ? math.sin(_enemyAttackController.value * math.pi * 8) * 6 : 0.0;
-                final missShake = _playerMissed ? math.sin(_attackController.value * math.pi * 12) * 5 : 0.0;
-                
-                return Opacity(
-                  opacity: _playerWasHit ? 0.72 : 1,
-                  child: Transform.translate(
-                    offset: Offset(
-                      (_isFighting ? attackProgress * 52 : 0) + hitShake + missShake,
-                      _isFighting ? -attackProgress * 4 : -_walkController.value * 8,
-                    ),
-                    child: Transform.rotate(
-                      angle: _isFighting ? attackProgress * 0.18 : (_walkController.value - 0.5) * 0.05,
-                      child: child,
-                    ),
-                  ),
-                );
-              },
-              child: const HeroCharacterPlaceholder(),
-            ),
-          ),
+        GhettoHeroUnit(
+          walkAnimation: _walkController,
+          attackAnimation: _attackController,
+          enemyAttackAnimation: _enemyAttackController,
+          isFighting: _isFighting,
+          wasHit: _playerWasHit,
+          missed: _playerMissed,
         ),
 
         if (_playerMissed)
@@ -565,61 +407,27 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             ),
           ),
 
-        if ((_isFighting || _isEnemyDying || _playerWasDefeated) && _currentEnemy != null)
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 45.0, right: 60.0),
-              child: AnimatedBuilder(
-                animation: Listenable.merge([_attackController, _enemyAttackController, _deathController]),
-                builder: (context, child) {
-                  final hitShake = _enemyWasHit ? math.sin(_attackController.value * math.pi * 8) * 6 : 0.0;
-                  final enemyAttackProgress = math.sin(_enemyAttackController.value * math.pi);
-                  final fallProgress = Curves.easeIn.transform(_deathController.value);
-                  return Opacity(
-                    opacity: (1 - fallProgress).clamp(0.0, 1.0),
-                    child: Transform.translate(
-                      offset: Offset(hitShake - enemyAttackProgress * 40 + fallProgress * 50, -enemyAttackProgress * 4 + fallProgress * 100),
-                      child: Transform.rotate(
-                        angle: -enemyAttackProgress * 0.14 + fallProgress * math.pi / 2.5,
-                        alignment: Alignment.bottomCenter,
-                        child: child,
-                      ),
-                    ),
-                  );
-                },
-                child: GestureDetector(
-                  onTap: _attackEnemy,
-                  child: EnemyCharacterPlaceholder(
-                    health: _enemyHealth,
-                    enemy: _currentEnemy!,
-                    enemyNumber: widget.activeBoss != null ? 0 : _enemyNumber,
-                    wasHit: _enemyWasHit,
-                    chargeProgress: _enemyChargeController,
-                  ),
-                ),
-              ),
-            ),
-          ),
+        GhettoEnemyUnit(
+          isFighting: _isFighting,
+          isEnemyDying: _isEnemyDying,
+          playerWasDefeated: _playerWasDefeated,
+          currentEnemy: _currentEnemy,
+          enemyHealth: _enemyHealth,
+          enemyNumber: _enemyNumber,
+          enemyWasHit: _enemyWasHit,
+          attackAnimation: _attackController,
+          enemyAttackAnimation: _enemyAttackController,
+          deathAnimation: _deathController,
+          enemyChargeController: _enemyChargeController,
+          onTap: _attackEnemy,
+          isBoss: widget.activeBoss != null,
+        ),
 
-        if (_isEnemyDying || _playerWasDefeated)
-          Positioned(
-            bottom: 200,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Text(
-                _isEnemyDying ? (widget.activeBoss != null ? 'BOSS DEFEATED!' : 'ENEMY DEFEATED') : 'RECOVERING',
-                style: TextStyle(
-                  color: _isEnemyDying ? Colors.amberAccent : Colors.redAccent,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2.5,
-                  shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
-                ),
-              ),
-            ),
-          ),
+        GhettoBattleStatusOverlay(
+          isEnemyDying: _isEnemyDying,
+          playerWasDefeated: _playerWasDefeated,
+          isBoss: widget.activeBoss != null,
+        ),
       ],
     );
   }
