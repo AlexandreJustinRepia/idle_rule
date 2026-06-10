@@ -5,6 +5,7 @@ import '../../game_state.dart';
 import '../../logic/combat_engine.dart';
 import '../../logic/player_needs_logic.dart';
 import '../ui/player_health_bar.dart';
+import '../shared/character_placeholders.dart';
 import 'ghetto/ghetto_background.dart';
 import 'ghetto/ghetto_enemy_factory.dart';
 import 'ghetto/ghetto_enemy_unit.dart';
@@ -65,6 +66,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   bool _isFighting = false;
   bool _isEnemyDying = false;
+  bool _isRecruiting = false;
   bool _enemyWasHit = false;
   bool _playerWasHit = false;
   bool _playerWasDefeated = false;
@@ -78,6 +80,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   final Map<Ally, AnimationController> _allyAttackControllers = {};
   final Map<Enemy, AnimationController> _enemyChargeControllers = {};
   final Map<Enemy, AnimationController> _enemyAttackControllers = {};
+  final Map<Enemy, int> _enemyOriginalIndices = {};
 
   int _enemyNumber = 0;
   Timer? _attackTimer;
@@ -116,6 +119,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _stopAllCombatAnimations();
     setState(() {
       _isEnemyDying = false;
+      _isRecruiting = false;
       _enemyWasHit = false;
       _playerWasHit = false;
       _playerWasDefeated = false;
@@ -123,9 +127,14 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _isFighting = false;
       _enemies.clear();
       _dyingEnemies.clear();
-      for (var c in _enemyChargeControllers.values) c.dispose();
+      _enemyOriginalIndices.clear();
+      for (var c in _enemyChargeControllers.values) {
+        c.dispose();
+      }
       _enemyChargeControllers.clear();
-      for (var c in _enemyAttackControllers.values) c.dispose();
+      for (var c in _enemyAttackControllers.values) {
+        c.dispose();
+      }
       _enemyAttackControllers.clear();
     });
 
@@ -139,7 +148,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
 
     _encounterProgressController.forward(from: 0).then((_) {
-      if (mounted && widget.activeBoss == null && !_isFighting) {
+      if (mounted && widget.activeBoss == null && !_isFighting && !_isRecruiting) {
         _startEncounter();
       }
     });
@@ -149,15 +158,29 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _attackTimer?.cancel();
     _playerHitController.stop();
     _deathController.stop();
-    for (var c in _allyChargeControllers.values) { c.stop(); c.value = 0; }
-    for (var c in _allyAttackControllers.values) { c.stop(); c.value = 0; }
-    for (var c in _enemyChargeControllers.values) { c.stop(); c.value = 0; }
-    for (var c in _enemyAttackControllers.values) { c.stop(); c.value = 0; }
+    for (var c in _allyChargeControllers.values) {
+      c.stop();
+      c.value = 0;
+    }
+    for (var c in _allyAttackControllers.values) {
+      c.stop();
+      c.value = 0;
+    }
+    for (var c in _enemyChargeControllers.values) {
+      c.stop();
+      c.value = 0;
+    }
+    for (var c in _enemyAttackControllers.values) {
+      c.stop();
+      c.value = 0;
+    }
     _attackController.stop();
     _attackController.value = 0;
   }
 
-  void _recruitEnemy(Enemy enemy) {
+  void _recruitAlly(Enemy enemy) {
+    if (_allies.length >= 3) return;
+
     final allyAtk = (enemy.damage * 0.5).floor().clamp(1, 999);
     final allyMaxHp = (enemy.health * 0.7).floor().clamp(1, 9999);
     final allyDelay = Duration(milliseconds: (enemy.attackDelay.inMilliseconds * 1.2).round());
@@ -175,34 +198,40 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _allies.add(newAlly);
       _allyChargeControllers[newAlly] = AnimationController(vsync: this, duration: newAlly.attackDelay);
       _allyAttackControllers[newAlly] = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-      if (_isFighting) {
-        _scheduleAllyAttack(newAlly);
-      }
     });
   }
 
   void _startEncounter({bool isBoss = false}) {
     _enemies.clear();
     _dyingEnemies.clear();
-    for (var c in _enemyChargeControllers.values) c.dispose();
+    _enemyOriginalIndices.clear();
+    for (var c in _enemyChargeControllers.values) {
+      c.dispose();
+    }
     _enemyChargeControllers.clear();
-    for (var c in _enemyAttackControllers.values) c.dispose();
+    for (var c in _enemyAttackControllers.values) {
+      c.dispose();
+    }
     _enemyAttackControllers.clear();
 
     if (isBoss && widget.activeBoss != null) {
-      _enemies.add(Enemy(
+      final enemy = Enemy(
         name: widget.activeBoss!.name,
         health: widget.activeBoss!.health,
         damage: widget.activeBoss!.damage,
         attackDelay: widget.activeBoss!.attackDelay,
         dodgeChance: widget.activeBoss!.dodgeChance,
         themeColor: widget.activeBoss!.themeColor,
-      ));
+      );
+      _enemies.add(enemy);
+      _enemyOriginalIndices[enemy] = 0;
     } else {
       int count = (math.Random().nextInt(3) + 1);
       for (int i = 0; i < count; i++) {
         _enemyNumber++;
-        _enemies.add(GhettoEnemyFactory.generateRandomEnemy(_enemyNumber, widget.stats));
+        final enemy = GhettoEnemyFactory.generateRandomEnemy(_enemyNumber, widget.stats);
+        _enemies.add(enemy);
+        _enemyOriginalIndices[enemy] = i;
       }
     }
 
@@ -216,7 +245,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     setState(() {
       _isFighting = true;
       _isEnemyDying = false;
+      _isRecruiting = false;
       _enemyWasHit = false;
+      _playerWasHit = false;
       _playerWasDefeated = false;
       _playerMissed = false;
     });
@@ -229,7 +260,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     
     _schedulePlayerAttack();
     _startAllyCombat();
-    for (var enemy in _enemies) { _startEnemyCharge(enemy); }
+    for (var enemy in _enemies) {
+      _startEnemyCharge(enemy);
+    }
   }
 
   void _startEnemyCharge(Enemy enemy) {
@@ -252,7 +285,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   void _startAllyCombat() {
-    for (var ally in _allies) { _scheduleAllyAttack(ally); }
+    for (var ally in _allies) {
+      _scheduleAllyAttack(ally);
+    }
   }
 
   void _scheduleAllyAttack(Ally ally) {
@@ -275,7 +310,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     setState(() {
       target.hp -= damage;
       _enemyWasHit = true;
-      if (target.hp <= 0) { _handleEnemyDefeat(target); }
+      if (target.hp <= 0) {
+        _handleEnemyDefeat(target);
+      }
     });
 
     Future.delayed(const Duration(milliseconds: 120), () {
@@ -283,11 +320,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
 
     if (_isEnemyDying && _enemies.isEmpty) {
-      await _deathController.forward(from: 0);
-      if (mounted) {
-        if (widget.activeBoss != null) widget.onBossDefeated?.call();
-        _startWalking();
-      }
+      _enterRecruitmentPhase();
     }
   }
 
@@ -295,11 +328,45 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _enemyChargeControllers[enemy]?.stop();
     _enemies.remove(enemy);
     _dyingEnemies.add(enemy);
-    _recruitEnemy(enemy); 
 
     if (_enemies.isEmpty) {
       _isFighting = false;
       _isEnemyDying = true;
+    }
+  }
+
+  void _enterRecruitmentPhase() {
+    setState(() {
+      _isRecruiting = true;
+    });
+  }
+
+  void _onRecruitTapped(Enemy enemy) {
+    if (!_isRecruiting) return;
+    if (_allies.length >= 3) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('PARTY FULL (MAX 3)'), duration: Duration(seconds: 1)),
+       );
+       return;
+    }
+    
+    _recruitAlly(enemy);
+    setState(() {
+      _dyingEnemies.remove(enemy);
+    });
+  }
+
+  void _finishRecruitment() async {
+    setState(() {
+      _isRecruiting = false;
+      _isEnemyDying = false;
+      _dyingEnemies.clear();
+    });
+    
+    await _deathController.forward(from: 0);
+    if (mounted) {
+      if (widget.activeBoss != null) widget.onBossDefeated?.call();
+      _startWalking();
     }
   }
 
@@ -340,7 +407,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     setState(() {
       target.hp -= damage;
       _enemyWasHit = true;
-      if (target.hp <= 0) { _handleEnemyDefeat(target); }
+      if (target.hp <= 0) {
+        _handleEnemyDefeat(target);
+      }
     });
 
     double gainMult = widget.activeBoss != null ? 3.0 : 1.0;
@@ -355,11 +424,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
 
     if (_isEnemyDying && _enemies.isEmpty) {
-      await _deathController.forward(from: 0);
-      if (mounted) {
-        if (widget.activeBoss != null) widget.onBossDefeated?.call();
-        _startWalking();
-      }
+      _enterRecruitmentPhase();
     }
   }
 
@@ -397,6 +462,16 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
   }
 
+  bool _payDodgeCost() {
+    if (widget.onStaminaSpent(5)) return true;
+    if (widget.playerHunger >= 2) {
+      widget.onNeedsRecovered(stamina: 0, hunger: -2);
+      return true;
+    }
+    widget.onStatsGained(strength: 0, speed: 0, endurance: 0.25);
+    return false;
+  }
+
   Future<void> _enemyAttackAlly(Enemy enemy, Ally ally) async {
     if (!_isFighting || _isEnemyDying) return;
     final controller = _enemyAttackControllers[enemy] ?? _playerHitController;
@@ -417,16 +492,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
   }
 
-  bool _payDodgeCost() {
-    if (widget.onStaminaSpent(5)) return true;
-    if (widget.playerHunger >= 2) {
-      widget.onNeedsRecovered(stamina: 0, hunger: -2);
-      return true;
-    }
-    widget.onStatsGained(strength: 0, speed: 0, endurance: 0.25);
-    return false;
-  }
-
   void _handlePlayerDefeated() {
     final wasBossFight = widget.activeBoss != null;
     _stopAllCombatAnimations();
@@ -441,8 +506,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
     Future.delayed(const Duration(milliseconds: 900), () {
       if (mounted) {
-        if (wasBossFight) { _startWalking(); }
-        else {
+        if (wasBossFight) {
+          _startWalking();
+        } else {
           setState(() {
             _isFighting = true;
             _playerWasHit = false;
@@ -450,7 +516,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           });
           _schedulePlayerAttack();
           _startAllyCombat();
-          for (var enemy in _enemies) _startEnemyCharge(enemy);
+          for (var enemy in _enemies) {
+            _startEnemyCharge(enemy);
+          }
         }
       }
     });
@@ -466,10 +534,18 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _playerHitController.dispose();
     _deathController.dispose();
     _encounterProgressController.dispose();
-    for (var c in _allyChargeControllers.values) c.dispose();
-    for (var c in _allyAttackControllers.values) c.dispose();
-    for (var c in _enemyChargeControllers.values) c.dispose();
-    for (var c in _enemyAttackControllers.values) c.dispose();
+    for (var c in _allyChargeControllers.values) {
+      c.dispose();
+    }
+    for (var c in _allyAttackControllers.values) {
+      c.dispose();
+    }
+    for (var c in _enemyChargeControllers.values) {
+      c.dispose();
+    }
+    for (var c in _enemyAttackControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -478,24 +554,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     return Stack(
       children: [
         GhettoBackground(scrollAnimation: _scrollController, sceneWidth: sceneWidth),
-        Positioned(
-          top: 80, left: 20, right: 20,
-          child: PlayerHealthBar(
-            health: widget.playerHealth,
-            maxHealth: widget.playerMaxHealth,
-            stamina: widget.playerStamina,
-            maxStamina: widget.playerMaxStamina,
-            hunger: widget.playerHunger,
-            maxHunger: widget.playerMaxHunger,
-            wasHit: _playerWasHit,
-            damage: widget.stats.attackDamage,
-            dodge: (widget.stats.dodgeChance * 100).toInt(),
-          ),
-        ),
-        if (!_isFighting && !_isEnemyDying && !_playerWasDefeated)
-          GhettoSearchingIndicator(progress: _encounterProgressController),
-        GhettoHungerIndicator(isLowHunger: _isLowHunger, isCriticalHunger: _isCriticalHunger),
         
+        // Render world objects (allies, hero, enemies)
         for (int i = 0; i < _allies.length; i++)
           GhettoAllyUnit(
             index: i,
@@ -511,9 +571,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           enemyAttackAnimation: _playerHitController, isFighting: _isFighting,
           wasHit: _playerWasHit, missed: _playerMissed,
         ),
-        
-        if (_playerMissed)
-          const Positioned(bottom: 120, left: 100, child: Text('MISS!', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 16))),
         
         for (int i = 0; i < _enemies.length; i++)
           GhettoEnemyUnit(
@@ -532,9 +589,10 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             isBoss: widget.activeBoss != null && i == 0,
           ),
 
+        // Show defeated enemies on ground during dying phase
         for (var enemy in _dyingEnemies)
           GhettoEnemyUnit(
-            index: 0,
+            index: _enemyOriginalIndices[enemy] ?? 0,
             enemy: enemy,
             enemyNumber: 0,
             isFighting: false,
@@ -545,11 +603,204 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             enemyAttackAnimation: _playerHitController,
             deathAnimation: _deathController,
             enemyChargeController: _playerHitController,
-            onTap: () {},
+            onTap: () => _onRecruitTapped(enemy),
           ),
 
-        GhettoBattleStatusOverlay(isEnemyDying: _isEnemyDying, playerWasDefeated: _playerWasDefeated, isBoss: widget.activeBoss != null),
+        // UI Indicators
+        Positioned(
+          top: 80, left: 20, right: 20,
+          child: PlayerHealthBar(
+            health: widget.playerHealth,
+            maxHealth: widget.playerMaxHealth,
+            stamina: widget.playerStamina,
+            maxStamina: widget.playerMaxStamina,
+            hunger: widget.playerHunger,
+            maxHunger: widget.playerMaxHunger,
+            wasHit: _playerWasHit,
+            damage: widget.stats.attackDamage,
+            dodge: (widget.stats.dodgeChance * 100).toInt(),
+          ),
+        ),
+        
+        if (!_isFighting && !_isEnemyDying && !_playerWasDefeated && !_isRecruiting)
+          GhettoSearchingIndicator(progress: _encounterProgressController),
+        
+        GhettoHungerIndicator(isLowHunger: _isLowHunger, isCriticalHunger: _isCriticalHunger),
+        
+        if (_playerMissed)
+          const Positioned(bottom: 120, left: 100, child: Text('MISS!', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 16))),
+
+        GhettoBattleStatusOverlay(
+          isEnemyDying: _isEnemyDying, 
+          playerWasDefeated: _playerWasDefeated, 
+          isBoss: widget.activeBoss != null,
+          isRecruiting: _isRecruiting,
+        ),
+
+        // Recruitment Overlay
+        if (_isRecruiting)
+          _buildRecruitmentOverlay(),
       ],
+    );
+  }
+
+  Widget _buildRecruitmentOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.8),
+        child: Column(
+          children: [
+            const Spacer(flex: 3),
+            const Text(
+              "BATTLE WON!",
+              style: TextStyle(
+                color: Colors.amberAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 4,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "RECRUIT MEMBERS",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 30,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+                shadows: [Shadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 4))],
+              ),
+            ),
+            const SizedBox(height: 15),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
+              ),
+              child: Text(
+                "SQUAD SIZE: ${_allies.length} / 3",
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Spacer(flex: 2),
+            Flexible(
+              flex: 10,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 240),
+                child: _dyingEnemies.isEmpty 
+                  ? const Center(child: Text("NO RECRUITS LEFT", style: TextStyle(color: Colors.white38, fontSize: 16, fontWeight: FontWeight.bold)))
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      itemCount: _dyingEnemies.length,
+                      itemBuilder: (context, index) {
+                        final enemy = _dyingEnemies[index];
+                        return _buildRecruitCard(enemy);
+                      },
+                    ),
+              ),
+            ),
+            const Spacer(flex: 2),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 50),
+              child: ElevatedButton(
+                onPressed: _finishRecruitment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B71F3),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
+                  elevation: 10,
+                  shadowColor: Colors.blueAccent.withValues(alpha: 0.5),
+                ),
+                child: const Text(
+                  'CONTINUE',
+                  style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 20),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecruitCard(Enemy enemy) {
+    return Container(
+      width: 140,
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: enemy.themeColor.withValues(alpha: 0.7),
+          width: 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: enemy.themeColor.withValues(alpha: 0.3),
+            blurRadius: 15,
+            spreadRadius: 1,
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 15),
+          // Model
+          SizedBox(
+            height: 80,
+            child: FittedBox(
+              child: EnemyCharacterPlaceholder(
+                health: enemy.health,
+                enemy: enemy,
+                enemyNumber: 0,
+                wasHit: false,
+                chargeProgress: _playerHitController,
+              ),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            enemy.name,
+            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.flash_on, color: Colors.orangeAccent, size: 18),
+              Text(
+                " ${enemy.damage}",
+                style: const TextStyle(color: Colors.orangeAccent, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          GestureDetector(
+            onTap: () => _onRecruitTapped(enemy),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withValues(alpha: 0.9),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+              ),
+              child: const Center(
+                child: Text(
+                  "RECRUIT",
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

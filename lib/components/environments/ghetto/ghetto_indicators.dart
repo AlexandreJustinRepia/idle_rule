@@ -92,27 +92,39 @@ class GhettoBattleStatusOverlay extends StatelessWidget {
   final bool isEnemyDying;
   final bool playerWasDefeated;
   final bool isBoss;
+  final bool isRecruiting;
 
   const GhettoBattleStatusOverlay({
     super.key,
     required this.isEnemyDying,
     required this.playerWasDefeated,
     required this.isBoss,
+    this.isRecruiting = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Hide the default status overlay when recruiting to avoid clutter
+    if (isRecruiting) return const SizedBox.shrink();
     if (!isEnemyDying && !playerWasDefeated) return const SizedBox.shrink();
 
+    String text = 'RECOVERING';
+    Color color = Colors.redAccent;
+
+    if (isEnemyDying) {
+      text = isBoss ? 'BOSS DEFEATED!' : 'ENEMY DEFEATED';
+      color = Colors.amberAccent;
+    }
+
     return Positioned(
-      bottom: 200,
+      bottom: 220, // Moved up slightly
       left: 0,
       right: 0,
       child: Center(
         child: Text(
-          isEnemyDying ? (isBoss ? 'BOSS DEFEATED!' : 'ENEMY DEFEATED') : 'RECOVERING',
+          text,
           style: TextStyle(
-            color: isEnemyDying ? Colors.amberAccent : Colors.redAccent,
+            color: color,
             fontSize: 20,
             fontWeight: FontWeight.w900,
             letterSpacing: 2.5,
