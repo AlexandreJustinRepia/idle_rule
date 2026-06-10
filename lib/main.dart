@@ -6,7 +6,6 @@ import 'components/ui/stats_panel.dart';
 import 'components/environments/ghetto_environment.dart';
 import 'components/environments/gym_environment.dart';
 import 'controllers/game_controller.dart';
-import 'game_state.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

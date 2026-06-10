@@ -22,7 +22,7 @@ class GhettoEnvironment extends StatefulWidget {
   final double playerMaxStamina;
   final double playerHunger;
   final double playerMaxHunger;
-  final void Function({double strength, double speed, double endurance}) onStatsGained;
+  final void Function({double strength, double speed, double endurance, double reputation}) onStatsGained;
   final void Function(int damage) onPlayerDamaged;
   final VoidCallback onPlayerDefeated;
   final VoidCallback onNewEnemyApproached;
@@ -76,6 +76,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _playerWasHit = false;
   bool _playerWasDefeated = false;
   bool _playerMissed = false;
+  bool _isResting = true; // Start in resting/idle state
 
   final List<Ally> _allies = [];
   final List<Enemy> _enemies = [];
@@ -108,6 +109,11 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _encounterProgressController = AnimationController(vsync: this, duration: const Duration(seconds: 4));
 
     _startWalking();
+    // Default to resting if no active mission
+    _isResting = true;
+    _scrollController.stop();
+    _walkController.stop();
+    _walkController.value = 0;
   }
 
   @override
@@ -146,17 +152,52 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _enemyAttackControllers.clear();
     });
 
-    _scrollController.repeat();
-    _walkController.repeat(reverse: true);
     _trainingTimer?.cancel();
     _trainingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      widget.onStatsGained(strength: 0, speed: 0.25, endurance: 0);
-      double recovery = widget.stats.staminaRecovery * PlayerNeedsLogic.getRecoveryMultiplier(widget.playerHunger, widget.playerMaxHunger);
-      widget.onNeedsRecovered(stamina: recovery, hunger: -0.45);
+      // If explore/walk is active, gain more speed XP. If resting, gain more stamina.
+      double statGain = _isResting ? 0.05 : 0.25;
+      widget.onStatsGained(strength: 0, speed: statGain, endurance: 0);
+      
+      double recoveryMult = PlayerNeedsLogic.getRecoveryMultiplier(widget.playerHunger, widget.playerMaxHunger);
+      double restMult = _isResting ? 2.5 : 1.0;
+      double recovery = widget.stats.staminaRecovery * recoveryMult * restMult;
+      
+      widget.onNeedsRecovered(stamina: recovery, hunger: _isResting ? -0.2 : -0.45);
     });
 
+    _encounterProgressController.value = 0;
+    _encounterProgressController.stop();
+
+    if (!_isResting) {
+      _scrollController.repeat();
+      _walkController.repeat(reverse: true);
+    }
+  }
+
+  void _toggleRest() {
+    setState(() {
+      _isResting = !_isResting;
+      if (_isResting) {
+        _scrollController.stop();
+        _walkController.stop();
+        _walkController.value = 0;
+        _encounterProgressController.stop();
+        _encounterProgressController.value = 0;
+      } else {
+        _scrollController.repeat();
+        _walkController.repeat(reverse: true);
+      }
+    });
+  }
+
+  void _startExploring() {
+    setState(() {
+      _isResting = false;
+      _scrollController.repeat();
+      _walkController.repeat(reverse: true);
+    });
     _encounterProgressController.forward(from: 0).then((_) {
-      if (mounted && widget.activeBoss == null && !_isFighting && !_isRecruiting) {
+      if (mounted && !_isFighting && !_isRecruiting) {
         _startEncounter();
       }
     });
@@ -187,7 +228,14 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   void _recruitAlly(Enemy enemy) {
-    if (_allies.length >= 3) return;
+    if (_allies.length >= widget.stats.gangCapacity) {
+      Ally weakest = _allies.reduce((a, b) => (a.atk + a.maxHp) < (b.atk + b.maxHp) ? a : b);
+      _dismissAlly(weakest);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('REPLACED ${weakest.name} WITH ${enemy.name}'), duration: const Duration(seconds: 2)),
+      );
+    }
 
     final allyAtk = (enemy.damage * 0.5).floor().clamp(1, 999);
     final allyMaxHp = (enemy.health * 0.7).floor().clamp(1, 9999);
@@ -234,7 +282,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _enemies.add(enemy);
       _enemyOriginalIndices[enemy] = 0;
     } else {
-      int count = (math.Random().nextInt(3) + 1);
+      int minEnemies = 1 + (widget.stats.reputation / 30).floor();
+      int maxEnemies = 3 + (widget.stats.reputation / 15).floor();
+      maxEnemies = maxEnemies.clamp(1, 8);
+      minEnemies = minEnemies.clamp(1, maxEnemies);
+
+      int count = math.Random().nextInt(maxEnemies - minEnemies + 1) + minEnemies;
       for (int i = 0; i < count; i++) {
         _enemyNumber++;
         final enemy = GhettoEnemyFactory.generateRandomEnemy(_enemyNumber, widget.stats);
@@ -254,10 +307,15 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _isFighting = true;
       _isEnemyDying = false;
       _isRecruiting = false;
-      _enemyWasHit = false;
+      _enemyWasHit = true; 
       _playerWasHit = false;
       _playerWasDefeated = false;
       _playerMissed = false;
+      _isResting = false;
+    });
+    
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) setState(() => _enemyWasHit = false);
     });
 
     _scrollController.stop();
@@ -283,6 +341,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   Future<void> _onEnemyAttack(Enemy enemy) async {
+    // Potential targets: player or any ally (even defeated allies might be targets, but let's stick to active/allies)
     List<dynamic> targets = [null, ..._allies];
     var target = targets[math.Random().nextInt(targets.length)];
     if (target == null) {
@@ -347,20 +406,25 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     setState(() {
       _isRecruiting = true;
     });
+    widget.onStatsGained(reputation: 1.0);
   }
 
   void _onRecruitTapped(Enemy enemy) {
     if (!_isRecruiting) return;
-    if (_allies.length >= 3) {
-       ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(content: Text('PARTY FULL (MAX 3)'), duration: Duration(seconds: 1)),
-       );
-       return;
-    }
     
     _recruitAlly(enemy);
     setState(() {
       _dyingEnemies.remove(enemy);
+    });
+  }
+
+  void _dismissAlly(Ally ally) {
+    setState(() {
+      _allies.remove(ally);
+      _allyChargeControllers[ally]?.dispose();
+      _allyChargeControllers.remove(ally);
+      _allyAttackControllers[ally]?.dispose();
+      _allyAttackControllers.remove(ally);
     });
   }
 
@@ -369,6 +433,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _isRecruiting = false;
       _isEnemyDying = false;
       _dyingEnemies.clear();
+      // Heal all allies to full after battle
+      for (var ally in _allies) { ally.hp = ally.maxHp; }
     });
     
     await _deathController.forward(from: 0);
@@ -481,7 +547,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   Future<void> _enemyAttackAlly(Enemy enemy, Ally ally) async {
-    if (!_isFighting || _isEnemyDying) return;
+    if (!_isFighting || _isEnemyDying || ally.hp <= 0) return;
     final controller = _enemyAttackControllers[enemy] ?? _playerHitController;
     await controller.forward(from: 0);
 
@@ -489,14 +555,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
     int damage = CombatEngine.calculateEnemyDamage(enemy.damage, _isLowHunger);
     setState(() {
-      ally.hp -= damage;
-      if (ally.hp <= 0) {
-        _allies.remove(ally);
-        _allyChargeControllers[ally]?.dispose();
-        _allyChargeControllers.remove(ally);
-        _allyAttackControllers[ally]?.dispose();
-        _allyAttackControllers.remove(ally);
-      }
+      ally.hp = (ally.hp - damage).clamp(0, ally.maxHp);
+      // ally doesn't disappear if defeated, just waits to be replaced or healed
     });
   }
 
@@ -506,7 +566,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _encounterProgressController.stop();
     _trainingTimer?.cancel();
     widget.onPlayerDefeated();
+
     setState(() {
+      // Heal all enemies and allies to full
+      for (var enemy in _enemies) { enemy.hp = enemy.maxHp; }
+      for (var ally in _allies) { ally.hp = ally.maxHp; }
+
       _isFighting = false;
       _isEnemyDying = false;
       _playerWasDefeated = true;
@@ -559,11 +624,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   @override
   Widget build(BuildContext context) {
+    bool isIdle = !_isFighting && !_isEnemyDying && !_playerWasDefeated && !_isRecruiting;
+
     return Stack(
       children: [
         GhettoBackground(scrollAnimation: _scrollController, sceneWidth: sceneWidth),
         
-        // Render world objects (allies, hero, enemies)
         for (int i = 0; i < _allies.length; i++)
           GhettoAllyUnit(
             index: i,
@@ -597,7 +663,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             isBoss: widget.activeBoss != null && i == 0,
           ),
 
-        // Show defeated enemies on ground during dying phase
         for (var enemy in _dyingEnemies)
           GhettoEnemyUnit(
             index: _enemyOriginalIndices[enemy] ?? 0,
@@ -614,24 +679,47 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             onTap: () => _onRecruitTapped(enemy),
           ),
 
-        // UI Indicators
         Positioned(
           top: 80, left: 20, right: 20,
           child: PlayerHealthBar(
             health: widget.playerHealth,
             maxHealth: widget.playerMaxHealth,
             stamina: widget.playerStamina,
-            maxStamina: widget.playerMaxStamina,
+            maxStamina: widget.stats.maxStamina,
             hunger: widget.playerHunger,
-            maxHunger: widget.playerMaxHunger,
+            maxHunger: widget.stats.maxHunger,
+            reputation: widget.stats.reputation,
             wasHit: _playerWasHit,
             damage: widget.stats.attackDamage,
             dodge: (widget.stats.dodgeChance * 100).toInt(),
+            gangCapacity: widget.stats.gangCapacity,
           ),
         ),
         
-        if (!_isFighting && !_isEnemyDying && !_playerWasDefeated && !_isRecruiting)
+        if (isIdle && _encounterProgressController.isAnimating)
           GhettoSearchingIndicator(progress: _encounterProgressController),
+        
+        if (isIdle && !_encounterProgressController.isAnimating)
+          Positioned(
+            bottom: 120, left: 20, right: 20,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildIdleActionCard(
+                  icon: _isResting ? Icons.hotel : Icons.directions_run,
+                  label: _isResting ? "WAKE UP" : "REST",
+                  onTap: _toggleRest,
+                  color: _isResting ? Colors.orange : Colors.blueGrey,
+                ),
+                _buildIdleActionCard(
+                  icon: Icons.search,
+                  label: "EXPLORE",
+                  onTap: _startExploring,
+                  color: Colors.blueAccent,
+                ),
+              ],
+            ),
+          ),
         
         GhettoHungerIndicator(isLowHunger: _isLowHunger, isCriticalHunger: _isCriticalHunger),
         
@@ -645,7 +733,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           isRecruiting: _isRecruiting,
         ),
 
-        // Boss button - only shown when ready and NOT in combat/recruitment
         if (!_isFighting && !_isRecruiting && !_isEnemyDying && !_playerWasDefeated && widget.activeBoss == null && _isBossReady)
           Positioned(
             bottom: 16,
@@ -656,10 +743,31 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             ),
           ),
 
-        // Recruitment Overlay
         if (_isRecruiting)
           _buildRecruitmentOverlay(),
       ],
+    );
+  }
+
+  Widget _buildIdleActionCard({required IconData icon, required String label, required VoidCallback onTap, required Color color}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 140,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 30),
+            const SizedBox(height: 8),
+            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -667,7 +775,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     return Positioned.fill(
       child: Container(
         color: Colors.black.withValues(alpha: 0.8),
-        child: Column( // Use Column instead of wrapping the whole thing in SingleChildScrollView
+        child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
@@ -706,11 +814,33 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
                         border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
                       ),
                       child: Text(
-                        "SQUAD SIZE: ${_allies.length} / 3",
+                        "GANG SIZE: ${_allies.length} / ${widget.stats.gangCapacity}",
                         style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
+                    
+                    if (_allies.isNotEmpty) ...[
+                      const Text("CURRENT GANG", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 120,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          itemCount: _allies.length,
+                          itemBuilder: (context, index) {
+                            final ally = _allies[index];
+                            return _buildAllyDismissCard(ally);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    const Text("NEW RECRUITS", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                    const SizedBox(height: 10),
                     SizedBox(
                       height: 250,
                       child: _dyingEnemies.isEmpty 
@@ -732,7 +862,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
                 ),
               ),
             ),
-            // Pin the button to the bottom
             Padding(
               padding: const EdgeInsets.only(bottom: 50, top: 20),
               child: ElevatedButton(
@@ -757,7 +886,47 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     );
   }
 
+  Widget _buildAllyDismissCard(Ally ally) {
+    return Container(
+      width: 100,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(ally.name, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.flash_on, color: Colors.orangeAccent, size: 12),
+              Text(" ${ally.atk}", style: const TextStyle(color: Colors.orangeAccent, fontSize: 10)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => _dismissAlly(ally),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text("DISMISS", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRecruitCard(Enemy enemy) {
+    final bool isFull = _allies.length >= widget.stats.gangCapacity;
+    
     return Container(
       width: 140,
       margin: const EdgeInsets.symmetric(horizontal: 12),
@@ -780,7 +949,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 12),
-          // Model
           SizedBox(
             height: 70,
             child: FittedBox(
@@ -818,13 +986,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withValues(alpha: 0.9),
+                color: isFull ? Colors.orangeAccent.withValues(alpha: 0.9) : Colors.blueAccent.withValues(alpha: 0.9),
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  "RECRUIT",
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  isFull ? "REPLACE WEAKEST" : "RECRUIT",
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
               ),
             ),

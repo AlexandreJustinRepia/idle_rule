@@ -23,8 +23,7 @@ class GhettoAllyUnit extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (ally.hp <= 0) return const SizedBox.shrink();
-
+    // Allies no longer disappear when HP is 0
     return Align(
       alignment: Alignment.bottomLeft,
       child: Padding(
@@ -40,14 +39,17 @@ class GhettoAllyUnit extends StatelessWidget {
           ]),
           builder: (context, child) {
             final attackProgress = math.sin(attackAnimation.value * math.pi);
+            final isDefeated = ally.hp <= 0;
             
             return Transform.translate(
               offset: Offset(
                 attackProgress * 30, // Lunges forward when attacking
-                isFighting ? 0 : -walkAnimation.value * 7,
+                isFighting ? (isDefeated ? 5 : 0) : -walkAnimation.value * 7,
               ),
               child: Transform.rotate(
-                angle: isFighting ? (attackProgress * 0.1) : (walkAnimation.value - 0.5) * 0.04,
+                angle: isDefeated 
+                  ? -math.pi / 2.2 // Laying down if defeated
+                  : isFighting ? (attackProgress * 0.1) : (walkAnimation.value - 0.5) * 0.04,
                 child: child,
               ),
             );

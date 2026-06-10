@@ -8,6 +8,7 @@ class PlayerStats {
   final double endurance;
   final double intelligence;
   final double potential;
+  final double reputation;
 
   const PlayerStats({
     this.strength = 0,
@@ -15,12 +16,14 @@ class PlayerStats {
     this.endurance = 0,
     this.intelligence = 76,
     this.potential = 96,
+    this.reputation = 0,
   });
 
   PlayerStats gain({
     double strength = 0,
     double speed = 0,
     double endurance = 0,
+    double reputation = 0,
   }) {
     return PlayerStats(
       strength: this.strength + strength,
@@ -28,6 +31,7 @@ class PlayerStats {
       endurance: this.endurance + endurance,
       intelligence: intelligence,
       potential: potential,
+      reputation: this.reputation + reputation,
     );
   }
 
@@ -69,4 +73,7 @@ class PlayerStats {
   // Intelligence stats already use hyperbolic diminishing returns natively
   double get hitChance => 0.7 + (intelligence / (intelligence + 120)) * 0.28;
   double get counterMitigation => (intelligence / (intelligence + 250)) * 0.5;
+
+  // Gang Capacity: Starts at 1, gains +1 every 20 reputation
+  int get gangCapacity => 1 + (reputation / 20).floor().clamp(0, 5);
 }

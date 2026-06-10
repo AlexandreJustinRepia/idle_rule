@@ -7,9 +7,11 @@ class PlayerHealthBar extends StatelessWidget {
   final double maxStamina;
   final double hunger;
   final double maxHunger;
+  final double reputation;
   final bool wasHit;
   final int damage;
   final int dodge;
+  final int gangCapacity;
 
   const PlayerHealthBar({
     super.key,
@@ -19,9 +21,11 @@ class PlayerHealthBar extends StatelessWidget {
     required this.maxStamina,
     required this.hunger,
     required this.maxHunger,
+    required this.reputation,
     required this.wasHit,
     required this.damage,
     required this.dodge,
+    required this.gangCapacity,
   });
 
   @override
@@ -37,11 +41,18 @@ class PlayerHealthBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('PLAYER', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('PLAYER', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                Text('REP: ${reputation.toStringAsFixed(1)} (CAP: $gangCapacity)',
+                  style: const TextStyle(color: Colors.blueAccent, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+              ],
+            ),
             Text('ATK: $damage  DDG: $dodge%', style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold)),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(3),
           child: LinearProgressIndicator(

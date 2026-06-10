@@ -43,6 +43,11 @@ class StatsPanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _buildStatRow('Potential', stats.potential, Colors.orangeAccent),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Divider(color: Colors.white10),
+            ),
+            _buildStatRow('Reputation', stats.reputation, Colors.blueAccent),
           ],
         ),
       ),

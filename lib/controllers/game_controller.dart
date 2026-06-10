@@ -21,11 +21,16 @@ class GameController extends ChangeNotifier {
   Boss? get activeBoss => _activeBoss;
   int get bossIndex => _bossIndex;
 
-  void gainStats({double strength = 0, double speed = 0, double endurance = 0}) {
+  void gainStats({double strength = 0, double speed = 0, double endurance = 0, double reputation = 0}) {
     final previousMaxStamina = _stats.maxStamina;
     final previousMaxHunger = _stats.maxHunger;
     
-    _stats = _stats.gain(strength: strength, speed: speed, endurance: endurance);
+    _stats = _stats.gain(
+      strength: strength, 
+      speed: speed, 
+      endurance: endurance,
+      reputation: reputation,
+    );
     
     _playerHealth = _playerHealth.clamp(0, _stats.maxHealth).toInt();
     _playerStamina = (_playerStamina + (_stats.maxStamina - previousMaxStamina)).clamp(0, _stats.maxStamina);
@@ -74,6 +79,8 @@ class GameController extends ChangeNotifier {
   void onBossDefeated() {
     _activeBoss = null;
     _bossIndex++;
+    // Bosses give a significant reputation boost
+    gainStats(reputation: 25.0);
     notifyListeners();
   }
 }
