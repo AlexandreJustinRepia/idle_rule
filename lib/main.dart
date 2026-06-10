@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'components/navigation/custom_navbar.dart';
 import 'components/navigation/custom_bottom_navbar.dart';
 import 'components/ui/stats_panel.dart';
-import 'components/ui/fight_boss_button.dart';
 import 'components/environments/ghetto_environment.dart';
 import 'components/environments/gym_environment.dart';
 import 'controllers/game_controller.dart';
@@ -60,39 +59,28 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               children: [
                 Expanded(
-                  flex: 5,
+                  flex: 6,
                   child: IndexedStack(
                     index: _currentTabIndex,
                     children: [
-                      Stack(
-                        children: [
-                          GhettoEnvironment(
-                            stats: _gameController.stats,
-                            playerHealth: _gameController.playerHealth,
-                            playerMaxHealth: _gameController.stats.maxHealth,
-                            playerStamina: _gameController.playerStamina,
-                            playerMaxStamina: _gameController.stats.maxStamina,
-                            playerHunger: _gameController.playerHunger,
-                            playerMaxHunger: _gameController.stats.maxHunger,
-                            onStatsGained: _gameController.gainStats,
-                            onPlayerDamaged: _gameController.takeDamage,
-                            onPlayerDefeated: _gameController.recoverFromDefeat,
-                            onNewEnemyApproached: _gameController.recoverHealthForNewEnemy,
-                            onStaminaSpent: _gameController.spendStamina,
-                            onNeedsRecovered: _gameController.recoverNeeds,
-                            activeBoss: _gameController.activeBoss,
-                            onBossDefeated: _gameController.onBossDefeated,
-                          ),
-                          if (_gameController.activeBoss == null)
-                            Positioned(
-                              bottom: 16,
-                              right: 20,
-                              child: FightBossButton(
-                                onPressed: _gameController.startBossFight,
-                                nextBossName: gameBosses[_gameController.bossIndex % gameBosses.length].name,
-                              ),
-                            ),
-                        ],
+                      GhettoEnvironment(
+                        stats: _gameController.stats,
+                        playerHealth: _gameController.playerHealth,
+                        playerMaxHealth: _gameController.stats.maxHealth,
+                        playerStamina: _gameController.playerStamina,
+                        playerMaxStamina: _gameController.stats.maxStamina,
+                        playerHunger: _gameController.playerHunger,
+                        playerMaxHunger: _gameController.stats.maxHunger,
+                        onStatsGained: _gameController.gainStats,
+                        onPlayerDamaged: _gameController.takeDamage,
+                        onPlayerDefeated: _gameController.recoverFromDefeat,
+                        onNewEnemyApproached: _gameController.recoverHealthForNewEnemy,
+                        onStaminaSpent: _gameController.spendStamina,
+                        onNeedsRecovered: _gameController.recoverNeeds,
+                        activeBoss: _gameController.activeBoss,
+                        onBossDefeated: _gameController.onBossDefeated,
+                        onStartBossFight: _gameController.startBossFight,
+                        bossIndex: _gameController.bossIndex,
                       ),
                       GymEnvironment(
                         stats: _gameController.stats,
@@ -108,7 +96,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 Flexible(
-                  flex: 4,
+                  flex: 3,
                   child: StatsPanel(stats: _gameController.stats),
                 ),
               ],

@@ -36,7 +36,7 @@ class GhettoAllyUnit extends StatelessWidget {
           animation: Listenable.merge([
             walkAnimation,
             attackAnimation,
-            ?chargeAnimation,
+            if (chargeAnimation != null) chargeAnimation!,
           ]),
           builder: (context, child) {
             final attackProgress = math.sin(attackAnimation.value * math.pi);

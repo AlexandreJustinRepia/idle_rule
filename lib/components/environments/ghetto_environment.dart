@@ -6,6 +6,7 @@ import '../../logic/combat_engine.dart';
 import '../../logic/player_needs_logic.dart';
 import '../ui/player_health_bar.dart';
 import '../shared/character_placeholders.dart';
+import '../ui/fight_boss_button.dart';
 import 'ghetto/ghetto_background.dart';
 import 'ghetto/ghetto_enemy_factory.dart';
 import 'ghetto/ghetto_enemy_unit.dart';
@@ -29,6 +30,8 @@ class GhettoEnvironment extends StatefulWidget {
   final void Function({double stamina, double hunger}) onNeedsRecovered;
   final Boss? activeBoss;
   final VoidCallback? onBossDefeated;
+  final VoidCallback? onStartBossFight;
+  final int bossIndex;
 
   const GhettoEnvironment({
     super.key,
@@ -47,6 +50,8 @@ class GhettoEnvironment extends StatefulWidget {
     required this.onNeedsRecovered,
     this.activeBoss,
     this.onBossDefeated,
+    this.onStartBossFight,
+    this.bossIndex = 0,
   });
 
   @override
@@ -88,6 +93,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   bool get _isLowHunger => PlayerNeedsLogic.isLowHunger(widget.playerHunger, widget.playerMaxHunger);
   bool get _isCriticalHunger => PlayerNeedsLogic.isCriticalHunger(widget.playerHunger, widget.playerMaxHunger);
+  
+  // Boss is ready if strength is at least 5
+  bool get _isBossReady => widget.stats.strength >= 5.0;
 
   @override
   void initState() {
@@ -637,6 +645,17 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           isRecruiting: _isRecruiting,
         ),
 
+        // Boss button - only shown when ready and NOT in combat/recruitment
+        if (!_isFighting && !_isRecruiting && !_isEnemyDying && !_playerWasDefeated && widget.activeBoss == null && _isBossReady)
+          Positioned(
+            bottom: 16,
+            right: 20,
+            child: FightBossButton(
+              onPressed: () => widget.onStartBossFight?.call(),
+              nextBossName: gameBosses[widget.bossIndex % gameBosses.length].name,
+            ),
+          ),
+
         // Recruitment Overlay
         if (_isRecruiting)
           _buildRecruitmentOverlay(),
@@ -648,66 +667,74 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     return Positioned.fill(
       child: Container(
         color: Colors.black.withValues(alpha: 0.8),
-        child: Column(
+        child: Column( // Use Column instead of wrapping the whole thing in SingleChildScrollView
           children: [
-            const Spacer(flex: 3),
-            const Text(
-              "BATTLE WON!",
-              style: TextStyle(
-                color: Colors.amberAccent,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 4,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "RECRUIT MEMBERS",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1,
-                shadows: [Shadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 4))],
-              ),
-            ),
-            const SizedBox(height: 15),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.blueAccent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
-              ),
-              child: Text(
-                "SQUAD SIZE: ${_allies.length} / 3",
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const Spacer(flex: 2),
-            Flexible(
-              flex: 10,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 240),
-                child: _dyingEnemies.isEmpty 
-                  ? const Center(child: Text("NO RECRUITS LEFT", style: TextStyle(color: Colors.white38, fontSize: 16, fontWeight: FontWeight.bold)))
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      shrinkWrap: true,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      itemCount: _dyingEnemies.length,
-                      itemBuilder: (context, index) {
-                        final enemy = _dyingEnemies[index];
-                        return _buildRecruitCard(enemy);
-                      },
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 60),
+                    const Text(
+                      "BATTLE WON!",
+                      style: TextStyle(
+                        color: Colors.amberAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                      ),
                     ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "RECRUIT MEMBERS",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                        shadows: [Shadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 4))],
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        "SQUAD SIZE: ${_allies.length} / 3",
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      height: 250,
+                      child: _dyingEnemies.isEmpty 
+                        ? const Center(child: Text("NO RECRUITS LEFT", style: TextStyle(color: Colors.white38, fontSize: 16, fontWeight: FontWeight.bold)))
+                        : ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            shrinkWrap: true,
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 40),
+                            itemCount: _dyingEnemies.length,
+                            itemBuilder: (context, index) {
+                              final enemy = _dyingEnemies[index];
+                              return _buildRecruitCard(enemy);
+                            },
+                          ),
+                    ),
+                    const SizedBox(height: 30),
+                  ],
+                ),
               ),
             ),
-            const Spacer(flex: 2),
+            // Pin the button to the bottom
             Padding(
-              padding: const EdgeInsets.only(bottom: 50),
+              padding: const EdgeInsets.only(bottom: 50, top: 20),
               child: ElevatedButton(
                 onPressed: _finishRecruitment,
                 style: ElevatedButton.styleFrom(
@@ -750,11 +777,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 15),
+          const SizedBox(height: 12),
           // Model
           SizedBox(
-            height: 80,
+            height: 70,
             child: FittedBox(
               child: EnemyCharacterPlaceholder(
                 health: enemy.health,
@@ -765,28 +793,30 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
               ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           Text(
             enemy.name,
-            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.flash_on, color: Colors.orangeAccent, size: 18),
+              const Icon(Icons.flash_on, color: Colors.orangeAccent, size: 16),
               Text(
                 " ${enemy.damage}",
-                style: const TextStyle(color: Colors.orangeAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Colors.orangeAccent, fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          const SizedBox(height: 15),
+          const Spacer(),
           GestureDetector(
             onTap: () => _onRecruitTapped(enemy),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.blueAccent.withValues(alpha: 0.9),
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
@@ -794,7 +824,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
               child: const Center(
                 child: Text(
                   "RECRUIT",
-                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
                 ),
               ),
             ),

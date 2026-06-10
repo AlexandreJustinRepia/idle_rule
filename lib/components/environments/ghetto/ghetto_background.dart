@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../shared/street_scene_layer.dart';
 
 class GhettoBackground extends StatelessWidget {
   final Animation<double> scrollAnimation;
@@ -16,13 +15,7 @@ class GhettoBackground extends StatelessWidget {
     return Stack(
       children: [
         Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF334155)],
-            ),
-          ),
+          color: const Color(0xFF0F172A), // Fallback color
         ),
         AnimatedBuilder(
           animation: scrollAnimation,
@@ -34,8 +27,18 @@ class GhettoBackground extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Row(
                   children: [
-                    SizedBox(width: sceneWidth, child: const StreetSceneLayer()),
-                    SizedBox(width: sceneWidth, child: const StreetSceneLayer()),
+                    Image.asset(
+                      'assets/background/ghetto.png',
+                      width: sceneWidth,
+                      height: MediaQuery.of(context).size.height,
+                      fit: BoxFit.cover,
+                    ),
+                    Image.asset(
+                      'assets/background/ghetto.png',
+                      width: sceneWidth,
+                      height: MediaQuery.of(context).size.height,
+                      fit: BoxFit.cover,
+                    ),
                   ],
                 ),
               ),
