@@ -8,6 +8,8 @@ import '../ui/player_health_bar.dart';
 import '../ui/fight_boss_button.dart';
 import '../ui/action_card.dart';
 import '../ui/cinematic_slam_overlay.dart';
+import '../ui/encounter_choice_overlay.dart';
+import '../ui/encounter_talk_overlay.dart';
 import 'ghetto/ghetto_background.dart';
 import 'ghetto/ghetto_enemy_factory.dart';
 import 'ghetto/ghetto_enemy_unit.dart';
@@ -88,6 +90,17 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _playerMissed = false;
   bool _isResting = true; 
   bool _isAtHome = true;
+  bool _isEncounterChoice = false;
+  bool _isTalking = false;
+  String _currentDialogue = "";
+  
+  final List<String> _randomInfo = [
+    "The Gym is a great place to build endurance, but it costs money.",
+    "Bosses hit hard! Make sure you recruit allies before facing them.",
+    "If you run out of stamina, your attacks will miss more often.",
+    "Reputation determines how many gang members you can recruit.",
+    "Eating food recovers hunger and stamina.",
+  ];
 
   final List<Ally> _allies = [];
   final List<Enemy> _enemies = [];
@@ -148,6 +161,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _isRecruiting = false;
       _isIntroAnimating = false;
       _isTransitioning = false;
+      _isEncounterChoice = false;
+      _isTalking = false;
       _playerWasDefeated = false;
       _enemies.clear();
       _dyingEnemies.clear();
@@ -340,28 +355,86 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     if (mounted) {
       setState(() {
         _isIntroAnimating = false;
-        _isFighting = true;
-        _isEnemyDying = false;
-        _isRecruiting = false;
-        _enemyWasHit = true; 
-        _playerWasHit = false;
-        _playerWasDefeated = false;
-        _playerMissed = false;
-        _isResting = false;
+        
+        if (isBoss) {
+          _isFighting = true;
+          _isEnemyDying = false;
+          _isRecruiting = false;
+          _enemyWasHit = true; 
+          _playerWasHit = false;
+          _playerWasDefeated = false;
+          _playerMissed = false;
+          _isResting = false;
+        } else {
+          _isEncounterChoice = true;
+        }
       });
       
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) setState(() => _enemyWasHit = false);
-      });
+      if (isBoss) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) setState(() => _enemyWasHit = false);
+        });
 
-      Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
-      
-      _schedulePlayerAttack();
-      _startAllyCombat();
-      for (var enemy in _enemies) {
-        _startEnemyCharge(enemy);
+        Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
+        
+        _schedulePlayerAttack();
+        _startAllyCombat();
+        for (var enemy in _enemies) {
+          _startEnemyCharge(enemy);
+        }
       }
     }
+  }
+
+  void _onChooseFight() {
+    setState(() {
+      _isEncounterChoice = false;
+      _isFighting = true;
+      _isEnemyDying = false;
+      _isRecruiting = false;
+      _enemyWasHit = true; 
+      _playerWasHit = false;
+      _playerWasDefeated = false;
+      _playerMissed = false;
+      _isResting = false;
+    });
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) setState(() => _enemyWasHit = false);
+    });
+
+    Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
+    
+    _schedulePlayerAttack();
+    _startAllyCombat();
+    for (var enemy in _enemies) {
+      _startEnemyCharge(enemy);
+    }
+  }
+
+  void _onChooseTalk() {
+    setState(() {
+      _isEncounterChoice = false;
+      _isTalking = true;
+      _currentDialogue = _randomInfo[math.Random().nextInt(_randomInfo.length)];
+    });
+  }
+
+  void _onFinishTalking() {
+    setState(() {
+      _isTalking = false;
+      _enemies.clear();
+      _scrollController.repeat();
+      _walkController.repeat(reverse: true);
+    });
+    widget.onStatsGained(reputation: 0.2);
+    widget.onMoneyGained?.call(2);
+    
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted && !_isFighting && !_isRecruiting && !_isAtHome && !_isResting && !_isEncounterChoice && !_isTalking) {
+        _startEncounter();
+      }
+    });
   }
 
   void _startEnemyCharge(Enemy enemy) {
@@ -649,7 +722,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   @override
   Widget build(BuildContext context) {
-    bool isIdle = !_isFighting && !_isEnemyDying && !_playerWasDefeated && !_isRecruiting && !_isIntroAnimating && !_isTransitioning;
+    bool isIdle = !_isFighting && !_isEnemyDying && !_playerWasDefeated && !_isRecruiting && !_isIntroAnimating && !_isTransitioning && !_isEncounterChoice && !_isTalking;
 
     return Stack(
       children: [
@@ -784,6 +857,19 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             animation: _introController, 
             title: _introEnemyName,
             subtitle: "Ghetto District",
+          ),
+
+        if (_isEncounterChoice)
+          EncounterChoiceOverlay(
+            npcName: _introEnemyName,
+            onFight: _onChooseFight,
+            onTalk: _onChooseTalk,
+          ),
+
+        if (_isTalking)
+          EncounterTalkOverlay(
+            infoText: _currentDialogue,
+            onLeave: _onFinishTalking,
           ),
 
         if (_isRecruiting)
