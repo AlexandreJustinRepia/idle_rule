@@ -32,7 +32,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               const Text(
                 "BATTLE WON!",
                 style: TextStyle(
@@ -42,7 +42,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
                   letterSpacing: 4,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               const Text(
                 "RECRUIT MEMBERS",
                 textAlign: TextAlign.center,
@@ -54,7 +54,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
                   shadows: [Shadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 4))],
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 decoration: BoxDecoration(
@@ -67,11 +67,11 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
                   style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
               if (allies.isNotEmpty) ...[
                 const Text("CURRENT GANG", style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 SizedBox(
                   height: 80,
                   child: ListView.builder(
@@ -85,13 +85,13 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
               ],
 
               const Text("NEW RECRUITS", style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 2)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               const Text("← SKIP     RECRUIT →", style: TextStyle(color: Colors.white30, fontSize: 10, letterSpacing: 1.5)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               SizedBox(
                 height: 185,
                 child: dyingEnemies.isEmpty
@@ -137,7 +137,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
 
               const Spacer(),
               Padding(
-                padding: const EdgeInsets.only(bottom: 24, top: 12),
+                padding: const EdgeInsets.only(bottom: 12, top: 8),
                 child: ElevatedButton(
                   onPressed: onFinishRecruitment,
                   style: ElevatedButton.styleFrom(
