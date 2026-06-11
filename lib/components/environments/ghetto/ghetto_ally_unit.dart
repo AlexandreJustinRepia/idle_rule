@@ -60,6 +60,7 @@ class GhettoAllyUnit extends StatelessWidget {
                   maxHp: ally.maxHp,
                   walkProgress: walkAnimation.value,
                   idleProgress: idleAnimation.value,
+                  punchProgress: attackAnimation.value,
                 ),
               ),
             );

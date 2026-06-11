@@ -51,6 +51,7 @@ class GhettoHeroUnit extends StatelessWidget {
                   child: HeroCharacterPlaceholder(
                     walkProgress: walkAnimation.value,
                     idleProgress: idleAnimation.value,
+                    punchProgress: attackAnimation.value,
                   ),
                 ),
               ),

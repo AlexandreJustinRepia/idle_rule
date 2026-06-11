@@ -75,6 +75,7 @@ class GhettoEnemyUnit extends StatelessWidget {
               wasHit: enemyWasHit,
               chargeProgress: enemyChargeController,
               idleProgress: idleAnimation.value,
+              punchProgress: enemyAttackAnimation.value,
             ),
           ),
         ),

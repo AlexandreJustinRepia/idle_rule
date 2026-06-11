@@ -7,10 +7,13 @@ class HeroPainter extends CustomPainter {
   final Color accentColor;
   final double walkProgress;
   final double idleProgress;
+  final double punchProgress; // 0..1: boxing guard -> jab -> retract
+
   const HeroPainter({
     this.accentColor = Colors.blueAccent,
     this.walkProgress = 0.0,
     this.idleProgress = 0.0,
+    this.punchProgress = 0.0,
   });
 
   @override
@@ -32,25 +35,55 @@ class HeroPainter extends CustomPainter {
     final skinColor = const Color(0xFFE8D5C0);
     final skinColorDark = const Color(0xFFD4C0B0);
 
+    // Common measurements
+    final shoulder = Offset(cx, 47);
+    final hip = Offset(cx, 81);
+    const bodyTop = 37.0;
+    const bodyW = 24.0;
+    const bodyH = 44.0;
+
+    final isPunching = punchProgress > 0.01;
+
     // ── Back Arm (Left) ───────────────────────────────────
     final backArmPaint = Paint()..color = const Color(0xFF162D4A)..strokeWidth = 10..strokeCap = StrokeCap.round;
     final backForearmPaint = Paint()..color = const Color(0xFF0F2035)..strokeWidth = 8..strokeCap = StrokeCap.round;
     
-    final shoulder = Offset(cx, 47);
-    canvas.save();
-    canvas.translate(shoulder.dx, shoulder.dy);
-    canvas.rotate(isWalking ? -swing : idleSway);
-    canvas.translate(-shoulder.dx, -shoulder.dy);
-    canvas.drawLine(shoulder, Offset(cx, 47 + 18), backArmPaint);
-    canvas.drawLine(Offset(cx, 47 + 18), Offset(cx, 47 + 34), backForearmPaint);
-    canvas.drawCircle(Offset(cx, 47 + 34), 5.5, Paint()..color = skinColorDark);
-    canvas.restore();
+    if (isPunching) {
+      double guardT = 0.0;
+      if (punchProgress < 0.25) {
+        guardT = punchProgress / 0.25;
+      } else if (punchProgress < 0.75) {
+        guardT = 1.0;
+      } else {
+        guardT = (1.0 - punchProgress) / 0.25;
+      }
+
+      final backElbowNormal = Offset(cx, 47 + 18);
+      final backFistNormal = Offset(cx, 47 + 34);
+      final backElbowGuard = Offset(cx + 4, 38);
+      final backFistGuard = Offset(cx + 8, 24);
+
+      final backElbow = Offset.lerp(backElbowNormal, backElbowGuard, guardT)!;
+      final backFist = Offset.lerp(backFistNormal, backFistGuard, guardT)!;
+
+      canvas.drawLine(shoulder, backElbow, backArmPaint);
+      canvas.drawLine(backElbow, backFist, backForearmPaint);
+      canvas.drawCircle(backFist, 5.5, Paint()..color = skinColorDark);
+    } else {
+      canvas.save();
+      canvas.translate(shoulder.dx, shoulder.dy);
+      canvas.rotate(isWalking ? -swing : idleSway);
+      canvas.translate(-shoulder.dx, -shoulder.dy);
+      canvas.drawLine(shoulder, Offset(cx, 47 + 18), backArmPaint);
+      canvas.drawLine(Offset(cx, 47 + 18), Offset(cx, 47 + 34), backForearmPaint);
+      canvas.drawCircle(Offset(cx, 47 + 34), 5.5, Paint()..color = skinColorDark);
+      canvas.restore();
+    }
 
     // ── Back Leg (Left) ───────────────────────────────────
     final backLegPaint = Paint()..color = const Color(0xFF0D162A)..strokeWidth = 12..strokeCap = StrokeCap.round;
     final backShinPaint = Paint()..color = const Color(0xFF070D1A)..strokeWidth = 10..strokeCap = StrokeCap.round;
     
-    final hip = Offset(cx, 81);
     canvas.save();
     canvas.translate(hip.dx, hip.dy);
     canvas.rotate(swing);
@@ -61,9 +94,6 @@ class HeroPainter extends CustomPainter {
     canvas.restore();
 
     // ── Body ──────────────────────────────────────────────
-    const bodyTop = 37.0;
-    const bodyW = 24.0;
-    const bodyH = 44.0;
     final bodyLeft = cx - bodyW / 2;
     final bodyRect = RRect.fromLTRBR(bodyLeft, bodyTop, bodyLeft + bodyW, bodyTop + bodyH, const Radius.circular(8));
     
@@ -125,21 +155,61 @@ class HeroPainter extends CustomPainter {
     final frontArmPaint = Paint()..color = const Color(0xFF1E3A5F)..strokeWidth = 10..strokeCap = StrokeCap.round;
     final frontForearmPaint = Paint()..color = const Color(0xFF16305A)..strokeWidth = 8..strokeCap = StrokeCap.round;
 
-    canvas.save();
-    canvas.translate(shoulder.dx, shoulder.dy);
-    canvas.rotate(isWalking ? swing : -idleSway);
-    canvas.translate(-shoulder.dx, -shoulder.dy);
-    canvas.drawLine(shoulder, Offset(cx, 47 + 18), frontArmPaint);
-    canvas.drawLine(Offset(cx, 47 + 18), Offset(cx, 47 + 34), frontForearmPaint);
-    canvas.drawCircle(Offset(cx, 47 + 34), 5.5, Paint()..color = skinColor);
-    canvas.restore();
+    if (isPunching) {
+      double guardT = 0.0;
+      if (punchProgress < 0.25) {
+        guardT = punchProgress / 0.25;
+      } else if (punchProgress < 0.75) {
+        guardT = 1.0;
+      } else {
+        guardT = (1.0 - punchProgress) / 0.25;
+      }
+
+      double extendFactor = 0.0;
+      if (punchProgress >= 0.25 && punchProgress <= 0.75) {
+        if (punchProgress < 0.50) {
+          extendFactor = (punchProgress - 0.25) / 0.25;
+        } else {
+          extendFactor = (0.75 - punchProgress) / 0.25;
+        }
+      }
+
+      final frontElbowNormal = Offset(cx, 47 + 18);
+      final frontFistNormal = Offset(cx, 47 + 34);
+
+      final frontElbowGuard = Offset(cx + 10, 40);
+      final frontFistGuard = Offset(cx + 14, 26);
+
+      final frontElbowExtended = Offset(cx + 24, 45);
+      final frontFistExtended = Offset(cx + 46, 45);
+
+      final guardElbow = Offset.lerp(frontElbowNormal, frontElbowGuard, guardT)!;
+      final guardFist = Offset.lerp(frontFistNormal, frontFistGuard, guardT)!;
+
+      final finalElbow = Offset.lerp(guardElbow, frontElbowExtended, extendFactor)!;
+      final finalFist = Offset.lerp(guardFist, frontFistExtended, extendFactor)!;
+
+      canvas.drawLine(shoulder, finalElbow, frontArmPaint);
+      canvas.drawLine(finalElbow, finalFist, frontForearmPaint);
+      canvas.drawCircle(finalFist, 5.5 + 1.5 * extendFactor, Paint()..color = skinColor);
+    } else {
+      canvas.save();
+      canvas.translate(shoulder.dx, shoulder.dy);
+      canvas.rotate(isWalking ? swing : -idleSway);
+      canvas.translate(-shoulder.dx, -shoulder.dy);
+      canvas.drawLine(shoulder, Offset(cx, 47 + 18), frontArmPaint);
+      canvas.drawLine(Offset(cx, 47 + 18), Offset(cx, 47 + 34), frontForearmPaint);
+      canvas.drawCircle(Offset(cx, 47 + 34), 5.5, Paint()..color = skinColor);
+      canvas.restore();
+    }
   }
 
   @override
   bool shouldRepaint(covariant HeroPainter old) =>
       old.accentColor != accentColor ||
       old.walkProgress != walkProgress ||
-      old.idleProgress != idleProgress;
+      old.idleProgress != idleProgress ||
+      old.punchProgress != punchProgress;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -150,11 +220,14 @@ class AllyPainter extends CustomPainter {
   final String label;
   final double walkProgress;
   final double idleProgress;
+  final double punchProgress;
+
   const AllyPainter({
     required this.accentColor,
     required this.label,
     this.walkProgress = 0.0,
     this.idleProgress = 0.0,
+    this.punchProgress = 0.0,
   });
 
   @override
@@ -169,21 +242,53 @@ class AllyPainter extends CustomPainter {
     final idleBob = isWalking ? 0.0 : (idleProgress - 0.5) * 1.8;
     if (!isWalking) canvas.translate(0, idleBob);
 
-    // ── Back Arm (Left) ───────────────────────────────────
     final shoulder = Offset(cx, 38);
+    final hip = Offset(cx, 66);
+    const bodyTop = 30.0;
+    const bodyW = 20.0;
+    const bodyH = 36.0;
+
+    final isPunching = punchProgress > 0.01;
+
+    // ── Back Arm (Left) ───────────────────────────────────
     final backArmPaint = Paint()..color = const Color(0xFF1A1A2A)..strokeWidth = 8..strokeCap = StrokeCap.round;
-    canvas.save();
-    canvas.translate(shoulder.dx, shoulder.dy);
-    canvas.rotate(isWalking ? -swing : idleSway);
-    canvas.translate(-shoulder.dx, -shoulder.dy);
-    canvas.drawLine(shoulder, Offset(cx, 38 + 14), backArmPaint);
-    canvas.drawLine(Offset(cx, 38 + 14), Offset(cx, 38 + 26), backArmPaint..strokeWidth = 6);
-    canvas.drawCircle(Offset(cx, 38 + 26), 4, Paint()..color = const Color(0xFFB49872));
-    canvas.restore();
+    final backForearmPaint = Paint()..color = const Color(0xFF1A1A2A)..strokeWidth = 6..strokeCap = StrokeCap.round;
+
+    if (isPunching) {
+      double guardT = 0.0;
+      if (punchProgress < 0.25) {
+        guardT = punchProgress / 0.25;
+      } else if (punchProgress < 0.75) {
+        guardT = 1.0;
+      } else {
+        guardT = (1.0 - punchProgress) / 0.25;
+      }
+
+      final backElbowNormal = Offset(cx, 38 + 14);
+      final backFistNormal = Offset(cx, 38 + 26);
+      final backElbowGuard = Offset(cx + 3, 30);
+      final backFistGuard = Offset(cx + 6, 20);
+
+      final backElbow = Offset.lerp(backElbowNormal, backElbowGuard, guardT)!;
+      final backFist = Offset.lerp(backFistNormal, backFistGuard, guardT)!;
+
+      canvas.drawLine(shoulder, backElbow, backArmPaint);
+      canvas.drawLine(backElbow, backFist, backForearmPaint);
+      canvas.drawCircle(backFist, 4, Paint()..color = const Color(0xFFB49872));
+    } else {
+      canvas.save();
+      canvas.translate(shoulder.dx, shoulder.dy);
+      canvas.rotate(isWalking ? -swing : idleSway);
+      canvas.translate(-shoulder.dx, -shoulder.dy);
+      canvas.drawLine(shoulder, Offset(cx, 38 + 14), backArmPaint);
+      canvas.drawLine(Offset(cx, 38 + 14), Offset(cx, 38 + 26), backForearmPaint);
+      canvas.drawCircle(Offset(cx, 38 + 26), 4, Paint()..color = const Color(0xFFB49872));
+      canvas.restore();
+    }
 
     // ── Back Leg (Left) ───────────────────────────────────
-    final hip = Offset(cx, 66);
     final backLegPaint = Paint()..color = const Color(0xFF0A0A0A)..strokeWidth = 9..strokeCap = StrokeCap.round;
+    
     canvas.save();
     canvas.translate(hip.dx, hip.dy);
     canvas.rotate(swing);
@@ -194,9 +299,6 @@ class AllyPainter extends CustomPainter {
     canvas.restore();
 
     // ── Body ──────────────────────────────────────────────
-    const bodyTop = 30.0;
-    const bodyW = 20.0;
-    const bodyH = 36.0;
     final bodyLeft = cx - bodyW / 2;
     final bodyRect = RRect.fromLTRBR(bodyLeft, bodyTop, bodyLeft + bodyW, bodyTop + bodyH, const Radius.circular(6));
     
@@ -243,14 +345,55 @@ class AllyPainter extends CustomPainter {
 
     // ── Front Arm (Right) ─────────────────────────────────
     final frontArmPaint = Paint()..color = const Color(0xFF2A2A3A)..strokeWidth = 8..strokeCap = StrokeCap.round;
-    canvas.save();
-    canvas.translate(shoulder.dx, shoulder.dy);
-    canvas.rotate(isWalking ? swing : -idleSway);
-    canvas.translate(-shoulder.dx, -shoulder.dy);
-    canvas.drawLine(shoulder, Offset(cx, 38 + 14), frontArmPaint);
-    canvas.drawLine(Offset(cx, 38 + 14), Offset(cx, 38 + 26), frontArmPaint..strokeWidth = 6);
-    canvas.drawCircle(Offset(cx, 38 + 26), 4, Paint()..color = const Color(0xFFC4A882));
-    canvas.restore();
+    final frontForearmPaint = Paint()..color = const Color(0xFF2A2A3A)..strokeWidth = 6..strokeCap = StrokeCap.round;
+
+    if (isPunching) {
+      double guardT = 0.0;
+      if (punchProgress < 0.25) {
+        guardT = punchProgress / 0.25;
+      } else if (punchProgress < 0.75) {
+        guardT = 1.0;
+      } else {
+        guardT = (1.0 - punchProgress) / 0.25;
+      }
+
+      double extendFactor = 0.0;
+      if (punchProgress >= 0.25 && punchProgress <= 0.75) {
+        if (punchProgress < 0.50) {
+          extendFactor = (punchProgress - 0.25) / 0.25;
+        } else {
+          extendFactor = (0.75 - punchProgress) / 0.25;
+        }
+      }
+
+      final frontElbowNormal = Offset(cx, 38 + 14);
+      final frontFistNormal = Offset(cx, 38 + 26);
+
+      final frontElbowGuard = Offset(cx + 8, 32);
+      final frontFistGuard = Offset(cx + 11, 22);
+
+      final frontElbowExtended = Offset(cx + 18, 36);
+      final frontFistExtended = Offset(cx + 34, 36);
+
+      final guardElbow = Offset.lerp(frontElbowNormal, frontElbowGuard, guardT)!;
+      final guardFist = Offset.lerp(frontFistNormal, frontFistGuard, guardT)!;
+
+      final finalElbow = Offset.lerp(guardElbow, frontElbowExtended, extendFactor)!;
+      final finalFist = Offset.lerp(guardFist, frontFistExtended, extendFactor)!;
+
+      canvas.drawLine(shoulder, finalElbow, frontArmPaint);
+      canvas.drawLine(finalElbow, finalFist, frontForearmPaint);
+      canvas.drawCircle(finalFist, 4 + 1.0 * extendFactor, Paint()..color = const Color(0xFFC4A882));
+    } else {
+      canvas.save();
+      canvas.translate(shoulder.dx, shoulder.dy);
+      canvas.rotate(isWalking ? swing : -idleSway);
+      canvas.translate(-shoulder.dx, -shoulder.dy);
+      canvas.drawLine(shoulder, Offset(cx, 38 + 14), frontArmPaint);
+      canvas.drawLine(Offset(cx, 38 + 14), Offset(cx, 38 + 26), frontForearmPaint);
+      canvas.drawCircle(Offset(cx, 38 + 26), 4, Paint()..color = const Color(0xFFC4A882));
+      canvas.restore();
+    }
 
     // Label
     _drawLabel(canvas, label.length > 5 ? label.substring(0, 5) : label, Offset(cx, bodyTop + bodyH / 2), accentColor, fontSize: 7);
@@ -261,7 +404,8 @@ class AllyPainter extends CustomPainter {
       old.accentColor != accentColor ||
       old.label != label ||
       old.walkProgress != walkProgress ||
-      old.idleProgress != idleProgress;
+      old.idleProgress != idleProgress ||
+      old.punchProgress != punchProgress;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -274,6 +418,7 @@ class EnemyPainter extends CustomPainter {
   final double chargeValue;
   final double walkProgress;
   final double idleProgress;
+  final double punchProgress;
 
   const EnemyPainter({
     required this.accentColor,
@@ -282,6 +427,7 @@ class EnemyPainter extends CustomPainter {
     this.chargeValue = 0,
     this.walkProgress = 0.0,
     this.idleProgress = 0.0,
+    this.punchProgress = 0.0,
   });
 
   @override
@@ -314,23 +460,49 @@ class EnemyPainter extends CustomPainter {
     final bodyColor = isBoss ? const Color(0xFF1A0000) : const Color(0xFF3D0000);
     final bodyColorDark = isBoss ? const Color(0xFF0D0000) : const Color(0xFF2D0000);
 
-    // ── Back Arm (Left) ───────────────────────────────────
     final shoulder = Offset(cx, bodyTop + 10);
-    canvas.save();
-    canvas.translate(shoulder.dx, shoulder.dy);
-    canvas.rotate(isWalking ? -swing : idleSway);
-    canvas.translate(-shoulder.dx, -shoulder.dy);
-    canvas.drawLine(shoulder, Offset(cx, bodyTop + 10 + armReach),
-        Paint()..color = bodyColorDark..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
-    canvas.drawLine(Offset(cx, bodyTop + 10 + armReach), Offset(cx, bodyTop + 10 + armReach + 16),
-        Paint()..color = bodyColorDark..strokeWidth = forearmW..strokeCap = StrokeCap.round);
-    canvas.drawCircle(Offset(cx, bodyTop + 10 + armReach + 16), isBoss ? 7 : 5, Paint()..color = skinColorDark);
-    canvas.restore();
+    final hip = Offset(cx, legTop);
+
+    final isPunching = punchProgress > 0.01;
+
+    // ── Back Arm (Left) ───────────────────────────────────
+    if (isPunching) {
+      double guardT = 0.0;
+      if (punchProgress < 0.25) {
+        guardT = punchProgress / 0.25;
+      } else if (punchProgress < 0.75) {
+        guardT = 1.0;
+      } else {
+        guardT = (1.0 - punchProgress) / 0.25;
+      }
+
+      final backElbowNormal = Offset(cx, bodyTop + 10 + armReach);
+      final backFistNormal = Offset(cx, bodyTop + 10 + armReach + 16);
+      final backElbowGuard = Offset(cx + (isBoss ? 6 : 4), bodyTop + 2);
+      final backFistGuard = Offset(cx + (isBoss ? 10 : 7), headCY + 4);
+
+      final backElbow = Offset.lerp(backElbowNormal, backElbowGuard, guardT)!;
+      final backFist = Offset.lerp(backFistNormal, backFistGuard, guardT)!;
+
+      canvas.drawLine(shoulder, backElbow, Paint()..color = bodyColorDark..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
+      canvas.drawLine(backElbow, backFist, Paint()..color = bodyColorDark..strokeWidth = forearmW..strokeCap = StrokeCap.round);
+      canvas.drawCircle(backFist, isBoss ? 7 : 5, Paint()..color = skinColorDark);
+    } else {
+      canvas.save();
+      canvas.translate(shoulder.dx, shoulder.dy);
+      canvas.rotate(isWalking ? -swing : idleSway);
+      canvas.translate(-shoulder.dx, -shoulder.dy);
+      canvas.drawLine(shoulder, Offset(cx, bodyTop + 10 + armReach),
+          Paint()..color = bodyColorDark..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
+      canvas.drawLine(Offset(cx, bodyTop + 10 + armReach), Offset(cx, bodyTop + 10 + armReach + 16),
+          Paint()..color = bodyColorDark..strokeWidth = forearmW..strokeCap = StrokeCap.round);
+      canvas.drawCircle(Offset(cx, bodyTop + 10 + armReach + 16), isBoss ? 7 : 5, Paint()..color = skinColorDark);
+      canvas.restore();
+    }
 
     // ── Back Leg (Left) ───────────────────────────────────
     final legW = isBoss ? 14.0 : 11.0;
     final shinW = isBoss ? 12.0 : 9.0;
-    final hip = Offset(cx, legTop);
     
     canvas.save();
     canvas.translate(hip.dx, hip.dy);
@@ -414,16 +586,55 @@ class EnemyPainter extends CustomPainter {
     canvas.restore();
 
     // ── Front Arm (Right) ─────────────────────────────────
-    canvas.save();
-    canvas.translate(shoulder.dx, shoulder.dy);
-    canvas.rotate(isWalking ? swing : -idleSway);
-    canvas.translate(-shoulder.dx, -shoulder.dy);
-    canvas.drawLine(shoulder, Offset(cx, bodyTop + 10 + armReach),
-        Paint()..color = bodyColor..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
-    canvas.drawLine(Offset(cx, bodyTop + 10 + armReach), Offset(cx, bodyTop + 10 + armReach + 16),
-        Paint()..color = bodyColor..strokeWidth = forearmW..strokeCap = StrokeCap.round);
-    canvas.drawCircle(Offset(cx, bodyTop + 10 + armReach + 16), isBoss ? 7 : 5, Paint()..color = skinColor);
-    canvas.restore();
+    if (isPunching) {
+      double guardT = 0.0;
+      if (punchProgress < 0.25) {
+        guardT = punchProgress / 0.25;
+      } else if (punchProgress < 0.75) {
+        guardT = 1.0;
+      } else {
+        guardT = (1.0 - punchProgress) / 0.25;
+      }
+
+      double extendFactor = 0.0;
+      if (punchProgress >= 0.25 && punchProgress <= 0.75) {
+        if (punchProgress < 0.50) {
+          extendFactor = (punchProgress - 0.25) / 0.25;
+        } else {
+          extendFactor = (0.75 - punchProgress) / 0.25;
+        }
+      }
+
+      final frontElbowNormal = Offset(cx, bodyTop + 10 + armReach);
+      final frontFistNormal = Offset(cx, bodyTop + 10 + armReach + 16);
+
+      final frontElbowGuard = Offset(cx + (isBoss ? 12 : 8), bodyTop + 4);
+      final frontFistGuard = Offset(cx + (isBoss ? 16 : 11), headCY + 6);
+
+      final frontElbowExtended = Offset(cx + armReach * 1.3, bodyTop + 8);
+      final frontFistExtended = Offset(cx + armReach * 2.4, bodyTop + 8);
+
+      final guardElbow = Offset.lerp(frontElbowNormal, frontElbowGuard, guardT)!;
+      final guardFist = Offset.lerp(frontFistNormal, frontFistGuard, guardT)!;
+
+      final finalElbow = Offset.lerp(guardElbow, frontElbowExtended, extendFactor)!;
+      final finalFist = Offset.lerp(guardFist, frontFistExtended, extendFactor)!;
+
+      canvas.drawLine(shoulder, finalElbow, Paint()..color = bodyColor..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
+      canvas.drawLine(finalElbow, finalFist, Paint()..color = bodyColor..strokeWidth = forearmW..strokeCap = StrokeCap.round);
+      canvas.drawCircle(finalFist, (isBoss ? 7 : 5) + 2 * extendFactor, Paint()..color = skinColor);
+    } else {
+      canvas.save();
+      canvas.translate(shoulder.dx, shoulder.dy);
+      canvas.rotate(isWalking ? swing : -idleSway);
+      canvas.translate(-shoulder.dx, -shoulder.dy);
+      canvas.drawLine(shoulder, Offset(cx, bodyTop + 10 + armReach),
+          Paint()..color = bodyColor..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
+      canvas.drawLine(Offset(cx, bodyTop + 10 + armReach), Offset(cx, bodyTop + 10 + armReach + 16),
+          Paint()..color = bodyColor..strokeWidth = forearmW..strokeCap = StrokeCap.round);
+      canvas.drawCircle(Offset(cx, bodyTop + 10 + armReach + 16), isBoss ? 7 : 5, Paint()..color = skinColor);
+      canvas.restore();
+    }
 
     canvas.restore(); // Restore flip
   }
@@ -435,7 +646,8 @@ class EnemyPainter extends CustomPainter {
       old.isBoss != isBoss ||
       (old.chargeValue - chargeValue).abs() > 0.01 ||
       old.walkProgress != walkProgress ||
-      old.idleProgress != idleProgress;
+      old.idleProgress != idleProgress ||
+      old.punchProgress != punchProgress;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

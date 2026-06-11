@@ -8,13 +8,24 @@ import 'character_painters.dart';
 class HeroCharacterPlaceholder extends StatelessWidget {
   final double walkProgress;
   final double idleProgress;
-  const HeroCharacterPlaceholder({super.key, this.walkProgress = 0.0, this.idleProgress = 0.0});
+  final double punchProgress;
+  const HeroCharacterPlaceholder({
+    super.key,
+    this.walkProgress = 0.0,
+    this.idleProgress = 0.0,
+    this.punchProgress = 0.0,
+  });
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: const Size(52, 112),
-      painter: HeroPainter(accentColor: Colors.blueAccent, walkProgress: walkProgress, idleProgress: idleProgress),
+      painter: HeroPainter(
+        accentColor: Colors.blueAccent,
+        walkProgress: walkProgress,
+        idleProgress: idleProgress,
+        punchProgress: punchProgress,
+      ),
     );
   }
 }
@@ -30,6 +41,7 @@ class AllyCharacterPlaceholder extends StatelessWidget {
   final int maxHp;
   final double walkProgress;
   final double idleProgress;
+  final double punchProgress;
 
   const AllyCharacterPlaceholder({
     super.key,
@@ -40,6 +52,7 @@ class AllyCharacterPlaceholder extends StatelessWidget {
     required this.maxHp,
     this.walkProgress = 0.0,
     this.idleProgress = 0.0,
+    this.punchProgress = 0.0,
   });
 
   @override
@@ -83,7 +96,13 @@ class AllyCharacterPlaceholder extends StatelessWidget {
         // Drawn character
         CustomPaint(
           size: const Size(44, 95),
-          painter: AllyPainter(accentColor: themeColor, label: name, walkProgress: walkProgress, idleProgress: idleProgress),
+          painter: AllyPainter(
+            accentColor: themeColor,
+            label: name,
+            walkProgress: walkProgress,
+            idleProgress: idleProgress,
+            punchProgress: punchProgress,
+          ),
         ),
       ],
     );
@@ -101,6 +120,7 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
   final Animation<double> chargeProgress;
   final double walkProgress;
   final double idleProgress;
+  final double punchProgress;
 
   const EnemyCharacterPlaceholder({
     super.key,
@@ -111,6 +131,7 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
     required this.chargeProgress,
     this.walkProgress = 0.0,
     this.idleProgress = 0.0,
+    this.punchProgress = 0.0,
   });
 
   @override
@@ -192,6 +213,7 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
               chargeValue: chargeProgress.value,
               walkProgress: walkProgress,
               idleProgress: idleProgress,
+              punchProgress: punchProgress,
             ),
           ),
         ),
