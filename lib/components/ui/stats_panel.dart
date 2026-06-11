@@ -12,7 +12,7 @@ class StatsPanel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.9),
-        border: const Border(top: BorderSide(color: Colors.white24, width: 1)),
+        border: Border(top: BorderSide(color: Colors.red.withValues(alpha: 0.5), width: 1)),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -32,22 +32,22 @@ class StatsPanel extends StatelessWidget {
             const SizedBox(height: 10),
             _buildStatRow('Strength', stats.strength, Colors.redAccent),
             const SizedBox(height: 8),
-            _buildStatRow('Speed', stats.speed, Colors.lightBlueAccent),
+            _buildStatRow('Speed', stats.speed, Colors.red),
             const SizedBox(height: 8),
-            _buildStatRow('Endurance', stats.endurance, Colors.greenAccent),
+            _buildStatRow('Endurance', stats.endurance, Colors.redAccent),
             const SizedBox(height: 8),
             _buildStatRow(
               'Intelligence',
               stats.intelligence,
-              Colors.purpleAccent,
+              Colors.red,
             ),
             const SizedBox(height: 8),
-            _buildStatRow('Potential', stats.potential, Colors.orangeAccent),
+            _buildStatRow('Potential', stats.potential, Colors.redAccent),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8.0),
               child: Divider(color: Colors.white10),
             ),
-            _buildStatRow('Reputation', stats.reputation, Colors.blueAccent),
+            _buildStatRow('Reputation', stats.reputation, Colors.red),
           ],
         ),
       ),

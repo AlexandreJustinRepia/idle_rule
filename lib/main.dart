@@ -22,7 +22,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Idle Rule',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.red,
+          brightness: Brightness.dark,
+        ),
         useMaterial3: true,
       ),
       home: const HomePage(),
@@ -55,7 +58,7 @@ class _HomePageState extends State<HomePage> {
             onTap: (index) => setState(() => _currentTabIndex = index),
           ),
           body: Container(
-            color: Colors.grey[900],
+            color: Colors.black,
             child: Column(
               children: [
                 Expanded(

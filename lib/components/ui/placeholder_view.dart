@@ -11,12 +11,12 @@ class PlaceholderView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.construction, size: 80, color: Colors.white10),
+          Icon(Icons.construction, size: 80, color: Colors.red.withValues(alpha: 0.1)),
           const SizedBox(height: 20),
           Text(
             '$title COMING SOON',
-            style: const TextStyle(
-              color: Colors.white24,
+            style: TextStyle(
+              color: Colors.red.withValues(alpha: 0.3),
               fontSize: 24,
               fontWeight: FontWeight.w900,
               letterSpacing: 4,
@@ -26,7 +26,7 @@ class PlaceholderView extends StatelessWidget {
           Container(
             height: 2,
             width: 100,
-            color: Colors.white10,
+            color: Colors.red.withValues(alpha: 0.1),
           ),
         ],
       ),

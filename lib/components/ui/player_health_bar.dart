@@ -46,7 +46,7 @@ class PlayerHealthBar extends StatelessWidget {
               children: [
                 const Text('PLAYER', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                 Text('REP: ${reputation.toStringAsFixed(1)} (CAP: $gangCapacity)',
-                  style: const TextStyle(color: Colors.blueAccent, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                  style: const TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
               ],
             ),
             Text('ATK: $damage  DDG: $dodge%', style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold)),
@@ -59,15 +59,15 @@ class PlayerHealthBar extends StatelessWidget {
             minHeight: 10,
             value: healthPercent,
             backgroundColor: Colors.black54,
-            valueColor: AlwaysStoppedAnimation<Color>(wasHit ? Colors.white : Colors.lightGreenAccent),
+            valueColor: AlwaysStoppedAnimation<Color>(wasHit ? Colors.white : Colors.redAccent),
           ),
         ),
         const SizedBox(height: 3),
         Text('HP: $visibleHealth/$maxHealth', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        _buildNeedBar('STM', staminaPercent, Colors.cyanAccent),
+        _buildNeedBar('STM', staminaPercent, Colors.white70),
         const SizedBox(height: 3),
-        _buildNeedBar('HNG', hungerPercent, hungerPercent < 0.25 ? Colors.redAccent : Colors.orangeAccent),
+        _buildNeedBar('HNG', hungerPercent, hungerPercent < 0.25 ? Colors.red : Colors.grey),
       ],
     );
   }

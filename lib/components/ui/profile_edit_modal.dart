@@ -47,7 +47,7 @@ class _ProfileEditModalState extends State<ProfileEditModal> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Colors.black,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -89,7 +89,7 @@ class _ProfileEditModalState extends State<ProfileEditModal> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white),
+                  borderSide: const BorderSide(color: Colors.red),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -119,14 +119,14 @@ class _ProfileEditModalState extends State<ProfileEditModal> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.white24 : Colors.transparent,
+                      color: isSelected ? Colors.red.withValues(alpha: 0.2) : Colors.transparent,
                       border: Border.all(
-                        color: isSelected ? Colors.white : Colors.grey[800]!,
+                        color: isSelected ? Colors.red : Colors.grey[800]!,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(icon, color: Colors.white, size: 32),
+                    child: Icon(icon, color: isSelected ? Colors.redAccent : Colors.white, size: 32),
                   ),
                 );
               }).toList(),
@@ -134,8 +134,8 @@ class _ProfileEditModalState extends State<ProfileEditModal> {
             const SizedBox(height: 32),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
