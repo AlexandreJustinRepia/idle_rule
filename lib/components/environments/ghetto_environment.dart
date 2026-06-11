@@ -525,6 +525,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
   }
 
+  void _onDismissDyingEnemy(Enemy enemy) {
+    setState(() {
+      _dyingEnemies.remove(enemy);
+    });
+  }
+
   void _dismissAlly(Ally ally) {
     setState(() {
       _allies.remove(ally);
@@ -879,6 +885,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             gangCapacity: widget.stats.gangCapacity,
             hitController: _playerHitController,
             onRecruitTapped: _onRecruitTapped,
+            onDismissDyingEnemy: _onDismissDyingEnemy,
             onDismissAlly: _dismissAlly,
             onFinishRecruitment: _finishRecruitment,
           ),
