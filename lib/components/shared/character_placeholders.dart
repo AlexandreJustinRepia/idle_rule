@@ -95,7 +95,7 @@ class AllyCharacterPlaceholder extends StatelessWidget {
         const SizedBox(height: 3),
         // Drawn character
         CustomPaint(
-          size: const Size(44, 95),
+          size: const Size(52, 112),
           painter: AllyPainter(
             accentColor: themeColor,
             label: name,
@@ -146,8 +146,8 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
         enemy.name != 'BRUISER' &&
         enemy.name != 'REBEL';
 
-    final charW = isBoss ? 80.0 : 58.0;
-    final charH = isBoss ? 140.0 : 105.0;
+    final charW = isBoss ? 80.0 : 52.0;
+    final charH = isBoss ? 140.0 : 112.0;
     final barW = isBoss ? 90.0 : 64.0;
 
     return Column(
