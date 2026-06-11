@@ -47,7 +47,7 @@ class _ProfileEditModalState extends State<ProfileEditModal> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF1A1A1A),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -89,7 +89,7 @@ class _ProfileEditModalState extends State<ProfileEditModal> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.red),
+                  borderSide: const BorderSide(color: Color(0xFFE24B4A)),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -119,14 +119,14 @@ class _ProfileEditModalState extends State<ProfileEditModal> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.red.withValues(alpha: 0.2) : Colors.transparent,
+                      color: isSelected ? const Color(0xFFE24B4A).withValues(alpha: 0.2) : Colors.transparent,
                       border: Border.all(
-                        color: isSelected ? Colors.red : Colors.grey[800]!,
+                        color: isSelected ? const Color(0xFFE24B4A) : Colors.grey[800]!,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(icon, color: isSelected ? Colors.redAccent : Colors.white, size: 32),
+                    child: Icon(icon, color: isSelected ? const Color(0xFFE24B4A) : Colors.white, size: 32),
                   ),
                 );
               }).toList(),
@@ -134,10 +134,11 @@ class _ProfileEditModalState extends State<ProfileEditModal> {
             const SizedBox(height: 32),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: const Color(0xFFE24B4A).withValues(alpha: 0.8),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Color(0xFFE24B4A), width: 2),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

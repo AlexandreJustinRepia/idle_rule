@@ -14,7 +14,7 @@ class CustomBottomNavbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.black,
+        color: Color(0xFF111111),
         boxShadow: [
           BoxShadow(
             color: Colors.black54,
@@ -27,8 +27,8 @@ class CustomBottomNavbar extends StatelessWidget {
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        selectedItemColor: Colors.redAccent,
-        unselectedItemColor: Colors.grey[600],
+        selectedItemColor: const Color(0xFFE24B4A),
+        unselectedItemColor: const Color(0xFF666666),
         currentIndex: currentIndex,
         onTap: onTap,
         selectedLabelStyle: const TextStyle(
@@ -60,13 +60,13 @@ class CustomBottomNavbar extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          color: isActive ? Colors.red.withValues(alpha: 0.1) : Colors.transparent,
+          color: isActive ? const Color(0xFFE24B4A).withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Icon(
           iconData,
           size: isActive ? 26 : 22,
-          color: isActive ? Colors.redAccent : Colors.grey[600],
+          color: isActive ? const Color(0xFFE24B4A) : const Color(0xFF666666),
         ),
       ),
       label: label,

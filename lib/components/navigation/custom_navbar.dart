@@ -41,7 +41,7 @@ class _CustomNavbarState extends State<CustomNavbar> {
         padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 24.0, bottom: 8.0),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.black,
+            color: const Color(0xFF111111),
             borderRadius: BorderRadius.circular(30),
           ),
           child: Row(
@@ -69,18 +69,18 @@ class _CustomNavbarState extends State<CustomNavbar> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.2),
+                  color: const Color(0xFF1A1A1A),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
+                  border: Border.all(color: const Color(0xFFE24B4A).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.attach_money, size: 18, color: Colors.white),
+                    const Icon(Icons.attach_money, size: 18, color: Color(0xFFE24B4A)),
                     const SizedBox(width: 4),
                     Text(
                       widget.money.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.0),
                     ),
                   ],
                 ),

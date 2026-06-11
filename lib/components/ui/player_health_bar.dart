@@ -53,21 +53,13 @@ class PlayerHealthBar extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: LinearProgressIndicator(
-            minHeight: 10,
-            value: healthPercent,
-            backgroundColor: Colors.black54,
-            valueColor: AlwaysStoppedAnimation<Color>(wasHit ? Colors.white : Colors.redAccent),
-          ),
-        ),
+        _buildSegmentedBar(healthPercent, wasHit ? Colors.white : const Color(0xFFE24B4A)),
         const SizedBox(height: 3),
         Text('HP: $visibleHealth/$maxHealth', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        _buildNeedBar('STM', staminaPercent, Colors.white70),
+        _buildNeedBar('STM', staminaPercent, const Color(0xFFD0D0D0)),
         const SizedBox(height: 3),
-        _buildNeedBar('HNG', hungerPercent, hungerPercent < 0.25 ? Colors.red : Colors.grey),
+        _buildNeedBar('HNG', hungerPercent, const Color(0xFFBA7517)),
       ],
     );
   }
@@ -77,17 +69,30 @@ class PlayerHealthBar extends StatelessWidget {
       children: [
         SizedBox(width: 35, child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.w900))),
         Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              minHeight: 5,
-              value: value,
-              backgroundColor: Colors.black54,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
+          child: _buildSegmentedBar(value, color, height: 6),
         ),
       ],
+    );
+  }
+
+  Widget _buildSegmentedBar(double percent, Color color, {double height = 10}) {
+    int totalSegments = 10;
+    int activeSegments = (percent * totalSegments).round();
+
+    return Row(
+      children: List.generate(totalSegments, (index) {
+        bool isActive = index < activeSegments;
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(right: index == totalSegments - 1 ? 0 : 2),
+            height: height,
+            decoration: BoxDecoration(
+              color: isActive ? color : Colors.black54,
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

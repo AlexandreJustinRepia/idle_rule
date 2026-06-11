@@ -17,12 +17,12 @@ class FightBossButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.9),
+          color: const Color(0xFFE24B4A).withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white, width: 2),
+          border: Border.all(color: const Color(0xFFE24B4A), width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.redAccent.withValues(alpha: 0.6),
+              color: const Color(0xFFE24B4A).withValues(alpha: 0.6),
               blurRadius: 15,
               spreadRadius: 2,
             ),

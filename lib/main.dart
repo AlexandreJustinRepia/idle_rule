@@ -7,6 +7,7 @@ import 'components/ui/placeholder_view.dart';
 import 'components/environments/ghetto_environment.dart';
 import 'components/environments/gym_environment.dart';
 import 'controllers/game_controller.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,8 +24,11 @@ class MyApp extends StatelessWidget {
       title: 'Idle Rule',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.red,
+          seedColor: const Color(0xFFE24B4A),
           brightness: Brightness.dark,
+        ),
+        textTheme: GoogleFonts.bebasNeueTextTheme(
+          ThemeData.dark().textTheme,
         ),
         useMaterial3: true,
       ),
@@ -58,7 +62,7 @@ class _HomePageState extends State<HomePage> {
             onTap: (index) => setState(() => _currentTabIndex = index),
           ),
           body: Container(
-            color: Colors.black,
+            color: const Color(0xFF0A0A0A),
             child: Column(
               children: [
                 Expanded(
