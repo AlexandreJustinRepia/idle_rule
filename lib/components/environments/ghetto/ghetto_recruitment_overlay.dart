@@ -93,7 +93,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
               const Text("← SKIP     RECRUIT →", style: TextStyle(color: Colors.white30, fontSize: 10, letterSpacing: 1.5)),
               const SizedBox(height: 8),
               SizedBox(
-                height: 170,
+                height: 185,
                 child: dyingEnemies.isEmpty
                   ? const Center(child: Text("NO RECRUITS LEFT", style: TextStyle(color: Colors.white38, fontSize: 14, fontWeight: FontWeight.bold)))
                   : Stack(
