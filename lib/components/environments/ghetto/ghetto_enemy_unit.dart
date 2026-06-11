@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../game_state.dart';
-import '../shared/character_placeholders.dart';
+import '../../shared/character_placeholders.dart';
 
 class GhettoEnemyUnit extends StatelessWidget {
   final bool isFighting;
@@ -14,6 +14,7 @@ class GhettoEnemyUnit extends StatelessWidget {
   final AnimationController enemyAttackAnimation;
   final AnimationController deathAnimation;
   final AnimationController enemyChargeController;
+  final Animation<double> idleAnimation;
   final VoidCallback onTap;
   final bool isBoss;
   final int index;
@@ -30,6 +31,7 @@ class GhettoEnemyUnit extends StatelessWidget {
     required this.enemyAttackAnimation,
     required this.deathAnimation,
     required this.enemyChargeController,
+    required this.idleAnimation,
     required this.onTap,
     this.isBoss = false,
     this.index = 0,
@@ -45,7 +47,7 @@ class GhettoEnemyUnit extends StatelessWidget {
           right: 60.0 + (index * 50.0), // Offset based on index
         ),
         child: AnimatedBuilder(
-          animation: Listenable.merge([attackAnimation, enemyAttackAnimation, deathAnimation, enemyChargeController]),
+          animation: Listenable.merge([attackAnimation, enemyAttackAnimation, deathAnimation, enemyChargeController, idleAnimation]),
           builder: (context, child) {
             final hitShake = enemyWasHit ? math.sin(attackAnimation.value * math.pi * 8) * 6 : 0.0;
             final enemyAttackProgress = math.sin(enemyAttackAnimation.value * math.pi);
@@ -72,6 +74,7 @@ class GhettoEnemyUnit extends StatelessWidget {
               enemyNumber: isBoss ? 0 : enemyNumber,
               wasHit: enemyWasHit,
               chargeProgress: enemyChargeController,
+              idleProgress: idleAnimation.value,
             ),
           ),
         ),

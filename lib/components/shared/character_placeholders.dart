@@ -1,94 +1,35 @@
 import 'package:flutter/material.dart';
 import '../../game_state.dart';
+import 'character_painters.dart';
 
+// ---------------------------------------------------------------------------
+// HERO
+// ---------------------------------------------------------------------------
 class HeroCharacterPlaceholder extends StatelessWidget {
-  const HeroCharacterPlaceholder({super.key});
+  final double walkProgress;
+  final double idleProgress;
+  const HeroCharacterPlaceholder({super.key, this.walkProgress = 0.0, this.idleProgress = 0.0});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blueAccent.withValues(alpha: 0.8),
-                blurRadius: 15,
-                spreadRadius: 3,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 3),
-        Container(
-          width: 40,
-          height: 55,
-          decoration: BoxDecoration(
-            color: Colors.blueGrey[800],
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: Colors.blueAccent.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Text(
-              'HERO',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-                fontSize: 9,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 3),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 12,
-              height: 24,
-              decoration: BoxDecoration(
-                color: Colors.blueGrey[900],
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              width: 12,
-              height: 24,
-              decoration: BoxDecoration(
-                color: Colors.blueGrey[900],
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ],
-        ),
-      ],
+    return CustomPaint(
+      size: const Size(52, 112),
+      painter: HeroPainter(accentColor: Colors.blueAccent, walkProgress: walkProgress, idleProgress: idleProgress),
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// ALLY
+// ---------------------------------------------------------------------------
 class AllyCharacterPlaceholder extends StatelessWidget {
   final String name;
   final Color themeColor;
   final Animation<double>? chargeProgress;
   final int hp;
   final int maxHp;
+  final double walkProgress;
+  final double idleProgress;
 
   const AllyCharacterPlaceholder({
     super.key,
@@ -97,6 +38,8 @@ class AllyCharacterPlaceholder extends StatelessWidget {
     this.chargeProgress,
     required this.hp,
     required this.maxHp,
+    this.walkProgress = 0.0,
+    this.idleProgress = 0.0,
   });
 
   @override
@@ -106,117 +49,58 @@ class AllyCharacterPlaceholder extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // HP bar
         SizedBox(
-          width: 34,
+          width: 40,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: healthPercent,
               backgroundColor: Colors.black54,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                healthPercent > 0.5 ? Colors.greenAccent : Colors.orangeAccent,
+              ),
               minHeight: 3,
             ),
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
+        // Charge bar
         if (chargeProgress != null)
           SizedBox(
-            width: 34,
+            width: 40,
             child: AnimatedBuilder(
               animation: chargeProgress!,
-              builder: (context, child) {
-                return LinearProgressIndicator(
-                  value: chargeProgress!.value,
-                  backgroundColor: Colors.white10,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    themeColor.withValues(alpha: 0.6),
-                  ),
-                  minHeight: 2,
-                );
-              },
+              builder: (context, _) => LinearProgressIndicator(
+                value: chargeProgress!.value,
+                backgroundColor: Colors.white10,
+                valueColor: AlwaysStoppedAnimation<Color>(themeColor.withValues(alpha: 0.7)),
+                minHeight: 2,
+              ),
             ),
           ),
-        const SizedBox(height: 2),
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: Colors.white70,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: themeColor.withValues(alpha: 0.8),
-                blurRadius: 12,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-        ),
         const SizedBox(height: 3),
-        Container(
-          width: 34,
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: themeColor.withValues(alpha: 0.5),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              name.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                fontSize: 8,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 3),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 10,
-              height: 20,
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              width: 10,
-              height: 20,
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ],
+        // Drawn character
+        CustomPaint(
+          size: const Size(44, 95),
+          painter: AllyPainter(accentColor: themeColor, label: name, walkProgress: walkProgress, idleProgress: idleProgress),
         ),
       ],
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// ENEMY
+// ---------------------------------------------------------------------------
 class EnemyCharacterPlaceholder extends StatelessWidget {
   final int health;
   final Enemy enemy;
   final int enemyNumber;
   final bool wasHit;
   final Animation<double> chargeProgress;
+  final double walkProgress;
+  final double idleProgress;
 
   const EnemyCharacterPlaceholder({
     super.key,
@@ -225,14 +109,14 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
     required this.enemyNumber,
     required this.wasHit,
     required this.chargeProgress,
+    this.walkProgress = 0.0,
+    this.idleProgress = 0.0,
   });
 
   @override
   Widget build(BuildContext context) {
     final visibleHealth = health.clamp(0, enemy.health);
-    final healthPercent = enemy.health == 0
-        ? 0.0
-        : visibleHealth / enemy.health;
+    final healthPercent = enemy.health == 0 ? 0.0 : visibleHealth / enemy.health;
     final displayColor = enemy.themeColor;
     final isBoss =
         enemy.type == EnemyType.regular &&
@@ -241,9 +125,14 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
         enemy.name != 'BRUISER' &&
         enemy.name != 'REBEL';
 
+    final charW = isBoss ? 80.0 : 58.0;
+    final charH = isBoss ? 140.0 : 105.0;
+    final barW = isBoss ? 90.0 : 64.0;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Name + ATK row
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -252,15 +141,15 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
               style: TextStyle(
                 color: displayColor,
                 fontWeight: FontWeight.bold,
-                fontSize: isBoss ? 14 : 12,
+                fontSize: isBoss ? 13 : 11,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               'ATK: ${enemy.damage}',
               style: TextStyle(
                 color: displayColor.withValues(alpha: 0.7),
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -277,107 +166,34 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
             ),
           ),
         const SizedBox(height: 3),
+        // HP bar
         SizedBox(
-          width: isBoss ? 90 : 60,
+          width: barW,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
-              minHeight: isBoss ? 8 : 6,
+              minHeight: isBoss ? 7 : 5,
               value: healthPercent,
               backgroundColor: Colors.black54,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                wasHit ? Colors.white : displayColor,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 2),
-        SizedBox(
-          width: isBoss ? 90 : 60,
-          child: AnimatedBuilder(
-            animation: chargeProgress,
-            builder: (context, child) {
-              return LinearProgressIndicator(
-                value: chargeProgress.value,
-                backgroundColor: Colors.white10,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.orangeAccent.withValues(alpha: 0.6),
-                ),
-                minHeight: 2,
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 3),
-        Container(
-          width: isBoss ? 44 : 30,
-          height: isBoss ? 44 : 30,
-          decoration: BoxDecoration(
-            color: isBoss ? Colors.black : Colors.red[800],
-            shape: BoxShape.circle,
-            border: isBoss ? Border.all(color: displayColor, width: 2) : null,
-            boxShadow: [
-              BoxShadow(
-                color: displayColor.withValues(alpha: 0.5),
-                blurRadius: isBoss ? 18 : 12,
-                spreadRadius: isBoss ? 4 : 2,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 3),
-        Container(
-          width: isBoss ? 60 : 40,
-          height: isBoss ? 85 : 55,
-          decoration: BoxDecoration(
-            color: isBoss ? Colors.black : Colors.red[900],
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: displayColor.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              isBoss ? 'BOSS' : 'ENEMY',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-                fontSize: 9,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(wasHit ? Colors.white : displayColor),
             ),
           ),
         ),
         const SizedBox(height: 3),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 18,
-              height: 24,
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(3),
-              ),
+        // Drawn character
+        AnimatedBuilder(
+          animation: chargeProgress,
+          builder: (context, _) => CustomPaint(
+            size: Size(charW, charH),
+            painter: EnemyPainter(
+              accentColor: displayColor,
+              isBoss: isBoss,
+              wasHit: wasHit,
+              chargeValue: chargeProgress.value,
+              walkProgress: walkProgress,
+              idleProgress: idleProgress,
             ),
-            SizedBox(width: isBoss ? 12 : 8),
-            Container(
-              width: 18,
-              height: 24,
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );

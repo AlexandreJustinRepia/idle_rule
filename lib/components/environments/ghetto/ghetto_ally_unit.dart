@@ -8,6 +8,7 @@ class GhettoAllyUnit extends StatelessWidget {
   final Animation<double> walkAnimation;
   final Animation<double> attackAnimation;
   final Animation<double>? chargeAnimation;
+  final Animation<double> idleAnimation;
   final bool isFighting;
   final int index;
 
@@ -17,6 +18,7 @@ class GhettoAllyUnit extends StatelessWidget {
     required this.walkAnimation,
     required this.attackAnimation,
     this.chargeAnimation,
+    required this.idleAnimation,
     required this.isFighting,
     this.index = 0,
   });
@@ -35,8 +37,9 @@ class GhettoAllyUnit extends StatelessWidget {
             walkAnimation,
             attackAnimation,
             chargeAnimation,
+            idleAnimation,
           ]),
-          builder: (context, child) {
+          builder: (context, _) {
             final attackProgress = math.sin(attackAnimation.value * math.pi);
             final isDefeated = ally.hp <= 0;
             
@@ -49,17 +52,18 @@ class GhettoAllyUnit extends StatelessWidget {
                 angle: isDefeated 
                   ? -math.pi / 2.2 // Laying down if defeated
                   : isFighting ? (attackProgress * 0.1) : (walkAnimation.value - 0.5) * 0.04,
-                child: child,
+                child: AllyCharacterPlaceholder(
+                  name: ally.name,
+                  themeColor: ally.themeColor,
+                  chargeProgress: chargeAnimation,
+                  hp: ally.hp,
+                  maxHp: ally.maxHp,
+                  walkProgress: walkAnimation.value,
+                  idleProgress: idleAnimation.value,
+                ),
               ),
             );
           },
-          child: AllyCharacterPlaceholder(
-            name: ally.name,
-            themeColor: ally.themeColor,
-            chargeProgress: chargeAnimation,
-            hp: ally.hp,
-            maxHp: ally.maxHp,
-          ),
         ),
       ),
     );

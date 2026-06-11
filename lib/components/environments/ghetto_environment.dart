@@ -76,6 +76,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   late AnimationController _introController;
   late AnimationController _transitionController;
   late AnimationController _defeatController;
+  late AnimationController _idleController;
+  late Animation<double> _idleAnimation;
 
   final double sceneWidth = 900.0;
 
@@ -135,6 +137,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _introController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
     _transitionController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
     _defeatController = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500));
+    // Idle breathing loop — 1.8s period, sinusoidal 0→1→0
+    _idleController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
+    _idleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _idleController, curve: Curves.easeInOut),
+    );
+    _idleController.repeat(reverse: true);
 
     _startHomeLogic();
   }
@@ -711,6 +719,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _introController.dispose();
     _transitionController.dispose();
     _defeatController.dispose();
+    _idleController.dispose();
     for (var c in _allyChargeControllers.values) {
       c.dispose();
     }
@@ -744,13 +753,14 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             walkAnimation: _walkController,
             attackAnimation: _allyAttackControllers[_allies[i]] ?? _attackController,
             chargeAnimation: _allyChargeControllers[_allies[i]],
+            idleAnimation: _idleAnimation,
             isFighting: _isFighting,
           ),
 
         GhettoHeroUnit(
           walkAnimation: _walkController, attackAnimation: _attackController,
-          enemyAttackAnimation: _playerHitController, isFighting: _isFighting,
-          wasHit: _playerWasHit, missed: _playerMissed,
+          enemyAttackAnimation: _playerHitController, idleAnimation: _idleAnimation,
+          isFighting: _isFighting, wasHit: _playerWasHit, missed: _playerMissed,
           isDefeated: _playerWasDefeated,
         ),
         
@@ -768,6 +778,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
               enemyAttackAnimation: _enemyAttackControllers[_enemies[i]] ?? _playerHitController,
               deathAnimation: _deathController,
               enemyChargeController: _enemyChargeControllers[_enemies[i]] ?? _playerHitController,
+              idleAnimation: _idleAnimation,
               onTap: _attackEnemy,
               isBoss: widget.activeBoss != null && i == 0,
             ),
@@ -785,6 +796,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             enemyAttackAnimation: _playerHitController,
             deathAnimation: _deathController,
             enemyChargeController: _playerHitController,
+            idleAnimation: _idleAnimation,
             onTap: () => _onRecruitTapped(enemy),
           ),
 
