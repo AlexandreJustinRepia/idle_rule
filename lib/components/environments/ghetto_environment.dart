@@ -65,18 +65,22 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   late AnimationController _attackController; 
   late AnimationController _playerHitController; 
   late AnimationController _deathController;
-  late AnimationController _encounterProgressController;
+  late AnimationController _introController;
+  late AnimationController _transitionController;
 
   final double sceneWidth = 900.0;
 
   bool _isFighting = false;
   bool _isEnemyDying = false;
   bool _isRecruiting = false;
+  bool _isIntroAnimating = false;
+  bool _isTransitioning = false;
   bool _enemyWasHit = false;
   bool _playerWasHit = false;
   bool _playerWasDefeated = false;
   bool _playerMissed = false;
-  bool _isResting = true; // Start in resting/idle state
+  bool _isResting = true; 
+  bool _isAtHome = true;
 
   final List<Ally> _allies = [];
   final List<Enemy> _enemies = [];
@@ -91,12 +95,15 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   int _enemyNumber = 0;
   Timer? _attackTimer;
   Timer? _trainingTimer;
+  String _introEnemyName = "";
 
   bool get _isLowHunger => PlayerNeedsLogic.isLowHunger(widget.playerHunger, widget.playerMaxHunger);
   bool get _isCriticalHunger => PlayerNeedsLogic.isCriticalHunger(widget.playerHunger, widget.playerMaxHunger);
   
-  // Boss is ready if strength is at least 5
-  bool get _isBossReady => widget.stats.strength >= 5.0;
+  bool get _isBossReady {
+    // Only appear if significantly strong and at home
+    return widget.stats.strength >= 25.0 && _allies.length >= 2 && _isAtHome;
+  }
 
   @override
   void initState() {
@@ -106,14 +113,10 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _attackController = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
     _playerHitController = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
     _deathController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
-    _encounterProgressController = AnimationController(vsync: this, duration: const Duration(seconds: 4));
+    _introController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
+    _transitionController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
 
-    _startWalking();
-    // Default to resting if no active mission
-    _isResting = true;
-    _scrollController.stop();
-    _walkController.stop();
-    _walkController.value = 0;
+    _startHomeLogic();
   }
 
   @override
@@ -125,52 +128,74 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   void _startBossEncounter() {
-    _encounterProgressController.stop();
     _startEncounter(isBoss: true);
   }
 
-  void _startWalking() {
+  void _startHomeLogic() {
     _stopAllCombatAnimations();
     setState(() {
+      _isAtHome = true;
+      _isResting = true;
+      _isFighting = false;
       _isEnemyDying = false;
       _isRecruiting = false;
-      _enemyWasHit = false;
-      _playerWasHit = false;
+      _isIntroAnimating = false;
+      _isTransitioning = false;
       _playerWasDefeated = false;
-      _playerMissed = false;
-      _isFighting = false;
       _enemies.clear();
       _dyingEnemies.clear();
-      _enemyOriginalIndices.clear();
-      for (var c in _enemyChargeControllers.values) {
-        c.dispose();
-      }
-      _enemyChargeControllers.clear();
-      for (var c in _enemyAttackControllers.values) {
-        c.dispose();
-      }
-      _enemyAttackControllers.clear();
+      _scrollController.stop();
+      _walkController.stop();
+      _walkController.value = 0;
     });
 
     _trainingTimer?.cancel();
     _trainingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      // If explore/walk is active, gain more speed XP. If resting, gain more stamina.
-      double statGain = _isResting ? 0.05 : 0.25;
-      widget.onStatsGained(strength: 0, speed: statGain, endurance: 0);
-      
-      double recoveryMult = PlayerNeedsLogic.getRecoveryMultiplier(widget.playerHunger, widget.playerMaxHunger);
-      double restMult = _isResting ? 2.5 : 1.0;
-      double recovery = widget.stats.staminaRecovery * recoveryMult * restMult;
-      
-      widget.onNeedsRecovered(stamina: recovery, hunger: _isResting ? -0.2 : -0.45);
+      if (_isAtHome && _isResting) {
+        // High recovery logic at home
+        double recoveryMult = PlayerNeedsLogic.getRecoveryMultiplier(widget.playerHunger, widget.playerMaxHunger);
+        widget.onNeedsRecovered(stamina: widget.stats.staminaRecovery * 4.0 * recoveryMult, hunger: -0.05);
+        
+        if (widget.playerHealth < widget.playerMaxHealth) {
+           widget.onPlayerDamaged(- (widget.playerMaxHealth * 0.08).ceil()); // Faster healing at home
+        }
+
+        for (var ally in _allies) {
+          if (ally.hp < ally.maxHp) {
+            setState(() {
+              ally.hp = (ally.hp + (ally.maxHp * 0.15).ceil()).clamp(0, ally.maxHp);
+            });
+          }
+        }
+      } else if (!_isAtHome && !_isFighting && !_isRecruiting) {
+        // Stats decay on street - no auto recovery
+        widget.onNeedsRecovered(stamina: -0.2, hunger: -0.6);
+      }
     });
+  }
 
-    _encounterProgressController.value = 0;
-    _encounterProgressController.stop();
+  void _enterHouse() {
+    _startHomeLogic();
+  }
 
-    if (!_isResting) {
-      _scrollController.repeat();
-      _walkController.repeat(reverse: true);
+  Future<void> _exitHouse() async {
+    setState(() {
+      _isTransitioning = true;
+    });
+    // Character walks toward door animation
+    _walkController.repeat(reverse: true);
+    await _transitionController.forward(from: 0);
+    
+    if (mounted) {
+      setState(() {
+        _isAtHome = false;
+        _isResting = false;
+        _isTransitioning = false;
+        _scrollController.stop();
+        _walkController.stop();
+        _walkController.value = 0;
+        _transitionController.reset();
+      });
     }
   }
 
@@ -181,11 +206,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         _scrollController.stop();
         _walkController.stop();
         _walkController.value = 0;
-        _encounterProgressController.stop();
-        _encounterProgressController.value = 0;
-      } else {
-        _scrollController.repeat();
-        _walkController.repeat(reverse: true);
       }
     });
   }
@@ -196,8 +216,10 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _scrollController.repeat();
       _walkController.repeat(reverse: true);
     });
-    _encounterProgressController.forward(from: 0).then((_) {
-      if (mounted && !_isFighting && !_isRecruiting) {
+    
+    // Discovery animation after a short walk
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted && !_isFighting && !_isRecruiting && !_isAtHome && !_isResting) {
         _startEncounter();
       }
     });
@@ -207,6 +229,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _attackTimer?.cancel();
     _playerHitController.stop();
     _deathController.stop();
+    _introController.stop();
+    _transitionController.stop();
     for (var c in _allyChargeControllers.values) {
       c.stop();
       c.value = 0;
@@ -257,7 +281,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
   }
 
-  void _startEncounter({bool isBoss = false}) {
+  Future<void> _startEncounter({bool isBoss = false}) async {
     _enemies.clear();
     _dyingEnemies.clear();
     _enemyOriginalIndices.clear();
@@ -270,6 +294,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     }
     _enemyAttackControllers.clear();
 
+    String mainName = "";
     if (isBoss && widget.activeBoss != null) {
       final enemy = Enemy(
         name: widget.activeBoss!.name,
@@ -281,6 +306,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       );
       _enemies.add(enemy);
       _enemyOriginalIndices[enemy] = 0;
+      mainName = enemy.name;
     } else {
       int minEnemies = 1 + (widget.stats.reputation / 30).floor();
       int maxEnemies = 3 + (widget.stats.reputation / 15).floor();
@@ -293,6 +319,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         final enemy = GhettoEnemyFactory.generateRandomEnemy(_enemyNumber, widget.stats);
         _enemies.add(enemy);
         _enemyOriginalIndices[enemy] = i;
+        if (i == 0) mainName = enemy.name;
       }
     }
 
@@ -301,33 +328,42 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _enemyAttackControllers[enemy] = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
     }
 
-    Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
-
-    setState(() {
-      _isFighting = true;
-      _isEnemyDying = false;
-      _isRecruiting = false;
-      _enemyWasHit = true; 
-      _playerWasHit = false;
-      _playerWasDefeated = false;
-      _playerMissed = false;
-      _isResting = false;
-    });
-    
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) setState(() => _enemyWasHit = false);
-    });
-
     _scrollController.stop();
     _walkController.value = 0.5;
     _walkController.stop();
     _trainingTimer?.cancel();
-    _encounterProgressController.stop();
+
+    setState(() {
+      _introEnemyName = mainName;
+      _isIntroAnimating = true;
+    });
+
+    await _introController.forward(from: 0);
     
-    _schedulePlayerAttack();
-    _startAllyCombat();
-    for (var enemy in _enemies) {
-      _startEnemyCharge(enemy);
+    if (mounted) {
+      setState(() {
+        _isIntroAnimating = false;
+        _isFighting = true;
+        _isEnemyDying = false;
+        _isRecruiting = false;
+        _enemyWasHit = true; 
+        _playerWasHit = false;
+        _playerWasDefeated = false;
+        _playerMissed = false;
+        _isResting = false;
+      });
+      
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) setState(() => _enemyWasHit = false);
+      });
+
+      Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
+      
+      _schedulePlayerAttack();
+      _startAllyCombat();
+      for (var enemy in _enemies) {
+        _startEnemyCharge(enemy);
+      }
     }
   }
 
@@ -341,7 +377,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   Future<void> _onEnemyAttack(Enemy enemy) async {
-    // Potential targets: player or any ally (even defeated allies might be targets, but let's stick to active/allies)
     List<dynamic> targets = [null, ..._allies];
     var target = targets[math.Random().nextInt(targets.length)];
     if (target == null) {
@@ -411,7 +446,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   void _onRecruitTapped(Enemy enemy) {
     if (!_isRecruiting) return;
-    
     _recruitAlly(enemy);
     setState(() {
       _dyingEnemies.remove(enemy);
@@ -433,14 +467,20 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _isRecruiting = false;
       _isEnemyDying = false;
       _dyingEnemies.clear();
-      // Heal all allies to full after battle
-      for (var ally in _allies) { ally.hp = ally.maxHp; }
     });
     
     await _deathController.forward(from: 0);
     if (mounted) {
       if (widget.activeBoss != null) widget.onBossDefeated?.call();
-      _startWalking();
+      // Stay on street after recruitment phase, user must choose to explore or enter house
+      _stopAllCombatAnimations();
+      setState(() {
+        _isFighting = false;
+        _isResting = false; // Idle on street
+        _scrollController.stop();
+        _walkController.stop();
+        _walkController.value = 0;
+      });
     }
   }
 
@@ -556,19 +596,15 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     int damage = CombatEngine.calculateEnemyDamage(enemy.damage, _isLowHunger);
     setState(() {
       ally.hp = (ally.hp - damage).clamp(0, ally.maxHp);
-      // ally doesn't disappear if defeated, just waits to be replaced or healed
     });
   }
 
   void _handlePlayerDefeated() {
-    final wasBossFight = widget.activeBoss != null;
     _stopAllCombatAnimations();
-    _encounterProgressController.stop();
-    _trainingTimer?.cancel();
     widget.onPlayerDefeated();
 
     setState(() {
-      // Heal all enemies and allies to full
+      // Heal survivors
       for (var enemy in _enemies) { enemy.hp = enemy.maxHp; }
       for (var ally in _allies) { ally.hp = ally.maxHp; }
 
@@ -577,22 +613,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _playerWasDefeated = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 900), () {
+    Future.delayed(const Duration(milliseconds: 1200), () {
       if (mounted) {
-        if (wasBossFight) {
-          _startWalking();
-        } else {
-          setState(() {
-            _isFighting = true;
-            _playerWasHit = false;
-            _playerWasDefeated = false;
-          });
-          _schedulePlayerAttack();
-          _startAllyCombat();
-          for (var enemy in _enemies) {
-            _startEnemyCharge(enemy);
-          }
-        }
+        _startHomeLogic(); // Retreat home after defeat
       }
     });
   }
@@ -606,7 +629,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _attackController.dispose();
     _playerHitController.dispose();
     _deathController.dispose();
-    _encounterProgressController.dispose();
+    _introController.dispose();
+    _transitionController.dispose();
     for (var c in _allyChargeControllers.values) {
       c.dispose();
     }
@@ -624,12 +648,16 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   @override
   Widget build(BuildContext context) {
-    bool isIdle = !_isFighting && !_isEnemyDying && !_playerWasDefeated && !_isRecruiting;
+    bool isIdle = !_isFighting && !_isEnemyDying && !_playerWasDefeated && !_isRecruiting && !_isIntroAnimating && !_isTransitioning;
 
     return Stack(
       children: [
         GhettoBackground(scrollAnimation: _scrollController, sceneWidth: sceneWidth),
         
+        // Artificial House Interior Overlay
+        if (_isAtHome && !_isTransitioning)
+          _buildHouseInterior(),
+
         for (int i = 0; i < _allies.length; i++)
           GhettoAllyUnit(
             index: i,
@@ -646,22 +674,23 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           wasHit: _playerWasHit, missed: _playerMissed,
         ),
         
-        for (int i = 0; i < _enemies.length; i++)
-          GhettoEnemyUnit(
-            index: i,
-            enemy: _enemies[i],
-            enemyNumber: _enemyNumber - (_enemies.length - 1) + i,
-            isFighting: _isFighting,
-            isEnemyDying: false,
-            playerWasDefeated: _playerWasDefeated,
-            enemyWasHit: _enemyWasHit && i == 0,
-            attackAnimation: _attackController,
-            enemyAttackAnimation: _enemyAttackControllers[_enemies[i]] ?? _playerHitController,
-            deathAnimation: _deathController,
-            enemyChargeController: _enemyChargeControllers[_enemies[i]] ?? _playerHitController,
-            onTap: _attackEnemy,
-            isBoss: widget.activeBoss != null && i == 0,
-          ),
+        if (!_isAtHome)
+          for (int i = 0; i < _enemies.length; i++)
+            GhettoEnemyUnit(
+              index: i,
+              enemy: _enemies[i],
+              enemyNumber: _enemyNumber - (_enemies.length - 1) + i,
+              isFighting: _isFighting,
+              isEnemyDying: false,
+              playerWasDefeated: _playerWasDefeated,
+              enemyWasHit: _enemyWasHit && i == 0,
+              attackAnimation: _attackController,
+              enemyAttackAnimation: _enemyAttackControllers[_enemies[i]] ?? _playerHitController,
+              deathAnimation: _deathController,
+              enemyChargeController: _enemyChargeControllers[_enemies[i]] ?? _playerHitController,
+              onTap: _attackEnemy,
+              isBoss: widget.activeBoss != null && i == 0,
+            ),
 
         for (var enemy in _dyingEnemies)
           GhettoEnemyUnit(
@@ -696,27 +725,39 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           ),
         ),
         
-        if (isIdle && _encounterProgressController.isAnimating)
-          GhettoSearchingIndicator(progress: _encounterProgressController),
-        
-        if (isIdle && !_encounterProgressController.isAnimating)
+        if (isIdle)
           Positioned(
             bottom: 120, left: 20, right: 20,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildIdleActionCard(
-                  icon: _isResting ? Icons.hotel : Icons.directions_run,
-                  label: _isResting ? "WAKE UP" : "REST",
-                  onTap: _toggleRest,
-                  color: _isResting ? Colors.orange : Colors.blueGrey,
-                ),
-                _buildIdleActionCard(
-                  icon: Icons.search,
-                  label: "EXPLORE",
-                  onTap: _startExploring,
-                  color: Colors.blueAccent,
-                ),
+                if (_isAtHome) ...[
+                   _buildIdleActionCard(
+                    icon: Icons.hotel,
+                    label: "REST",
+                    onTap: _toggleRest,
+                    color: _isResting ? Colors.orange : Colors.blueGrey,
+                  ),
+                   _buildIdleActionCard(
+                    icon: Icons.logout,
+                    label: "EXIT",
+                    onTap: _exitHouse,
+                    color: Colors.redAccent,
+                  ),
+                ] else ...[
+                   _buildIdleActionCard(
+                    icon: Icons.home,
+                    label: "ENTER HOUSE",
+                    onTap: _enterHouse,
+                    color: Colors.blueGrey,
+                  ),
+                  _buildIdleActionCard(
+                    icon: Icons.search,
+                    label: "EXPLORE",
+                    onTap: _startExploring,
+                    color: Colors.blueAccent,
+                  ),
+                ],
               ],
             ),
           ),
@@ -733,9 +774,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           isRecruiting: _isRecruiting,
         ),
 
-        if (!_isFighting && !_isRecruiting && !_isEnemyDying && !_playerWasDefeated && widget.activeBoss == null && _isBossReady)
+        if (!_isFighting && !_isRecruiting && !_isEnemyDying && !_playerWasDefeated && widget.activeBoss == null && _isBossReady && _isAtHome)
           Positioned(
-            bottom: 16,
+            bottom: 220,
             right: 20,
             child: FightBossButton(
               onPressed: () => widget.onStartBossFight?.call(),
@@ -743,9 +784,164 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             ),
           ),
 
+        if (_isIntroAnimating)
+          _buildEnemyIntroOverlay(),
+
         if (_isRecruiting)
           _buildRecruitmentOverlay(),
+
+        // Transition Animation (Exit Home)
+        if (_isTransitioning)
+          _buildTransitionOverlay(),
       ],
+    );
+  }
+
+  Widget _buildHouseInterior() {
+    return Positioned.fill(
+      child: Container(
+        color: const Color(0xFF121212),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.home_work_rounded, size: 100, color: Colors.blueAccent.withValues(alpha: 0.1)),
+              const SizedBox(height: 16),
+              Text(
+                "SAFE HOUSE",
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 12,
+                ),
+              ),
+              const SizedBox(height: 200),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTransitionOverlay() {
+    return AnimatedBuilder(
+      animation: _transitionController,
+      builder: (context, child) {
+        final val = _transitionController.value;
+        return Positioned.fill(
+          child: Container(
+            color: Colors.white.withValues(alpha: (val * 2.0).clamp(0.0, 1.0)),
+            child: Center(
+              child: Opacity(
+                opacity: (val * 4.0).clamp(0.0, 1.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.door_front_door, size: 80, color: Colors.blueAccent),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "LEAVING SAFE HOUSE",
+                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEnemyIntroOverlay() {
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _introController,
+        builder: (context, child) {
+          final progress = _introController.value;
+          
+          double slam = 0;
+          double opacity = 0;
+          
+          if (progress < 0.4) {
+            double p = progress / 0.4;
+            slam = 1.0 - p;
+            opacity = p;
+          } else if (progress < 0.8) {
+            slam = 0;
+            opacity = 1.0;
+          } else {
+            opacity = 1.0 - (progress - 0.8) / 0.2;
+          }
+
+          final scale = 1.0 + (slam * 4.0);
+          final blur = slam * 20.0;
+
+          return Container(
+            color: Colors.black.withValues(alpha: opacity * 0.6),
+            child: Center(
+              child: Transform.scale(
+                scale: scale,
+                child: Opacity(
+                  opacity: opacity,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "YOKOHAMA DISTRICT",
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 8,
+                          shadows: [Shadow(color: Colors.black, blurRadius: blur)],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Stack(
+                        children: [
+                          Text(
+                            _introEnemyName.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 72,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 4,
+                              foreground: Paint()
+                                ..style = PaintingStyle.stroke
+                                ..strokeWidth = 8
+                                ..color = Colors.black,
+                            ),
+                          ),
+                          Text(
+                            _introEnemyName.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 72,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 4,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        height: 3,
+                        width: 250,
+                        margin: const EdgeInsets.only(top: 15),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.transparent, Colors.red.withValues(alpha: opacity), Colors.transparent],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

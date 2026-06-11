@@ -23,7 +23,6 @@ class GhettoAllyUnit extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Allies no longer disappear when HP is 0
     return Align(
       alignment: Alignment.bottomLeft,
       child: Padding(
@@ -35,7 +34,7 @@ class GhettoAllyUnit extends StatelessWidget {
           animation: Listenable.merge([
             walkAnimation,
             attackAnimation,
-            if (chargeAnimation != null) chargeAnimation!,
+            chargeAnimation,
           ]),
           builder: (context, child) {
             final attackProgress = math.sin(attackAnimation.value * math.pi);
