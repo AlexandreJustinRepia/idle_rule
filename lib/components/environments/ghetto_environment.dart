@@ -353,18 +353,17 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _walkController.stop();
     _trainingTimer?.cancel();
 
-    setState(() {
-      _introEnemyName = mainName;
-      _isIntroAnimating = true;
-    });
-
-    await _introController.forward(from: 0);
-    
-    if (mounted) {
+    if (isBoss) {
       setState(() {
-        _isIntroAnimating = false;
-        
-        if (isBoss) {
+        _introEnemyName = mainName;
+        _isIntroAnimating = true;
+      });
+
+      await _introController.forward(from: 0);
+      
+      if (mounted) {
+        setState(() {
+          _isIntroAnimating = false;
           _isFighting = true;
           _isEnemyDying = false;
           _isRecruiting = false;
@@ -373,12 +372,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           _playerWasDefeated = false;
           _playerMissed = false;
           _isResting = false;
-        } else {
-          _isEncounterChoice = true;
-        }
-      });
-      
-      if (isBoss) {
+        });
+        
         Future.delayed(const Duration(milliseconds: 100), () {
           if (mounted) setState(() => _enemyWasHit = false);
         });
@@ -391,32 +386,46 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           _startEnemyCharge(enemy);
         }
       }
+    } else {
+      setState(() {
+        _introEnemyName = mainName;
+        _isEncounterChoice = true;
+      });
     }
   }
 
-  void _onChooseFight() {
+  Future<void> _onChooseFight() async {
     setState(() {
       _isEncounterChoice = false;
-      _isFighting = true;
-      _isEnemyDying = false;
-      _isRecruiting = false;
-      _enemyWasHit = true; 
-      _playerWasHit = false;
-      _playerWasDefeated = false;
-      _playerMissed = false;
-      _isResting = false;
+      _isIntroAnimating = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) setState(() => _enemyWasHit = false);
-    });
+    await _introController.forward(from: 0);
 
-    Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
-    
-    _schedulePlayerAttack();
-    _startAllyCombat();
-    for (var enemy in _enemies) {
-      _startEnemyCharge(enemy);
+    if (mounted) {
+      setState(() {
+        _isIntroAnimating = false;
+        _isFighting = true;
+        _isEnemyDying = false;
+        _isRecruiting = false;
+        _enemyWasHit = true; 
+        _playerWasHit = false;
+        _playerWasDefeated = false;
+        _playerMissed = false;
+        _isResting = false;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) setState(() => _enemyWasHit = false);
+      });
+
+      Future.microtask(() { if (mounted) widget.onNewEnemyApproached(); });
+      
+      _schedulePlayerAttack();
+      _startAllyCombat();
+      for (var enemy in _enemies) {
+        _startEnemyCharge(enemy);
+      }
     }
   }
 
