@@ -32,6 +32,7 @@ class GhettoEnvironment extends StatefulWidget {
   final VoidCallback? onBossDefeated;
   final VoidCallback? onStartBossFight;
   final int bossIndex;
+  final void Function(int amount)? onMoneyGained;
 
   const GhettoEnvironment({
     super.key,
@@ -52,6 +53,7 @@ class GhettoEnvironment extends StatefulWidget {
     this.onBossDefeated,
     this.onStartBossFight,
     this.bossIndex = 0,
+    this.onMoneyGained,
   });
 
   @override
@@ -67,6 +69,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   late AnimationController _deathController;
   late AnimationController _introController;
   late AnimationController _transitionController;
+  late AnimationController _defeatController;
 
   final double sceneWidth = 900.0;
 
@@ -101,7 +104,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool get _isCriticalHunger => PlayerNeedsLogic.isCriticalHunger(widget.playerHunger, widget.playerMaxHunger);
   
   bool get _isBossReady {
-    // Only appear if significantly strong and at home
     return widget.stats.strength >= 25.0 && _allies.length >= 2 && _isAtHome;
   }
 
@@ -115,6 +117,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _deathController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
     _introController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
     _transitionController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+    _defeatController = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500));
 
     _startHomeLogic();
   }
@@ -135,7 +138,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _stopAllCombatAnimations();
     setState(() {
       _isAtHome = true;
-      _isResting = true;
+      _isResting = true; // Auto-rest at home
       _isFighting = false;
       _isEnemyDying = false;
       _isRecruiting = false;
@@ -157,7 +160,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         widget.onNeedsRecovered(stamina: widget.stats.staminaRecovery * 4.0 * recoveryMult, hunger: -0.05);
         
         if (widget.playerHealth < widget.playerMaxHealth) {
-           widget.onPlayerDamaged(- (widget.playerMaxHealth * 0.08).ceil()); // Faster healing at home
+           widget.onPlayerDamaged(- (widget.playerMaxHealth * 0.08).ceil());
         }
 
         for (var ally in _allies) {
@@ -199,17 +202,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     }
   }
 
-  void _toggleRest() {
-    setState(() {
-      _isResting = !_isResting;
-      if (_isResting) {
-        _scrollController.stop();
-        _walkController.stop();
-        _walkController.value = 0;
-      }
-    });
-  }
-
   void _startExploring() {
     setState(() {
       _isResting = false;
@@ -231,6 +223,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _deathController.stop();
     _introController.stop();
     _transitionController.stop();
+    _defeatController.stop();
     for (var c in _allyChargeControllers.values) {
       c.stop();
       c.value = 0;
@@ -431,6 +424,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _enemies.remove(enemy);
     _dyingEnemies.add(enemy);
 
+    // Gain money for defeating an enemy
+    widget.onMoneyGained?.call(15 + (widget.bossIndex * 5));
+
     if (_enemies.isEmpty) {
       _isFighting = false;
       _isEnemyDying = true;
@@ -599,7 +595,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
   }
 
-  void _handlePlayerDefeated() {
+  Future<void> _handlePlayerDefeated() async {
     _stopAllCombatAnimations();
     widget.onPlayerDefeated();
 
@@ -613,11 +609,11 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _playerWasDefeated = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (mounted) {
-        _startHomeLogic(); // Retreat home after defeat
-      }
-    });
+    await _defeatController.forward(from: 0);
+
+    if (mounted) {
+      _startHomeLogic(); // Retreat home after defeat
+    }
   }
 
   @override
@@ -631,6 +627,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _deathController.dispose();
     _introController.dispose();
     _transitionController.dispose();
+    _defeatController.dispose();
     for (var c in _allyChargeControllers.values) {
       c.dispose();
     }
@@ -672,6 +669,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           walkAnimation: _walkController, attackAnimation: _attackController,
           enemyAttackAnimation: _playerHitController, isFighting: _isFighting,
           wasHit: _playerWasHit, missed: _playerMissed,
+          isDefeated: _playerWasDefeated,
         ),
         
         if (!_isAtHome)
@@ -733,12 +731,6 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
               children: [
                 if (_isAtHome) ...[
                    _buildIdleActionCard(
-                    icon: Icons.hotel,
-                    label: "REST",
-                    onTap: _toggleRest,
-                    color: _isResting ? Colors.orange : Colors.blueGrey,
-                  ),
-                   _buildIdleActionCard(
                     icon: Icons.logout,
                     label: "EXIT",
                     onTap: _exitHouse,
@@ -790,7 +782,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         if (_isRecruiting)
           _buildRecruitmentOverlay(),
 
-        // Transition Animation (Exit Home)
+        if (_playerWasDefeated)
+          _buildDefeatOverlay(),
+
         if (_isTransitioning)
           _buildTransitionOverlay(),
       ],
@@ -851,6 +845,84 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDefeatOverlay() {
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _defeatController,
+        builder: (context, child) {
+          final progress = _defeatController.value;
+          double slam = 0;
+          double opacity = 0;
+          
+          if (progress < 0.3) {
+            double p = progress / 0.3;
+            slam = 1.0 - p;
+            opacity = p;
+          } else if (progress < 0.7) {
+            slam = 0;
+            opacity = 1.0;
+          } else {
+            opacity = 1.0 - (progress - 0.7) / 0.3;
+          }
+
+          final scale = 1.0 + (slam * 5.0);
+
+          return Container(
+            color: Colors.black.withValues(alpha: opacity * 0.8),
+            child: Center(
+              child: Transform.scale(
+                scale: scale,
+                child: Opacity(
+                  opacity: opacity,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "STREETS OF YOKOHAMA",
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 6,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Stack(
+                        children: [
+                          Text(
+                            "WASHED OUT",
+                            style: TextStyle(
+                              fontSize: 80,
+                              fontWeight: FontWeight.w900,
+                              fontStyle: FontStyle.italic,
+                              foreground: Paint()
+                                ..style = PaintingStyle.stroke
+                                ..strokeWidth = 8
+                                ..color = Colors.black,
+                            ),
+                          ),
+                          const Text(
+                            "WASHED OUT",
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 80,
+                              fontWeight: FontWeight.w900,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../ui/profile_edit_modal.dart';
 
 class CustomNavbar extends StatefulWidget implements PreferredSizeWidget {
-  const CustomNavbar({super.key});
+  final int money;
+  const CustomNavbar({super.key, this.money = 0});
 
   @override
   State<CustomNavbar> createState() => _CustomNavbarState();
@@ -71,12 +72,15 @@ class _CustomNavbarState extends State<CustomNavbar> {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.attach_money, size: 18, color: Colors.white),
-                    SizedBox(width: 4),
-                    Text('1,000', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const Icon(Icons.attach_money, size: 18, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.money.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
                   ],
                 ),
               ),

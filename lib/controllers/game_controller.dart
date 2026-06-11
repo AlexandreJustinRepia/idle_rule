@@ -6,6 +6,7 @@ class GameController extends ChangeNotifier {
   int _playerHealth = 30;
   late double _playerStamina;
   late double _playerHunger;
+  int _money = 0;
   Boss? _activeBoss;
   int _bossIndex = 0;
 
@@ -18,6 +19,7 @@ class GameController extends ChangeNotifier {
   int get playerHealth => _playerHealth;
   double get playerStamina => _playerStamina;
   double get playerHunger => _playerHunger;
+  int get money => _money;
   Boss? get activeBoss => _activeBoss;
   int get bossIndex => _bossIndex;
 
@@ -38,6 +40,11 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void gainMoney(int amount) {
+    _money += amount;
+    notifyListeners();
+  }
+
   void takeDamage(int damage) {
     _playerHealth = (_playerHealth - damage).clamp(0, _stats.maxHealth).toInt();
     notifyListeners();
@@ -52,7 +59,7 @@ class GameController extends ChangeNotifier {
   }
 
   void recoverHealthForNewEnemy() {
-    _playerHealth = _stats.maxHealth;
+    _playerHealth = _playerHealth.clamp(0, _stats.maxHealth).toInt();
     notifyListeners();
   }
 
@@ -79,8 +86,9 @@ class GameController extends ChangeNotifier {
   void onBossDefeated() {
     _activeBoss = null;
     _bossIndex++;
-    // Bosses give a significant reputation boost
+    // Bosses give a significant reputation and money boost
     gainStats(reputation: 25.0);
+    gainMoney(500);
     notifyListeners();
   }
 }

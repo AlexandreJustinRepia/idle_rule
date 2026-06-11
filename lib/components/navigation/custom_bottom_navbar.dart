@@ -43,8 +43,9 @@ class CustomBottomNavbar extends StatelessWidget {
         items: [
           _buildNavItem(Icons.location_on, 'Street', 0),
           _buildNavItem(Icons.fitness_center, 'Gym', 1),
-          _buildNavItem(Icons.map, 'Turfs', 2),
-          _buildNavItem(Icons.group, 'Gangs', 3),
+          _buildNavItem(Icons.shopping_cart, 'Shop', 2),
+          _buildNavItem(Icons.map, 'Turfs', 3),
+          _buildNavItem(Icons.group, 'Gangs', 4),
         ],
       ),
     );
@@ -57,14 +58,14 @@ class CustomBottomNavbar extends StatelessWidget {
       icon: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
           color: isActive ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Icon(
           iconData,
-          size: isActive ? 28 : 24,
+          size: isActive ? 26 : 22,
           color: isActive ? Colors.white : Colors.grey[600],
         ),
       ),

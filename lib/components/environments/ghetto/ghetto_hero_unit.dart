@@ -9,6 +9,7 @@ class GhettoHeroUnit extends StatelessWidget {
   final bool isFighting;
   final bool wasHit;
   final bool missed;
+  final bool isDefeated;
 
   const GhettoHeroUnit({
     super.key,
@@ -18,6 +19,7 @@ class GhettoHeroUnit extends StatelessWidget {
     required this.isFighting,
     required this.wasHit,
     required this.missed,
+    this.isDefeated = false,
   });
 
   @override
@@ -34,14 +36,16 @@ class GhettoHeroUnit extends StatelessWidget {
             final missShake = missed ? math.sin(attackAnimation.value * math.pi * 12) * 5 : 0.0;
 
             return Opacity(
-              opacity: wasHit ? 0.72 : 1,
+              opacity: wasHit || isDefeated ? 0.72 : 1,
               child: Transform.translate(
                 offset: Offset(
                   (isFighting ? attackProgress * 52 : 0) + hitShake + missShake,
-                  isFighting ? -attackProgress * 4 : -walkAnimation.value * 8,
+                  isDefeated ? 10 : (isFighting ? -attackProgress * 4 : -walkAnimation.value * 8),
                 ),
                 child: Transform.rotate(
-                  angle: isFighting ? attackProgress * 0.18 : (walkAnimation.value - 0.5) * 0.05,
+                  angle: isDefeated 
+                    ? -math.pi / 2 // Fall over
+                    : (isFighting ? attackProgress * 0.18 : (walkAnimation.value - 0.5) * 0.05),
                   child: child,
                 ),
               ),

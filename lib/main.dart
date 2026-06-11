@@ -48,7 +48,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context, child) {
         return Scaffold(
           extendBodyBehindAppBar: true,
-          appBar: const CustomNavbar(),
+          appBar: CustomNavbar(money: _gameController.money),
           bottomNavigationBar: CustomBottomNavbar(
             currentIndex: _currentTabIndex,
             onTap: (index) => setState(() => _currentTabIndex = index),
@@ -80,6 +80,7 @@ class _HomePageState extends State<HomePage> {
                         onBossDefeated: _gameController.onBossDefeated,
                         onStartBossFight: _gameController.startBossFight,
                         bossIndex: _gameController.bossIndex,
+                        onMoneyGained: _gameController.gainMoney,
                       ),
                       GymEnvironment(
                         stats: _gameController.stats,
@@ -89,6 +90,7 @@ class _HomePageState extends State<HomePage> {
                         onStaminaSpent: _gameController.spendStamina,
                         onNeedsRecovered: _gameController.recoverNeeds,
                       ),
+                      _buildComingSoon('SHOP'),
                       _buildComingSoon('TURFS'),
                       _buildComingSoon('GANGS'),
                     ],
