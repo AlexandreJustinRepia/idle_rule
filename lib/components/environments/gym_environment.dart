@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../game_state.dart';
+import '../ui/action_card.dart';
 import 'shared/environment_painters.dart';
 
 class GymEnvironment extends StatefulWidget {
@@ -88,7 +89,6 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
       ),
       child: Stack(
         children: [
-          // Gym Background elements
           Positioned.fill(
             child: CustomPaint(
               painter: GymBackgroundPainter(),
@@ -110,7 +110,6 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
                 ),
                 const SizedBox(height: 40),
                 
-                // Animated Bench Press Character
                 AnimatedBuilder(
                   animation: _benchController,
                   builder: (context, child) {
@@ -123,31 +122,12 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
                 
                 const SizedBox(height: 60),
                 
-                GestureDetector(
+                ActionCard(
+                  icon: Icons.fitness_center,
+                  label: _isTraining ? 'STOP LIFTING' : 'BENCH PRESS',
                   onTap: _toggleStrengthTraining,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                    decoration: BoxDecoration(
-                      color: _isTraining ? Colors.redAccent : Colors.orangeAccent,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (_isTraining ? Colors.redAccent : Colors.orangeAccent).withValues(alpha: 0.5),
-                          blurRadius: 15,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      _isTraining ? 'STOP LIFTING' : 'BENCH PRESS',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
+                  color: _isTraining ? Colors.redAccent : Colors.orangeAccent,
+                  isSelected: _isTraining,
                 ),
               ],
             ),
@@ -169,7 +149,6 @@ class BenchPressWidget extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Barbell
           Positioned(
             top: 20,
             child: Container(
@@ -181,7 +160,6 @@ class BenchPressWidget extends StatelessWidget {
               ),
             ),
           ),
-          // Weights
           Positioned(
             top: 5,
             left: 0,
@@ -192,7 +170,6 @@ class BenchPressWidget extends StatelessWidget {
             right: 0,
             child: _buildWeight(),
           ),
-          // Bench
           Positioned(
             bottom: 0,
             child: Container(
@@ -201,7 +178,6 @@ class BenchPressWidget extends StatelessWidget {
               color: Colors.black87,
             ),
           ),
-          // Hero
           Positioned(
             bottom: 30,
             child: Container(

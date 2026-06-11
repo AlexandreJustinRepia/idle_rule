@@ -157,7 +157,7 @@ class AllyCharacterPlaceholder extends StatelessWidget {
           width: 34,
           height: 48,
           decoration: BoxDecoration(
-            color: Colors.grey[800] ?? Colors.blueGrey[900],
+            color: Colors.grey[800],
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: themeColor.withValues(alpha: 0.5),
@@ -216,7 +216,7 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
   final Enemy enemy;
   final int enemyNumber;
   final bool wasHit;
-  final AnimationController chargeProgress;
+  final Animation<double> chargeProgress;
 
   const EnemyCharacterPlaceholder({
     super.key,

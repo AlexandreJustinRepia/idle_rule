@@ -55,7 +55,7 @@ class StatsPanel extends StatelessWidget {
   }
 
   Widget _buildStatRow(String name, double value, Color tierColor) {
-    final tier = _rankFor(value);
+    final tier = PlayerStats.getRankLabel(value);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -96,16 +96,5 @@ class StatsPanel extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _rankFor(double value) {
-    if (value >= 100) return 'SSR';
-    if (value >= 80) return 'S';
-    if (value >= 60) return 'A';
-    if (value >= 40) return 'B';
-    if (value >= 25) return 'C';
-    if (value >= 12) return 'D';
-    if (value >= 5) return 'E';
-    return 'F';
   }
 }

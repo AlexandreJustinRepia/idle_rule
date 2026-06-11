@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'components/navigation/custom_navbar.dart';
 import 'components/navigation/custom_bottom_navbar.dart';
 import 'components/ui/stats_panel.dart';
+import 'components/ui/placeholder_view.dart';
 import 'components/environments/ghetto_environment.dart';
 import 'components/environments/gym_environment.dart';
 import 'controllers/game_controller.dart';
@@ -90,9 +91,9 @@ class _HomePageState extends State<HomePage> {
                         onStaminaSpent: _gameController.spendStamina,
                         onNeedsRecovered: _gameController.recoverNeeds,
                       ),
-                      _buildComingSoon('SHOP'),
-                      _buildComingSoon('TURFS'),
-                      _buildComingSoon('GANGS'),
+                      const PlaceholderView(title: 'SHOP'),
+                      const PlaceholderView(title: 'TURFS'),
+                      const PlaceholderView(title: 'GANGS'),
                     ],
                   ),
                 ),
@@ -105,15 +106,6 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildComingSoon(String title) {
-    return Center(
-      child: Text(
-        '$title COMING SOON',
-        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-      ),
     );
   }
 }
