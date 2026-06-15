@@ -118,6 +118,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   Timer? _attackTimer;
   Timer? _trainingTimer;
   String _introEnemyName = "";
+  dynamic _selectedCombatant;
+  Enemy? _playerTarget;
 
   bool get _isLowHunger => PlayerNeedsLogic.isLowHunger(widget.playerHunger, widget.playerMaxHunger);
   bool get _isCriticalHunger => PlayerNeedsLogic.isCriticalHunger(widget.playerHunger, widget.playerMaxHunger);
@@ -172,6 +174,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _isEncounterChoice = false;
       _isTalking = false;
       _playerWasDefeated = false;
+      _selectedCombatant = null;
+      _playerTarget = null;
       _enemies.clear();
       _dyingEnemies.clear();
       _scrollController.stop();
@@ -305,6 +309,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _enemies.clear();
     _dyingEnemies.clear();
     _enemyOriginalIndices.clear();
+    _selectedCombatant = null;
+    _playerTarget = null;
     for (var c in _enemyChargeControllers.values) {
       c.dispose();
     }
@@ -504,7 +510,14 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   Future<void> _attackEnemyFromAlly(Ally ally) async {
     if (!_isFighting || _enemies.isEmpty || ally.hp <= 0) return;
-    final target = _enemies.first;
+    
+    Enemy target;
+    if (ally.target is Enemy && _enemies.contains(ally.target)) {
+      target = ally.target as Enemy;
+    } else {
+      target = _enemies.first;
+    }
+    
     if (CombatEngine.rollDodge(target.dodgeChance)) return;
 
     _allyAttackControllers[ally]?.forward(from: 0);
@@ -532,6 +545,14 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     _enemyAttackControllers[enemy]?.stop(); 
     _enemies.remove(enemy);
     _dyingEnemies.add(enemy);
+    if (_playerTarget == enemy) {
+      _playerTarget = null;
+    }
+    for (var ally in _allies) {
+      if (ally.target == enemy) {
+        ally.target = null;
+      }
+    }
 
     widget.onMoneyGained?.call(15 + (widget.bossIndex * 5));
 
@@ -598,19 +619,95 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     if (widget.playerHealth <= 0) return;
     _attackTimer = Timer(widget.stats.attackDelay, () async {
       if (widget.playerHealth <= 0) return;
-      await _attackEnemy();
+      await _autoAttackEnemy();
       if (mounted && _isFighting && widget.playerHealth > 0) { _schedulePlayerAttack(); }
     });
   }
 
-  Future<void> _attackEnemy() async {
-    if (!_isFighting || _attackController.isAnimating || _enemies.isEmpty) return;
+  Future<void> _attackEnemy(Enemy tappedEnemy) async {
+    if (!_isFighting || _enemies.isEmpty) return;
+
+    if (_selectedCombatant != null) {
+      setState(() {
+        if (_selectedCombatant == 'player') {
+          _playerTarget = tappedEnemy;
+        } else if (_selectedCombatant is Ally) {
+          (_selectedCombatant as Ally).target = tappedEnemy;
+        }
+        _selectedCombatant = null;
+      });
+      return;
+    }
+
+    if (_allies.isEmpty) {
+      setState(() {
+        _playerTarget = tappedEnemy;
+      });
+    }
+
+    if (_attackController.isAnimating) return;
     if (!widget.onStaminaSpent(8)) {
       widget.onStatsGained(strength: 0, speed: 0, endurance: 0.35);
       return;
     }
 
-    final target = _enemies.first;
+    Enemy target = tappedEnemy;
+    if (!_enemies.contains(target)) {
+      target = _enemies.first;
+    }
+
+    if (CombatEngine.rollDodge(target.dodgeChance)) {
+      await _attackController.forward(from: 0);
+      return;
+    }
+
+    if (CombatEngine.rollMiss(_isCriticalHunger)) {
+      setState(() => _playerMissed = true);
+      await _attackController.forward(from: 0);
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) setState(() => _playerMissed = false);
+      });
+      return;
+    }
+
+    await _attackController.forward(from: 0);
+    if (!mounted || !_isFighting) return;
+
+    int damage = CombatEngine.calculatePlayerDamage(widget.stats, _isLowHunger);
+    setState(() {
+      target.hp -= damage;
+      _enemyWasHit = true;
+      if (target.hp <= 0) {
+        _handleEnemyDefeat(target);
+      }
+    });
+
+    double gainMult = widget.activeBoss != null ? 3.0 : 1.0;
+    widget.onStatsGained(strength: 0.65 * gainMult, speed: 0.12 * gainMult, endurance: 0);
+
+    if (_enemies.isNotEmpty && CombatEngine.rollDodge(_enemies.first.counterChance)) {
+      _onEnemyAttack(_enemies.first);
+    }
+
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) setState(() => _enemyWasHit = false);
+    });
+
+    if (_isEnemyDying && _enemies.isEmpty) {
+      _enterRecruitmentPhase();
+    }
+  }
+
+  Future<void> _autoAttackEnemy() async {
+    if (!_isFighting || _attackController.isAnimating || _enemies.isEmpty) return;
+
+    Enemy target;
+    if (_playerTarget != null && _enemies.contains(_playerTarget)) {
+      target = _playerTarget!;
+    } else {
+      target = _enemies.first;
+    }
+
     if (CombatEngine.rollDodge(target.dodgeChance)) {
       await _attackController.forward(from: 0);
       return;
@@ -792,6 +889,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             chargeAnimation: _allyChargeControllers[_allies[i]],
             idleAnimation: _idleAnimation,
             isFighting: _isFighting,
+            isSelected: _selectedCombatant == _allies[i],
+            onTap: () {
+              if (!_isFighting || _allies[i].hp <= 0) return;
+              setState(() {
+                _selectedCombatant = _selectedCombatant == _allies[i] ? null : _allies[i];
+              });
+            },
           ),
 
         GhettoHeroUnit(
@@ -799,6 +903,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           enemyAttackAnimation: _playerHitController, idleAnimation: _idleAnimation,
           isFighting: _isFighting, wasHit: _playerWasHit, missed: _playerMissed,
           isDefeated: widget.playerHealth <= 0 || _playerWasDefeated,
+          isSelected: _selectedCombatant == 'player',
+          onTap: () {
+            if (!_isFighting || widget.playerHealth <= 0) return;
+            setState(() {
+              _selectedCombatant = _selectedCombatant == 'player' ? null : 'player';
+            });
+          },
         ),
         
         if (!_isAtHome)
@@ -818,6 +929,10 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
               idleAnimation: _idleAnimation,
               onTap: _attackEnemy,
               isBoss: widget.activeBoss != null && i == 0,
+              targetingColors: [
+                if (_playerTarget == _enemies[i]) Colors.redAccent,
+                ..._allies.where((ally) => ally.target == _enemies[i] && ally.hp > 0).map((ally) => ally.themeColor),
+              ],
             ),
 
         for (var enemy in _dyingEnemies)
@@ -834,7 +949,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             deathAnimation: const AlwaysStoppedAnimation<double>(0.0),
             enemyChargeController: const AlwaysStoppedAnimation<double>(0.0),
             idleAnimation: const AlwaysStoppedAnimation<double>(0.0),
-            onTap: () => _onRecruitTapped(enemy),
+            onTap: (_) => _onRecruitTapped(enemy),
           ),
 
         Positioned(

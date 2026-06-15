@@ -15,9 +15,10 @@ class GhettoEnemyUnit extends StatelessWidget {
   final Animation<double> deathAnimation;
   final Animation<double> enemyChargeController;
   final Animation<double> idleAnimation;
-  final VoidCallback onTap;
+  final ValueChanged<Enemy> onTap;
   final bool isBoss;
   final int index;
+  final List<Color> targetingColors;
 
   const GhettoEnemyUnit({
     super.key,
@@ -35,6 +36,7 @@ class GhettoEnemyUnit extends StatelessWidget {
     required this.onTap,
     this.isBoss = false,
     this.index = 0,
+    this.targetingColors = const [],
   });
 
   @override
@@ -61,13 +63,43 @@ class GhettoEnemyUnit extends StatelessWidget {
                 child: Transform.rotate(
                   angle: -enemyAttackProgress * 0.14 + fallProgress * math.pi / 2.5,
                   alignment: Alignment.bottomCenter,
-                  child: child,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      child!,
+                      if (targetingColors.isNotEmpty && !isThisEnemyDying)
+                        Positioned(
+                          top: -12,
+                          left: 0,
+                          right: 0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: targetingColors.map((color) => Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 2.0),
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: color.withValues(alpha: 0.8),
+                                    blurRadius: 4,
+                                    spreadRadius: 1,
+                                  )
+                                ],
+                              ),
+                            )).toList(),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             );
           },
           child: GestureDetector(
-            onTap: onTap,
+            onTap: () => onTap(enemy),
             child: EnemyCharacterPlaceholder(
               health: enemy.hp,
               enemy: enemy,

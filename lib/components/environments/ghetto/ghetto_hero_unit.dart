@@ -11,6 +11,8 @@ class GhettoHeroUnit extends StatelessWidget {
   final bool wasHit;
   final bool missed;
   final bool isDefeated;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
   const GhettoHeroUnit({
     super.key,
@@ -22,6 +24,8 @@ class GhettoHeroUnit extends StatelessWidget {
     required this.wasHit,
     required this.missed,
     this.isDefeated = false,
+    this.isSelected = false,
+    this.onTap,
   });
 
   @override
@@ -48,10 +52,29 @@ class GhettoHeroUnit extends StatelessWidget {
                   angle: isDefeated 
                     ? -math.pi / 2 // Fall over
                     : (isFighting ? attackProgress * 0.18 : (walkAnimation.value - 0.5) * 0.05),
-                  child: HeroCharacterPlaceholder(
-                    walkProgress: walkAnimation.value,
-                    idleProgress: idleAnimation.value,
-                    punchProgress: attackAnimation.value,
+                  child: GestureDetector(
+                    onTap: onTap,
+                    child: Container(
+                      decoration: isSelected
+                          ? BoxDecoration(
+                              border: Border.all(color: Colors.redAccent, width: 2),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.redAccent.withValues(alpha: 0.4),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                )
+                              ],
+                            )
+                          : null,
+                      padding: isSelected ? const EdgeInsets.all(4) : EdgeInsets.zero,
+                      child: HeroCharacterPlaceholder(
+                        walkProgress: walkAnimation.value,
+                        idleProgress: idleAnimation.value,
+                        punchProgress: attackAnimation.value,
+                      ),
+                    ),
                   ),
                 ),
               ),

@@ -11,6 +11,8 @@ class GhettoAllyUnit extends StatelessWidget {
   final Animation<double> idleAnimation;
   final bool isFighting;
   final int index;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
   const GhettoAllyUnit({
     super.key,
@@ -21,6 +23,8 @@ class GhettoAllyUnit extends StatelessWidget {
     required this.idleAnimation,
     required this.isFighting,
     this.index = 0,
+    this.isSelected = false,
+    this.onTap,
   });
 
   @override
@@ -52,15 +56,34 @@ class GhettoAllyUnit extends StatelessWidget {
                 angle: isDefeated 
                   ? -math.pi / 2.2 // Laying down if defeated
                   : isFighting ? (attackProgress * 0.1) : (walkAnimation.value - 0.5) * 0.04,
-                child: AllyCharacterPlaceholder(
-                  name: ally.name,
-                  themeColor: ally.themeColor,
-                  chargeProgress: chargeAnimation,
-                  hp: ally.hp,
-                  maxHp: ally.maxHp,
-                  walkProgress: walkAnimation.value,
-                  idleProgress: idleAnimation.value,
-                  punchProgress: attackAnimation.value,
+                child: GestureDetector(
+                  onTap: onTap,
+                  child: Container(
+                    decoration: isSelected
+                        ? BoxDecoration(
+                            border: Border.all(color: ally.themeColor, width: 2),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: ally.themeColor.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              )
+                            ],
+                          )
+                        : null,
+                    padding: isSelected ? const EdgeInsets.all(4) : EdgeInsets.zero,
+                    child: AllyCharacterPlaceholder(
+                      name: ally.name,
+                      themeColor: ally.themeColor,
+                      chargeProgress: chargeAnimation,
+                      hp: ally.hp,
+                      maxHp: ally.maxHp,
+                      walkProgress: walkAnimation.value,
+                      idleProgress: idleAnimation.value,
+                      punchProgress: attackAnimation.value,
+                    ),
+                  ),
                 ),
               ),
             );
