@@ -10,10 +10,10 @@ class GhettoEnemyUnit extends StatelessWidget {
   final Enemy enemy;
   final int enemyNumber;
   final bool enemyWasHit;
-  final AnimationController attackAnimation;
-  final AnimationController enemyAttackAnimation;
-  final AnimationController deathAnimation;
-  final AnimationController enemyChargeController;
+  final Animation<double> attackAnimation;
+  final Animation<double> enemyAttackAnimation;
+  final Animation<double> deathAnimation;
+  final Animation<double> enemyChargeController;
   final Animation<double> idleAnimation;
   final VoidCallback onTap;
   final bool isBoss;
@@ -51,11 +51,11 @@ class GhettoEnemyUnit extends StatelessWidget {
           builder: (context, child) {
             final hitShake = enemyWasHit ? math.sin(attackAnimation.value * math.pi * 8) * 6 : 0.0;
             final enemyAttackProgress = math.sin(enemyAttackAnimation.value * math.pi);
-            final isThisEnemyDying = enemy.hp <= 0;
-            final fallProgress = isThisEnemyDying ? Curves.easeIn.transform(deathAnimation.value) : 0.0;
+            final isThisEnemyDying = isEnemyDying || enemy.hp <= 0;
+            final fallProgress = isThisEnemyDying ? 1.0 : 0.0;
             
             return Opacity(
-              opacity: (1 - fallProgress).clamp(0.0, 1.0),
+              opacity: 1.0,
               child: Transform.translate(
                 offset: Offset(hitShake - enemyAttackProgress * 40 + fallProgress * 50, -enemyAttackProgress * 4 + fallProgress * 100),
                 child: Transform.rotate(

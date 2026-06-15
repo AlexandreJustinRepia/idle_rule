@@ -12,6 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  GoogleFonts.config.allowRuntimeFetching = false;
   runApp(const MyApp());
 }
 
