@@ -9,8 +9,19 @@ class GameController extends ChangeNotifier {
   int _money = 0;
   Boss? _activeBoss;
   int _bossIndex = 0;
+  String _playerName = '';
+  CharacterClass _characterClass = CharacterClasses.allClasses.first;
 
-  GameController() {
+  GameController({
+    String playerName = '',
+    CharacterClass? characterClass,
+    PlayerStats? initialStats,
+  }) {
+    _playerName = playerName;
+    _characterClass = characterClass ?? CharacterClasses.allClasses.first;
+    if (initialStats != null) {
+      _stats = initialStats;
+    }
     _playerStamina = _stats.maxStamina;
     _playerHunger = _stats.maxHunger;
   }
@@ -22,6 +33,8 @@ class GameController extends ChangeNotifier {
   int get money => _money;
   Boss? get activeBoss => _activeBoss;
   int get bossIndex => _bossIndex;
+  String get playerName => _playerName;
+  CharacterClass get characterClass => _characterClass;
 
   void gainStats({double strength = 0, double speed = 0, double endurance = 0, double reputation = 0}) {
     final previousMaxStamina = _stats.maxStamina;

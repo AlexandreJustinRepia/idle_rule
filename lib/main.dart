@@ -7,7 +7,10 @@ import 'components/ui/placeholder_view.dart';
 import 'components/ui/shop_view.dart';
 import 'components/environments/ghetto_environment.dart';
 import 'components/environments/gym_environment.dart';
+import 'components/screens/loading_screen.dart';
+import 'components/screens/character_creation_screen.dart';
 import 'controllers/game_controller.dart';
+import 'game_state.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 void main() {
@@ -34,34 +37,108 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: const AppFlow(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+enum AppFlowPhase { loading, creation, game }
+
+class AppFlow extends StatefulWidget {
+  const AppFlow({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<AppFlow> createState() => _AppFlowState();
 }
 
-class _HomePageState extends State<HomePage> {
-  final GameController _gameController = GameController();
+class _AppFlowState extends State<AppFlow> {
+  GameController? _gameController;
+  AppFlowPhase _phase = AppFlowPhase.loading;
   int _currentTabIndex = 0;
+
+  void _onLoadingComplete() {
+    if (!mounted) return;
+    setState(() => _phase = AppFlowPhase.creation);
+  }
+
+  void _onCharacterCreated({
+    required String playerName,
+    required CharacterClass characterClass,
+    required double strength,
+    required double speed,
+    required double endurance,
+    required double intelligence,
+    required double potential,
+    required double reputation,
+  }) {
+    if (!mounted) return;
+    setState(() {
+      _gameController = GameController(
+        playerName: playerName,
+        characterClass: characterClass,
+        initialStats: PlayerStats(
+          strength: strength,
+          speed: speed,
+          endurance: endurance,
+          intelligence: intelligence,
+          potential: potential,
+          reputation: reputation,
+        ),
+      );
+      _phase = AppFlowPhase.game;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    switch (_phase) {
+      case AppFlowPhase.loading:
+        return LoadingScreen(onComplete: _onLoadingComplete);
+      case AppFlowPhase.creation:
+        return Scaffold(
+          backgroundColor: const Color(0xFF0A0A0A),
+          body: SafeArea(
+            child: CharacterCreationScreen(
+              onCharacterCreated: _onCharacterCreated,
+            ),
+          ),
+        );
+      case AppFlowPhase.game:
+        if (_gameController == null) {
+          return const SizedBox.shrink();
+        }
+        return _GameScreen(
+          gameController: _gameController!,
+          currentTabIndex: _currentTabIndex,
+          onTabChanged: (index) => setState(() => _currentTabIndex = index),
+        );
+    }
+  }
+}
+
+class _GameScreen extends StatelessWidget {
+  final GameController gameController;
+  final int currentTabIndex;
+  final Function(int) onTabChanged;
+
+  const _GameScreen({
+    required this.gameController,
+    required this.currentTabIndex,
+    required this.onTabChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _gameController,
+      listenable: gameController,
       builder: (context, child) {
         return Scaffold(
           extendBodyBehindAppBar: true,
-          appBar: CustomNavbar(money: _gameController.money),
+          appBar: CustomNavbar(money: gameController.money),
           bottomNavigationBar: CustomBottomNavbar(
-            currentIndex: _currentTabIndex,
-            onTap: (index) => setState(() => _currentTabIndex = index),
+            currentIndex: currentTabIndex,
+            onTap: onTabChanged,
           ),
           body: Container(
             color: const Color(0xFF0A0A0A),
@@ -70,37 +147,37 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   flex: 6,
                   child: IndexedStack(
-                    index: _currentTabIndex,
+                    index: currentTabIndex,
                     children: [
                       GhettoEnvironment(
-                        stats: _gameController.stats,
-                        playerHealth: _gameController.playerHealth,
-                        playerMaxHealth: _gameController.stats.maxHealth,
-                        playerStamina: _gameController.playerStamina,
-                        playerMaxStamina: _gameController.stats.maxStamina,
-                        playerHunger: _gameController.playerHunger,
-                        playerMaxHunger: _gameController.stats.maxHunger,
-                        onStatsGained: _gameController.gainStats,
-                        onPlayerDamaged: _gameController.takeDamage,
-                        onPlayerDefeated: _gameController.recoverFromDefeat,
-                        onNewEnemyApproached: _gameController.recoverHealthForNewEnemy,
-                        onStaminaSpent: _gameController.spendStamina,
-                        onNeedsRecovered: _gameController.recoverNeeds,
-                        activeBoss: _gameController.activeBoss,
-                        onBossDefeated: _gameController.onBossDefeated,
-                        onStartBossFight: _gameController.startBossFight,
-                        bossIndex: _gameController.bossIndex,
-                        onMoneyGained: _gameController.gainMoney,
+                        stats: gameController.stats,
+                        playerHealth: gameController.playerHealth,
+                        playerMaxHealth: gameController.stats.maxHealth,
+                        playerStamina: gameController.playerStamina,
+                        playerMaxStamina: gameController.stats.maxStamina,
+                        playerHunger: gameController.playerHunger,
+                        playerMaxHunger: gameController.stats.maxHunger,
+                        onStatsGained: gameController.gainStats,
+                        onPlayerDamaged: gameController.takeDamage,
+                        onPlayerDefeated: gameController.recoverFromDefeat,
+                        onNewEnemyApproached: gameController.recoverHealthForNewEnemy,
+                        onStaminaSpent: gameController.spendStamina,
+                        onNeedsRecovered: gameController.recoverNeeds,
+                        activeBoss: gameController.activeBoss,
+                        onBossDefeated: gameController.onBossDefeated,
+                        onStartBossFight: gameController.startBossFight,
+                        bossIndex: gameController.bossIndex,
+                        onMoneyGained: gameController.gainMoney,
                       ),
                       GymEnvironment(
-                        stats: _gameController.stats,
-                        playerStamina: _gameController.playerStamina,
-                        playerHunger: _gameController.playerHunger,
-                        onStatsGained: _gameController.gainStats,
-                        onStaminaSpent: _gameController.spendStamina,
-                        onNeedsRecovered: _gameController.recoverNeeds,
+                        stats: gameController.stats,
+                        playerStamina: gameController.playerStamina,
+                        playerHunger: gameController.playerHunger,
+                        onStatsGained: gameController.gainStats,
+                        onStaminaSpent: gameController.spendStamina,
+                        onNeedsRecovered: gameController.recoverNeeds,
                       ),
-                      ShopView(gameController: _gameController),
+                      ShopView(gameController: gameController),
                       const PlaceholderView(title: 'TURFS'),
                       const PlaceholderView(title: 'GANGS'),
                     ],
@@ -108,7 +185,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 Flexible(
                   flex: 3,
-                  child: StatsPanel(stats: _gameController.stats),
+                  child: StatsPanel(stats: gameController.stats),
                 ),
               ],
             ),
