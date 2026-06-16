@@ -91,4 +91,14 @@ class GameController extends ChangeNotifier {
     gainMoney(500);
     notifyListeners();
   }
+
+  bool buyItem({required int cost, double stamina = 0, double hunger = 0, int health = 0}) {
+    if (_money < cost) return false;
+    _money -= cost;
+    _playerStamina = (_playerStamina + stamina).clamp(0, _stats.maxStamina);
+    _playerHunger = (_playerHunger + hunger).clamp(0, _stats.maxHunger);
+    _playerHealth = (_playerHealth + health).clamp(0, _stats.maxHealth);
+    notifyListeners();
+    return true;
+  }
 }

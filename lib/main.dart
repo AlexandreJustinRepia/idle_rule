@@ -4,6 +4,7 @@ import 'components/navigation/custom_navbar.dart';
 import 'components/navigation/custom_bottom_navbar.dart';
 import 'components/ui/stats_panel.dart';
 import 'components/ui/placeholder_view.dart';
+import 'components/ui/shop_view.dart';
 import 'components/environments/ghetto_environment.dart';
 import 'components/environments/gym_environment.dart';
 import 'controllers/game_controller.dart';
@@ -99,7 +100,7 @@ class _HomePageState extends State<HomePage> {
                         onStaminaSpent: _gameController.spendStamina,
                         onNeedsRecovered: _gameController.recoverNeeds,
                       ),
-                      const PlaceholderView(title: 'SHOP'),
+                      ShopView(gameController: _gameController),
                       const PlaceholderView(title: 'TURFS'),
                       const PlaceholderView(title: 'GANGS'),
                     ],

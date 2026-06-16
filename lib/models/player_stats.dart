@@ -64,15 +64,207 @@ class PlayerStats {
 
   int get gangCapacity => 1 + (reputation / 20).floor().clamp(0, 5);
 
+  static double getNextThreshold(double value) {
+    if (value >= 2000) return 2000;
+    if (value >= 1500) return 2000;
+    if (value >= 1100) return 1500;
+    if (value >= 800) return 1100;
+    if (value >= 600) return 800;
+    if (value >= 450) return 600;
+    if (value >= 350) return 450;
+    if (value >= 280) return 350;
+    if (value >= 220) return 280;
+    if (value >= 170) return 220;
+    if (value >= 130) return 170;
+    if (value >= 100) return 130;
+    if (value >= 80) return 100;
+    if (value >= 60) return 80;
+    if (value >= 45) return 60;
+    if (value >= 30) return 45;
+    if (value >= 20) return 30;
+    if (value >= 12) return 20;
+    if (value >= 5) return 12;
+    return 5;
+  }
+
+  static double getCurrentThreshold(double value) {
+    if (value >= 2000) return 2000;
+    if (value >= 1500) return 1500;
+    if (value >= 1100) return 1100;
+    if (value >= 800) return 800;
+    if (value >= 600) return 600;
+    if (value >= 450) return 450;
+    if (value >= 350) return 350;
+    if (value >= 280) return 280;
+    if (value >= 220) return 220;
+    if (value >= 170) return 170;
+    if (value >= 130) return 130;
+    if (value >= 100) return 100;
+    if (value >= 80) return 80;
+    if (value >= 60) return 60;
+    if (value >= 45) return 45;
+    if (value >= 30) return 30;
+    if (value >= 20) return 20;
+    if (value >= 12) return 12;
+    if (value >= 5) return 5;
+    return 0;
+  }
+
+  static QuestismRank getRank(double value) {
+    if (value >= 2000) {
+      return const QuestismRank(
+        label: '???',
+        color: Colors.white,
+        glowColor: Colors.deepPurpleAccent,
+      );
+    }
+    if (value >= 1500) {
+      return const QuestismRank(
+        label: 'DX',
+        color: Colors.amberAccent,
+        glowColor: Colors.redAccent,
+      );
+    }
+    if (value >= 1100) {
+      return const QuestismRank(
+        label: 'EX',
+        color: Colors.pinkAccent,
+        glowColor: Colors.cyanAccent,
+      );
+    }
+    if (value >= 800) {
+      return const QuestismRank(
+        label: 'XXX',
+        color: Color(0xFFE0B0FF), // Neon Purple text on black
+        glowColor: Colors.purpleAccent,
+      );
+    }
+    if (value >= 600) {
+      return const QuestismRank(
+        label: 'XX',
+        color: Color(0xFFFF4D4D), // Dark Neon Red text on black
+        glowColor: Colors.redAccent,
+      );
+    }
+    if (value >= 450) {
+      return const QuestismRank(
+        label: 'X',
+        color: Colors.white,
+        glowColor: Colors.white70,
+      );
+    }
+    if (value >= 350) {
+      return const QuestismRank(
+        label: 'MR',
+        color: Color(0xFFFF0D00),
+        glowColor: Color(0xFFFF0D00),
+      );
+    }
+    if (value >= 280) {
+      return const QuestismRank(
+        label: 'LR',
+        color: Color(0xFFB22222),
+        glowColor: Color(0xFFB22222),
+      );
+    }
+    if (value >= 220) {
+      return const QuestismRank(
+        label: 'UR',
+        color: Color(0xFF7D00FF),
+        glowColor: Color(0xFF7D00FF),
+      );
+    }
+    if (value >= 170) {
+      return const QuestismRank(
+        label: 'SSR',
+        color: Color(0xFFFF2D55),
+        glowColor: Color(0xFFFF2D55),
+      );
+    }
+    if (value >= 130) {
+      return const QuestismRank(
+        label: 'SR',
+        color: Color(0xFF8B0000),
+        glowColor: Color(0xFF8B0000),
+      );
+    }
+    if (value >= 100) {
+      return const QuestismRank(
+        label: 'SSS',
+        color: Color(0xFFFF3B30),
+        glowColor: Color(0xFFFF3B30),
+      );
+    }
+    if (value >= 80) {
+      return const QuestismRank(
+        label: 'SS',
+        color: Color(0xFFFF9500),
+        glowColor: Color(0xFFFF9500),
+      );
+    }
+    if (value >= 60) {
+      return const QuestismRank(
+        label: 'S',
+        color: Color(0xFFFFCC00),
+        glowColor: Color(0xFFFFCC00),
+      );
+    }
+    if (value >= 45) {
+      return const QuestismRank(
+        label: 'A',
+        color: Color(0xFFAF52DE),
+        glowColor: Color(0xFFAF52DE),
+      );
+    }
+    if (value >= 30) {
+      return const QuestismRank(
+        label: 'B',
+        color: Color(0xFF007AFF),
+        glowColor: Color(0xFF007AFF),
+      );
+    }
+    if (value >= 20) {
+      return const QuestismRank(
+        label: 'C',
+        color: Color(0xFF34C759),
+        glowColor: Color(0xFF34C759),
+      );
+    }
+    if (value >= 12) {
+      return const QuestismRank(
+        label: 'D',
+        color: Color(0xFFD1D1D6),
+        glowColor: Color(0xFFD1D1D6),
+      );
+    }
+    if (value >= 5) {
+      return const QuestismRank(
+        label: 'E',
+        color: Color(0xFF8E8E93),
+        glowColor: Color(0xFF8E8E93),
+      );
+    }
+    return const QuestismRank(
+      label: 'F',
+      color: Color(0xFF8E8E93),
+      glowColor: Color(0xFF8E8E93),
+    );
+  }
+
   /// Returns the letter rank for a given stat value.
   static String getRankLabel(double value) {
-    if (value >= 100) return 'SSR';
-    if (value >= 80) return 'S';
-    if (value >= 60) return 'A';
-    if (value >= 40) return 'B';
-    if (value >= 25) return 'C';
-    if (value >= 12) return 'D';
-    if (value >= 5) return 'E';
-    return 'F';
+    return getRank(value).label;
   }
+}
+
+class QuestismRank {
+  final String label;
+  final Color color;
+  final Color glowColor;
+
+  const QuestismRank({
+    required this.label,
+    required this.color,
+    required this.glowColor,
+  });
 }
