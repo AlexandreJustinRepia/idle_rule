@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/character_class.dart';
 
 class ClassGachaView extends StatefulWidget {
-  final VoidCallback onRollComplete;
+  final ValueChanged<CharacterClass> onRollComplete;
 
   const ClassGachaView({
     super.key,
@@ -87,7 +87,7 @@ class _ClassGachaViewState extends State<ClassGachaView> with TickerProviderStat
 
     await Future.delayed(const Duration(milliseconds: 1500));
     if (!_isMounted) return;
-    widget.onRollComplete();
+    widget.onRollComplete(charClass);
   }
 
   @override
@@ -112,20 +112,21 @@ class _ClassGachaViewState extends State<ClassGachaView> with TickerProviderStat
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return Transform.rotate(
-          angle: _rotationAnimation.value * 2 * pi,
-          child: Center(
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.3, end: 1.2).animate(
-                CurvedAnimation(
-                  parent: _controller,
-                  curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-                ),
+        return Center(
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.3, end: 1.2).animate(
+              CurvedAnimation(
+                parent: _controller,
+                curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Rotate only the emblem circle, not the whole page
+                Transform.rotate(
+                  angle: _rotationAnimation.value * 2 * pi,
+                  child: Container(
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
@@ -143,38 +144,38 @@ class _ClassGachaViewState extends State<ClassGachaView> with TickerProviderStat
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'ROLLING...',
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 28,
-                      color: Colors.white.withValues(alpha: 0.8),
-                      letterSpacing: 8,
-                    ),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'ROLLING...',
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 28,
+                    color: Colors.white.withValues(alpha: 0.8),
+                    letterSpacing: 8,
                   ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: 200,
-                    height: 3,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(2),
-                      color: Colors.white10,
-                    ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: _controller.value,
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(2)),
-                          gradient: LinearGradient(
-                            colors: [Color(0xFFE24B4A), Color(0xFFFF6B6B)],
-                          ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: 200,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    color: Colors.white10,
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: _controller.value,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(2)),
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFE24B4A), Color(0xFFFF6B6B)],
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );

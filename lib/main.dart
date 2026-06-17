@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 import 'components/navigation/custom_navbar.dart';
 import 'components/navigation/custom_bottom_navbar.dart';
 import 'components/ui/stats_panel.dart';
-import 'components/ui/placeholder_view.dart';
 import 'components/ui/gangs_view.dart';
 import 'components/ui/shop_view.dart';
 import 'components/environments/ghetto_environment.dart';
 import 'components/environments/gym_environment.dart';
+import 'components/environments/turf/turf_screen.dart';
 import 'components/screens/loading_screen.dart';
 import 'components/screens/character_creation_screen.dart';
 import 'controllers/game_controller.dart';
@@ -178,7 +178,7 @@ class _GameScreen extends StatelessWidget {
                         onNeedsRecovered: gameController.recoverNeeds,
                       ),
                       ShopView(gameController: gameController),
-                      const PlaceholderView(title: 'TURFS'),
+                      const TurfScreen(),
                       GangsView(gameController: gameController),
                     ],
                   ),

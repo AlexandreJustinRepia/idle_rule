@@ -30,11 +30,7 @@ class GangBadge extends StatelessWidget {
   final Gang gang;
   final double size;
 
-  const GangBadge({
-    super.key,
-    required this.gang,
-    this.size = 88,
-  });
+  const GangBadge({super.key, required this.gang, this.size = 88});
 
   @override
   Widget build(BuildContext context) {
@@ -60,11 +56,7 @@ class GangBadge extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(
-        gang.emblem,
-        color: gang.accentColor,
-        size: size * 0.42,
-      ),
+      child: Icon(gang.emblem, color: gang.accentColor, size: size * 0.42),
     );
   }
 }
@@ -92,13 +84,13 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
   }
 
   Gang get _previewGang => Gang(
-        name: _nameController.text.trim().isEmpty
-            ? 'YOUR GANG'
-            : _nameController.text.trim().toUpperCase(),
-        emblemId: _selectedEmblemId,
-        primaryColor: _primaryColor,
-        accentColor: _accentColor,
-      );
+    name: _nameController.text.trim().isEmpty
+        ? 'YOUR GANG'
+        : _nameController.text.trim().toUpperCase(),
+    emblemId: _selectedEmblemId,
+    primaryColor: _primaryColor,
+    accentColor: _accentColor,
+  );
 
   void _createGang() {
     final name = _nameController.text.trim();
@@ -114,7 +106,9 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
     setState(() => _error = null);
 
     if (!widget.gameController.meetsGangRequirements) {
-      setState(() => _error = 'You do not meet the money or reputation requirements');
+      setState(
+        () => _error = 'You do not meet the money or reputation requirements',
+      );
       return;
     }
 
@@ -125,7 +119,9 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
       accentColor: _accentColor,
     );
     if (!created) {
-      setState(() => _error = 'Could not create gang. Check your requirements.');
+      setState(
+        () => _error = 'Could not create gang. Check your requirements.',
+      );
     }
   }
 
@@ -135,7 +131,8 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
     final meetsRequirements = controller.meetsGangRequirements;
     final moneyMet = controller.money >= GangCreationRequirements.moneyCost;
     final repMet =
-        controller.stats.reputation >= GangCreationRequirements.reputationRequired;
+        controller.stats.reputation >=
+        GangCreationRequirements.reputationRequired;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -156,7 +153,11 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
             const Text(
               'Earn enough money and reputation on the street to found your crew.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 16),
             _buildRequirementsCard(
@@ -193,7 +194,9 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
               ),
               decoration: InputDecoration(
                 hintText: 'Enter gang name',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.25)),
+                hintStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.25),
+                ),
                 filled: true,
                 fillColor: const Color(0xFF16161C),
                 counterStyle: const TextStyle(color: Colors.white24),
@@ -287,10 +290,7 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
                   meetsRequirements
                       ? 'CREATE GANG (\$${GangCreationRequirements.moneyCost})'
                       : 'REQUIREMENTS NOT MET',
-                  style: GoogleFonts.bebasNeue(
-                    fontSize: 20,
-                    letterSpacing: 3,
-                  ),
+                  style: GoogleFonts.bebasNeue(fontSize: 20, letterSpacing: 3),
                 ),
               ),
             ),
@@ -348,14 +348,18 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
             current: '\$$money',
             required: '\$${GangCreationRequirements.moneyCost}',
             met: moneyMet,
-            progress: (money / GangCreationRequirements.moneyCost).clamp(0.0, 1.0),
+            progress: (money / GangCreationRequirements.moneyCost).clamp(
+              0.0,
+              1.0,
+            ),
           ),
           const SizedBox(height: 10),
           _buildRequirementRow(
             icon: Icons.star,
             label: 'REPUTATION',
             current: reputation.toStringAsFixed(1),
-            required: GangCreationRequirements.reputationRequired.toStringAsFixed(1),
+            required: GangCreationRequirements.reputationRequired
+                .toStringAsFixed(1),
             met: repMet,
             progress: (reputation / GangCreationRequirements.reputationRequired)
                 .clamp(0.0, 1.0),
@@ -378,7 +382,11 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
       children: [
         Row(
           children: [
-            Icon(icon, color: met ? const Color(0xFF34C759) : Colors.white38, size: 16),
+            Icon(
+              icon,
+              color: met ? const Color(0xFF34C759) : Colors.white38,
+              size: 16,
+            ),
             const SizedBox(width: 8),
             Text(
               label,
@@ -549,7 +557,9 @@ class GangProfilePanel extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFF16161C),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: gang.primaryColor.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: gang.primaryColor.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
@@ -558,7 +568,11 @@ class GangProfilePanel extends StatelessWidget {
                   const Expanded(
                     child: Text(
                       'Head to the Street tab, win fights, and recruit defeated enemies into your gang.',
-                      style: TextStyle(color: Colors.white54, fontSize: 11, height: 1.4),
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ],
@@ -638,7 +652,7 @@ class GangProfilePanel extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) trailing,
+          trailing ?? const SizedBox.shrink(),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../screens/class_gacha_view.dart';
 import '../../models/character_class.dart';
 import '../../models/player_stats.dart';
 
@@ -61,12 +62,15 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     _performGachaRoll();
   }
 
-  void _performGachaRoll() async {
-    await Future.delayed(const Duration(milliseconds: 2500));
-    
-    final charClass = CharacterClasses.rollClass(_random);
-    final stats = charClass.generateBaseStats(_random);
+  void _performGachaRoll() {
+    setState(() {
+      _rolledClass = null;
+      _rolledStats = null;
+    });
+  }
 
+  void _completeGachaRoll(CharacterClass charClass) {
+    final stats = charClass.generateBaseStats(_random);
     setState(() {
       _rolledClass = charClass;
       _rolledStats = stats;
@@ -89,15 +93,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     );
   }
 
-  void _reroll() {
-    setState(() {
-      _phase = CreationPhase.rolling;
-      _rolledClass = null;
-      _rolledStats = null;
-    });
-    _performGachaRoll();
-  }
-
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -116,7 +111,11 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         child: _phase == CreationPhase.nameInput
             ? _buildNameInputPhase()
             : _phase == CreationPhase.rolling
-                ? const SizedBox.shrink()
+                ? Center(
+                    child: ClassGachaView(
+                      onRollComplete: _completeGachaRoll,
+                    ),
+                  )
                 : _buildResultPhase(),
       ),
     );
@@ -314,14 +313,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             const SizedBox(height: 40),
             Row(
               children: [
-                Expanded(
-                  child: _buildActionButton(
-                    label: 'REROLL',
-                    onTap: _reroll,
-                    isSecondary: true,
-                  ),
-                ),
-                const SizedBox(width: 16),
                 Expanded(
                   child: _buildActionButton(
                     label: 'BEGIN',
