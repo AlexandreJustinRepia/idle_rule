@@ -80,6 +80,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   late AnimationController _introController;
   late AnimationController _transitionController;
   late AnimationController _defeatController;
+  late AnimationController _idleController;
   late Animation<double> _idleAnimation;
 
   final double sceneWidth = 900.0;
@@ -126,6 +127,82 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   Enemy? _playerTarget;
 
   // Combat and encounter actions are implemented in the _GhettoEnvironmentActions extension.
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scrollController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    );
+    _walkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _attackController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _playerHitController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+    _deathController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _introController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _transitionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+    _defeatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _idleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _idleAnimation = CurvedAnimation(
+      parent: _idleController,
+      curve: Curves.easeInOut,
+    );
+
+    _startHomeLogic();
+  }
+
+  @override
+  void dispose() {
+    _attackTimer?.cancel();
+    _trainingTimer?.cancel();
+    _scrollController.dispose();
+    _walkController.dispose();
+    _attackController.dispose();
+    _playerHitController.dispose();
+    _deathController.dispose();
+    _introController.dispose();
+    _transitionController.dispose();
+    _defeatController.dispose();
+    _idleController.dispose();
+    for (final controller in _allyChargeControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _allyAttackControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _enemyChargeControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _enemyAttackControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
