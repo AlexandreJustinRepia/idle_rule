@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../game_state.dart';
 import '../../logic/combat_engine.dart';
+import '../../logic/combat_stat_rewards.dart';
 import '../../logic/player_needs_logic.dart';
 import '../ui/player_health_bar.dart';
 import '../ui/fight_boss_button.dart';
@@ -115,6 +116,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   final Map<Enemy, int> _enemyOriginalIndices = {};
 
   int _enemyNumber = 0;
+  double _encounterTotalThreat = 0;
   Timer? _attackTimer;
   Timer? _trainingTimer;
   String _introEnemyName = "";
@@ -126,6 +128,29 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   
   bool get _isBossReady {
     return widget.stats.strength >= 25.0 && _allies.length >= 2 && _isAtHome;
+  }
+
+  bool get _isBossFight => widget.activeBoss != null;
+
+  void _applyCombatGains({
+    required double strength,
+    required double speed,
+    required double endurance,
+  }) {
+    if (strength == 0 && speed == 0 && endurance == 0) return;
+    widget.onStatsGained(
+      strength: strength,
+      speed: speed,
+      endurance: endurance,
+    );
+  }
+
+  void _applyRewardBundle(({double strength, double speed, double endurance}) gains) {
+    _applyCombatGains(
+      strength: gains.strength,
+      speed: gains.speed,
+      endurance: gains.endurance,
+    );
   }
 
   @override
@@ -354,6 +379,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       _enemyAttackControllers[enemy] = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
     }
 
+    _encounterTotalThreat = CombatStatRewards.encounterThreat(_enemies);
+
     _scrollController.stop();
     _walkController.value = 0.5;
     _walkController.stop();
@@ -556,6 +583,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
     widget.onMoneyGained?.call(15 + (widget.bossIndex * 5));
 
+    _applyRewardBundle(CombatStatRewards.killBonus(enemy));
+
     if (_enemies.isEmpty) {
       _isFighting = false;
       _isEnemyDying = true;
@@ -566,7 +595,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     setState(() {
       _isRecruiting = true;
     });
-    widget.onStatsGained(reputation: 1.0);
+    widget.onStatsGained(
+      reputation: CombatStatRewards.encounterReputationReward(_encounterTotalThreat),
+    );
   }
 
   void _onRecruitTapped(Enemy enemy) {
@@ -647,7 +678,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
     if (_attackController.isAnimating) return;
     if (!widget.onStaminaSpent(8)) {
-      widget.onStatsGained(strength: 0, speed: 0, endurance: 0.35);
+      _applyCombatGains(strength: 0, speed: 0, endurance: 0.2);
       return;
     }
 
@@ -682,8 +713,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       }
     });
 
-    double gainMult = widget.activeBoss != null ? 3.0 : 1.0;
-    widget.onStatsGained(strength: 0.65 * gainMult, speed: 0.12 * gainMult, endurance: 0);
+    _applyRewardBundle(
+      CombatStatRewards.perHitGains(
+        target: target,
+        activeEnemies: _enemies,
+        isBossFight: _isBossFight,
+      ),
+    );
 
     if (_enemies.isNotEmpty && CombatEngine.rollDodge(_enemies.first.counterChance)) {
       _onEnemyAttack(_enemies.first);
@@ -734,8 +770,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       }
     });
 
-    double gainMult = widget.activeBoss != null ? 3.0 : 1.0;
-    widget.onStatsGained(strength: 0.65 * gainMult, speed: 0.12 * gainMult, endurance: 0);
+    _applyRewardBundle(
+      CombatStatRewards.perHitGains(
+        target: target,
+        activeEnemies: _enemies,
+        isBossFight: _isBossFight,
+      ),
+    );
 
     if (_enemies.isNotEmpty && CombatEngine.rollDodge(_enemies.first.counterChance)) {
       _onEnemyAttack(_enemies.first);
@@ -759,7 +800,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     if (!mounted || !_isFighting || _isEnemyDying || !_enemies.contains(enemy)) return;
 
     if (CombatEngine.rollDodge(widget.stats.dodgeChance) && _payDodgeCost()) {
-      widget.onStatsGained(strength: 0, speed: 0.9, endurance: 0);
+      _applyRewardBundle(CombatStatRewards.dodgeGains(enemy));
       setState(() => _playerWasHit = true);
       _playerHitController.forward(from: 0);
       Future.delayed(const Duration(milliseconds: 140), () {
@@ -771,7 +812,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     int damage = CombatEngine.calculateEnemyDamage(enemy.damage, _isLowHunger);
     final willDefeatPlayer = widget.playerHealth - damage <= 0;
     widget.onPlayerDamaged(damage);
-    widget.onStatsGained(strength: 0, speed: 0, endurance: 0.8);
+    _applyRewardBundle(CombatStatRewards.damageTakenGains(enemy));
     
     double recoveryMult = PlayerNeedsLogic.getRecoveryMultiplier(widget.playerHunger, widget.playerMaxHunger);
     widget.onNeedsRecovered(stamina: widget.stats.staminaRecovery * 0.35 * recoveryMult, hunger: -0.25);
@@ -797,7 +838,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       widget.onNeedsRecovered(stamina: 0, hunger: -2);
       return true;
     }
-    widget.onStatsGained(strength: 0, speed: 0, endurance: 0.25);
+    _applyCombatGains(strength: 0, speed: 0, endurance: 0.15);
     return false;
   }
 
@@ -1044,10 +1085,10 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
         if (_isRecruiting)
           GhettoRecruitmentOverlay(
+            playerStats: widget.stats,
             allies: _allies,
             dyingEnemies: _dyingEnemies,
             gangCapacity: widget.stats.gangCapacity,
-            hitController: _playerHitController,
             onRecruitTapped: _onRecruitTapped,
             onDismissDyingEnemy: _onDismissDyingEnemy,
             onDismissAlly: _dismissAlly,

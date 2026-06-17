@@ -64,191 +64,63 @@ class PlayerStats {
 
   int get gangCapacity => 1 + (reputation / 20).floor().clamp(0, 5);
 
+  static const List<_GradeBand> _gradeBands = [
+    _GradeBand(2200, '???', Colors.white, Colors.deepPurpleAccent),
+    _GradeBand(1700, 'DX', Colors.amberAccent, Colors.redAccent),
+    _GradeBand(1250, 'EX', Colors.pinkAccent, Colors.cyanAccent),
+    _GradeBand(920, 'XXX', Color(0xFFE0B0FF), Colors.purpleAccent),
+    _GradeBand(700, 'XX', Color(0xFFFF4D4D), Colors.redAccent),
+    _GradeBand(540, 'X', Colors.white, Colors.white70),
+    _GradeBand(430, 'MR', Color(0xFFFF0D00), Color(0xFFFF0D00)),
+    _GradeBand(350, 'LR', Color(0xFFB22222), Color(0xFFB22222)),
+    _GradeBand(275, 'UR', Color(0xFF7D00FF), Color(0xFF7D00FF)),
+    _GradeBand(215, 'SSR', Color(0xFFFF2D55), Color(0xFFFF2D55)),
+    _GradeBand(170, 'SR', Color(0xFF8B0000), Color(0xFF8B0000)),
+    _GradeBand(132, 'SSS', Color(0xFFFF3B30), Color(0xFFFF3B30)),
+    _GradeBand(105, 'SS', Color(0xFFFF9500), Color(0xFFFF9500)),
+    _GradeBand(82, 'S', Color(0xFFFFCC00), Color(0xFFFFCC00)),
+    _GradeBand(62, 'A', Color(0xFFAF52DE), Color(0xFFAF52DE)),
+    _GradeBand(45, 'B', Color(0xFF007AFF), Color(0xFF007AFF)),
+    _GradeBand(30, 'C', Color(0xFF34C759), Color(0xFF34C759)),
+    _GradeBand(18, 'D', Color(0xFFD1D1D6), Color(0xFFD1D1D6)),
+    _GradeBand(8, 'E', Color(0xFF8E8E93), Color(0xFF8E8E93)),
+  ];
+
+  static const QuestismRank _fRank = QuestismRank(
+    label: 'F',
+    color: Color(0xFF8E8E93),
+    glowColor: Color(0xFF8E8E93),
+  );
+
+  static double get maxGradeValue => _gradeBands.first.min;
+
   static double getNextThreshold(double value) {
-    if (value >= 2000) return 2000;
-    if (value >= 1500) return 2000;
-    if (value >= 1100) return 1500;
-    if (value >= 800) return 1100;
-    if (value >= 600) return 800;
-    if (value >= 450) return 600;
-    if (value >= 350) return 450;
-    if (value >= 280) return 350;
-    if (value >= 220) return 280;
-    if (value >= 170) return 220;
-    if (value >= 130) return 170;
-    if (value >= 100) return 130;
-    if (value >= 80) return 100;
-    if (value >= 60) return 80;
-    if (value >= 45) return 60;
-    if (value >= 30) return 45;
-    if (value >= 20) return 30;
-    if (value >= 12) return 20;
-    if (value >= 5) return 12;
-    return 5;
+    for (var i = 0; i < _gradeBands.length; i++) {
+      if (value >= _gradeBands[i].min) {
+        return i == 0 ? _gradeBands[i].min : _gradeBands[i - 1].min;
+      }
+    }
+    return _gradeBands.last.min;
   }
 
   static double getCurrentThreshold(double value) {
-    if (value >= 2000) return 2000;
-    if (value >= 1500) return 1500;
-    if (value >= 1100) return 1100;
-    if (value >= 800) return 800;
-    if (value >= 600) return 600;
-    if (value >= 450) return 450;
-    if (value >= 350) return 350;
-    if (value >= 280) return 280;
-    if (value >= 220) return 220;
-    if (value >= 170) return 170;
-    if (value >= 130) return 130;
-    if (value >= 100) return 100;
-    if (value >= 80) return 80;
-    if (value >= 60) return 60;
-    if (value >= 45) return 45;
-    if (value >= 30) return 30;
-    if (value >= 20) return 20;
-    if (value >= 12) return 12;
-    if (value >= 5) return 5;
+    for (final band in _gradeBands) {
+      if (value >= band.min) return band.min;
+    }
     return 0;
   }
 
   static QuestismRank getRank(double value) {
-    if (value >= 2000) {
-      return const QuestismRank(
-        label: '???',
-        color: Colors.white,
-        glowColor: Colors.deepPurpleAccent,
-      );
+    for (final band in _gradeBands) {
+      if (value >= band.min) {
+        return QuestismRank(
+          label: band.label,
+          color: band.color,
+          glowColor: band.glowColor,
+        );
+      }
     }
-    if (value >= 1500) {
-      return const QuestismRank(
-        label: 'DX',
-        color: Colors.amberAccent,
-        glowColor: Colors.redAccent,
-      );
-    }
-    if (value >= 1100) {
-      return const QuestismRank(
-        label: 'EX',
-        color: Colors.pinkAccent,
-        glowColor: Colors.cyanAccent,
-      );
-    }
-    if (value >= 800) {
-      return const QuestismRank(
-        label: 'XXX',
-        color: Color(0xFFE0B0FF), // Neon Purple text on black
-        glowColor: Colors.purpleAccent,
-      );
-    }
-    if (value >= 600) {
-      return const QuestismRank(
-        label: 'XX',
-        color: Color(0xFFFF4D4D), // Dark Neon Red text on black
-        glowColor: Colors.redAccent,
-      );
-    }
-    if (value >= 450) {
-      return const QuestismRank(
-        label: 'X',
-        color: Colors.white,
-        glowColor: Colors.white70,
-      );
-    }
-    if (value >= 350) {
-      return const QuestismRank(
-        label: 'MR',
-        color: Color(0xFFFF0D00),
-        glowColor: Color(0xFFFF0D00),
-      );
-    }
-    if (value >= 280) {
-      return const QuestismRank(
-        label: 'LR',
-        color: Color(0xFFB22222),
-        glowColor: Color(0xFFB22222),
-      );
-    }
-    if (value >= 220) {
-      return const QuestismRank(
-        label: 'UR',
-        color: Color(0xFF7D00FF),
-        glowColor: Color(0xFF7D00FF),
-      );
-    }
-    if (value >= 170) {
-      return const QuestismRank(
-        label: 'SSR',
-        color: Color(0xFFFF2D55),
-        glowColor: Color(0xFFFF2D55),
-      );
-    }
-    if (value >= 130) {
-      return const QuestismRank(
-        label: 'SR',
-        color: Color(0xFF8B0000),
-        glowColor: Color(0xFF8B0000),
-      );
-    }
-    if (value >= 100) {
-      return const QuestismRank(
-        label: 'SSS',
-        color: Color(0xFFFF3B30),
-        glowColor: Color(0xFFFF3B30),
-      );
-    }
-    if (value >= 80) {
-      return const QuestismRank(
-        label: 'SS',
-        color: Color(0xFFFF9500),
-        glowColor: Color(0xFFFF9500),
-      );
-    }
-    if (value >= 60) {
-      return const QuestismRank(
-        label: 'S',
-        color: Color(0xFFFFCC00),
-        glowColor: Color(0xFFFFCC00),
-      );
-    }
-    if (value >= 45) {
-      return const QuestismRank(
-        label: 'A',
-        color: Color(0xFFAF52DE),
-        glowColor: Color(0xFFAF52DE),
-      );
-    }
-    if (value >= 30) {
-      return const QuestismRank(
-        label: 'B',
-        color: Color(0xFF007AFF),
-        glowColor: Color(0xFF007AFF),
-      );
-    }
-    if (value >= 20) {
-      return const QuestismRank(
-        label: 'C',
-        color: Color(0xFF34C759),
-        glowColor: Color(0xFF34C759),
-      );
-    }
-    if (value >= 12) {
-      return const QuestismRank(
-        label: 'D',
-        color: Color(0xFFD1D1D6),
-        glowColor: Color(0xFFD1D1D6),
-      );
-    }
-    if (value >= 5) {
-      return const QuestismRank(
-        label: 'E',
-        color: Color(0xFF8E8E93),
-        glowColor: Color(0xFF8E8E93),
-      );
-    }
-    return const QuestismRank(
-      label: 'F',
-      color: Color(0xFF8E8E93),
-      glowColor: Color(0xFF8E8E93),
-    );
+    return _fRank;
   }
 
   /// Returns the letter rank for a given stat value.
@@ -267,4 +139,13 @@ class QuestismRank {
     required this.color,
     required this.glowColor,
   });
+}
+
+class _GradeBand {
+  final double min;
+  final String label;
+  final Color color;
+  final Color glowColor;
+
+  const _GradeBand(this.min, this.label, this.color, this.glowColor);
 }

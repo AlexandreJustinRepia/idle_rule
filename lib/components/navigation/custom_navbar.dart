@@ -3,7 +3,13 @@ import '../ui/profile_edit_modal.dart';
 
 class CustomNavbar extends StatefulWidget implements PreferredSizeWidget {
   final int money;
-  const CustomNavbar({super.key, this.money = 0});
+  final String? playerName;
+
+  const CustomNavbar({
+    super.key,
+    this.money = 0,
+    this.playerName,
+  });
 
   @override
   State<CustomNavbar> createState() => _CustomNavbarState();
@@ -15,6 +21,24 @@ class CustomNavbar extends StatefulWidget implements PreferredSizeWidget {
 class _CustomNavbarState extends State<CustomNavbar> {
   String _characterName = 'Player';
   IconData _profilePic = Icons.person;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.playerName != null && widget.playerName!.isNotEmpty) {
+      _characterName = widget.playerName!;
+    }
+  }
+
+  @override
+  void didUpdateWidget(CustomNavbar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.playerName != null &&
+        widget.playerName!.isNotEmpty &&
+        widget.playerName != oldWidget.playerName) {
+      _characterName = widget.playerName!;
+    }
+  }
 
   void _showProfileModal() {
     showDialog(
@@ -58,7 +82,10 @@ class _CustomNavbarState extends State<CustomNavbar> {
                     Flexible(
                       child: Text(
                         _characterName,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

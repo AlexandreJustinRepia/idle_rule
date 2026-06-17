@@ -96,13 +96,8 @@ class _AppFlowState extends State<AppFlow> {
       case AppFlowPhase.loading:
         return LoadingScreen(onComplete: _onLoadingComplete);
       case AppFlowPhase.creation:
-        return Scaffold(
-          backgroundColor: const Color(0xFF0A0A0A),
-          body: SafeArea(
-            child: CharacterCreationScreen(
-              onCharacterCreated: _onCharacterCreated,
-            ),
-          ),
+        return CharacterCreationScreen(
+          onCharacterCreated: _onCharacterCreated,
         );
       case AppFlowPhase.game:
         if (_gameController == null) {
@@ -135,7 +130,10 @@ class _GameScreen extends StatelessWidget {
       builder: (context, child) {
         return Scaffold(
           extendBodyBehindAppBar: true,
-          appBar: CustomNavbar(money: gameController.money),
+          appBar: CustomNavbar(
+            money: gameController.money,
+            playerName: gameController.playerName,
+          ),
           bottomNavigationBar: CustomBottomNavbar(
             currentIndex: currentTabIndex,
             onTap: onTabChanged,

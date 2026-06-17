@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/character_class.dart';
@@ -116,9 +115,9 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
       body: SafeArea(
         child: _phase == CreationPhase.nameInput
             ? _buildNameInputPhase()
-                : _phase == CreationPhase.rolling
-                    ? const SizedBox.shrink()
-                    : _buildResultPhase(),
+            : _phase == CreationPhase.rolling
+                ? const SizedBox.shrink()
+                : _buildResultPhase(),
       ),
     );
   }
@@ -142,7 +141,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'LEGACY',
+              'CHARACTER',
               style: GoogleFonts.bebasNeue(
                 fontSize: 56,
                 color: const Color(0xFFE24B4A),
@@ -228,7 +227,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
           children: CharacterClasses.allClasses.map((charClass) {
             final isHidden = charClass.gachaChance < 0.10;
             return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 3),
+              margin: const EdgeInsets.symmetric(horizontal: 8),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
@@ -449,7 +448,12 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
           ...statEntries.map((entry) {
             final rank = PlayerStats.getRank(entry['value'] as double);
             final barColor = rank.color;
-            final maxVal = 50.0;
+            final label = entry['label'] as String;
+            final maxVal = label == 'REP'
+                ? 20.0
+                : (label == 'INT' || label == 'POT')
+                    ? 90.0
+                    : 60.0;
             final percent = ((entry['value'] as double) / maxVal).clamp(0.0, 1.0);
 
             return Padding(
