@@ -40,6 +40,7 @@ class GhettoEnvironment extends StatefulWidget {
   final VoidCallback? onStartBossFight;
   final int bossIndex;
   final void Function(int amount)? onMoneyGained;
+  final bool hasGang;
 
   const GhettoEnvironment({
     super.key,
@@ -61,6 +62,7 @@ class GhettoEnvironment extends StatefulWidget {
     this.onStartBossFight,
     this.bossIndex = 0,
     this.onMoneyGained,
+    this.hasGang = false,
   });
 
   @override
@@ -129,6 +131,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool get _isBossReady {
     return widget.stats.strength >= 25.0 && _allies.length >= 2 && _isAtHome;
   }
+
+  int get _effectiveGangCapacity =>
+      widget.hasGang ? widget.stats.gangCapacity : 0;
 
   bool get _isBossFight => widget.activeBoss != null;
 
@@ -301,7 +306,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   void _recruitAlly(Enemy enemy) {
-    if (_allies.length >= widget.stats.gangCapacity) {
+    if (!widget.hasGang) return;
+
+    if (_allies.length >= _effectiveGangCapacity) {
       Ally weakest = _allies.reduce((a, b) => (a.atk + a.maxHp) < (b.atk + b.maxHp) ? a : b);
       _dismissAlly(weakest);
       
@@ -601,7 +608,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   void _onRecruitTapped(Enemy enemy) {
-    if (!_isRecruiting) return;
+    if (!_isRecruiting || !widget.hasGang) return;
     _recruitAlly(enemy);
     setState(() {
       _dyingEnemies.remove(enemy);
@@ -613,12 +620,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   }
 
   void _onAutoRecruit() {
-    if (!_isRecruiting || _dyingEnemies.isEmpty) return;
+    if (!_isRecruiting || _dyingEnemies.isEmpty || !widget.hasGang) return;
 
     final sorted = List<Enemy>.from(_dyingEnemies)
       ..sort((a, b) => _recruitPower(b).compareTo(_recruitPower(a)));
 
-    final openSlots = widget.stats.gangCapacity - _allies.length;
+    final openSlots = _effectiveGangCapacity - _allies.length;
     final recruitCount = openSlots > 0 ? openSlots : 1;
 
     for (var i = 0; i < recruitCount && i < sorted.length; i++) {
@@ -1026,7 +1033,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             wasHit: _playerWasHit,
             damage: widget.stats.attackDamage,
             dodge: (widget.stats.dodgeChance * 100).toInt(),
-            gangCapacity: widget.stats.gangCapacity,
+            gangCapacity: _effectiveGangCapacity,
           ),
         ),
         
@@ -1107,7 +1114,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           GhettoRecruitmentOverlay(
             allies: _allies,
             dyingEnemies: _dyingEnemies,
-            gangCapacity: widget.stats.gangCapacity,
+            gangCapacity: _effectiveGangCapacity,
+            hasGang: widget.hasGang,
             onRecruitTapped: _onRecruitTapped,
             onDismissDyingEnemy: _onDismissDyingEnemy,
             onDismissAlly: _dismissAlly,

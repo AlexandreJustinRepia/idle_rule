@@ -5,6 +5,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
   final List<Ally> allies;
   final List<Enemy> dyingEnemies;
   final int gangCapacity;
+  final bool hasGang;
   final Function(Enemy) onRecruitTapped;
   final Function(Enemy) onDismissDyingEnemy;
   final Function(Ally) onDismissAlly;
@@ -16,6 +17,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
     required this.allies,
     required this.dyingEnemies,
     required this.gangCapacity,
+    required this.hasGang,
     required this.onRecruitTapped,
     required this.onDismissDyingEnemy,
     required this.onDismissAlly,
@@ -33,6 +35,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
+              if (!hasGang) _buildNoGangBanner(),
               if (allies.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 _buildSectionLabel('CURRENT GANG'),
@@ -65,7 +68,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
                       ),
                     ),
                     OutlinedButton.icon(
-                      onPressed: dyingEnemies.isEmpty ? null : onAutoRecruit,
+                      onPressed: (!hasGang || dyingEnemies.isEmpty) ? null : onAutoRecruit,
                       icon: const Icon(Icons.auto_awesome, size: 14),
                       label: const Text('AUTO RECRUIT'),
                       style: OutlinedButton.styleFrom(
@@ -137,6 +140,32 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoGangBanner() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF16161C),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE24B4A).withValues(alpha: 0.4)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.group_off, color: Color(0xFFE24B4A), size: 18),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Create a gang on the Gangs tab before you can recruit members.',
+                style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.35),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -254,6 +283,7 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
 
   Widget _buildRecruitCard(Enemy enemy) {
     final isFull = allies.length >= gangCapacity;
+    final canRecruit = hasGang && gangCapacity > 0;
     final typeLabel = enemy.type.name.toUpperCase();
 
     return Container(
@@ -354,12 +384,16 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () => onRecruitTapped(enemy),
+                  onPressed: canRecruit ? () => onRecruitTapped(enemy) : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isFull
-                        ? Colors.orangeAccent
-                        : const Color(0xFF3B71F3),
+                    backgroundColor: !canRecruit
+                        ? Colors.white12
+                        : isFull
+                            ? Colors.orangeAccent
+                            : const Color(0xFF3B71F3),
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.white12,
+                    disabledForegroundColor: Colors.white24,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -367,7 +401,11 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    isFull ? 'REPLACE' : 'RECRUIT',
+                    !canRecruit
+                        ? 'NO GANG'
+                        : isFull
+                            ? 'REPLACE'
+                            : 'RECRUIT',
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1,

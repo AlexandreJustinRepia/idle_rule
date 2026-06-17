@@ -11,6 +11,7 @@ class GameController extends ChangeNotifier {
   int _bossIndex = 0;
   String _playerName = '';
   CharacterClass _characterClass = CharacterClasses.allClasses.first;
+  Gang? _gang;
 
   GameController({
     String playerName = '',
@@ -35,6 +36,35 @@ class GameController extends ChangeNotifier {
   int get bossIndex => _bossIndex;
   String get playerName => _playerName;
   CharacterClass get characterClass => _characterClass;
+  Gang? get gang => _gang;
+  bool get hasGang => _gang != null;
+
+  bool get meetsGangRequirements =>
+      _money >= GangCreationRequirements.moneyCost &&
+      _stats.reputation >= GangCreationRequirements.reputationRequired;
+
+  bool createGang({
+    required String name,
+    required String emblemId,
+    required Color primaryColor,
+    required Color accentColor,
+  }) {
+    if (_gang != null) return false;
+    if (!meetsGangRequirements) return false;
+
+    final trimmed = name.trim();
+    if (trimmed.length < 2) return false;
+
+    _money -= GangCreationRequirements.moneyCost;
+    _gang = Gang(
+      name: trimmed.toUpperCase(),
+      emblemId: emblemId,
+      primaryColor: primaryColor,
+      accentColor: accentColor,
+    );
+    notifyListeners();
+    return true;
+  }
 
   void gainStats({double strength = 0, double speed = 0, double endurance = 0, double reputation = 0}) {
     final previousMaxStamina = _stats.maxStamina;

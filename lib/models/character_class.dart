@@ -40,7 +40,7 @@ class CharacterClass {
       endurance: _generateStat(random, 10, 30) * enduranceMultiplier,
       intelligence: _generateStat(random, 30, 50) * intelligenceMultiplier,
       potential: _generateStat(random, 30, 50) * potentialMultiplier,
-      reputation: _generateStat(random, 0, 10) * reputationMultiplier,
+      reputation: 0,
     );
     return baseStats;
   }
