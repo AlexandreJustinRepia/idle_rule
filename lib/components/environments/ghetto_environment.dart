@@ -608,6 +608,26 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     });
   }
 
+  double _recruitPower(Enemy enemy) {
+    return enemy.damage * 0.5 + enemy.health * 0.7;
+  }
+
+  void _onAutoRecruit() {
+    if (!_isRecruiting || _dyingEnemies.isEmpty) return;
+
+    final sorted = List<Enemy>.from(_dyingEnemies)
+      ..sort((a, b) => _recruitPower(b).compareTo(_recruitPower(a)));
+
+    final openSlots = widget.stats.gangCapacity - _allies.length;
+    final recruitCount = openSlots > 0 ? openSlots : 1;
+
+    for (var i = 0; i < recruitCount && i < sorted.length; i++) {
+      final enemy = sorted[i];
+      if (!_dyingEnemies.contains(enemy)) continue;
+      _onRecruitTapped(enemy);
+    }
+  }
+
   void _onDismissDyingEnemy(Enemy enemy) {
     setState(() {
       _dyingEnemies.remove(enemy);
@@ -1085,13 +1105,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
         if (_isRecruiting)
           GhettoRecruitmentOverlay(
-            playerStats: widget.stats,
             allies: _allies,
             dyingEnemies: _dyingEnemies,
             gangCapacity: widget.stats.gangCapacity,
             onRecruitTapped: _onRecruitTapped,
             onDismissDyingEnemy: _onDismissDyingEnemy,
             onDismissAlly: _dismissAlly,
+            onAutoRecruit: _onAutoRecruit,
             onFinishRecruitment: _finishRecruitment,
           ),
 

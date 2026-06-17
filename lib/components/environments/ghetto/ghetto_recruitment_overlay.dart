@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 import '../../../game_state.dart';
 
 class GhettoRecruitmentOverlay extends StatelessWidget {
-  final PlayerStats playerStats;
   final List<Ally> allies;
   final List<Enemy> dyingEnemies;
   final int gangCapacity;
   final Function(Enemy) onRecruitTapped;
   final Function(Enemy) onDismissDyingEnemy;
   final Function(Ally) onDismissAlly;
+  final VoidCallback onAutoRecruit;
   final VoidCallback onFinishRecruitment;
 
   const GhettoRecruitmentOverlay({
     super.key,
-    required this.playerStats,
     required this.allies,
     required this.dyingEnemies,
     required this.gangCapacity,
     required this.onRecruitTapped,
     required this.onDismissDyingEnemy,
     required this.onDismissAlly,
+    required this.onAutoRecruit,
     required this.onFinishRecruitment,
   });
 
@@ -33,7 +33,6 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
-              _buildPlayerStatsStrip(),
               if (allies.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 _buildSectionLabel('CURRENT GANG'),
@@ -50,7 +49,44 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 12),
-              _buildSectionLabel('NEW RECRUITS'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'NEW RECRUITS',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: dyingEnemies.isEmpty ? null : onAutoRecruit,
+                      icon: const Icon(Icons.auto_awesome, size: 14),
+                      label: const Text('AUTO RECRUIT'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFE24B4A),
+                        disabledForegroundColor: Colors.white24,
+                        side: BorderSide(
+                          color: dyingEnemies.isEmpty
+                              ? Colors.white12
+                              : const Color(0xFFE24B4A).withValues(alpha: 0.6),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        textStyle: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 8),
               Expanded(
                 child: dyingEnemies.isEmpty
@@ -151,70 +187,6 @@ class GhettoRecruitmentOverlay extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildPlayerStatsStrip() {
-    final entries = [
-      ('STR', playerStats.strength),
-      ('SPD', playerStats.speed),
-      ('END', playerStats.endurance),
-      ('REP', playerStats.reputation),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF111116),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white10),
-        ),
-        child: Row(
-          children: [
-            for (var i = 0; i < entries.length; i++) ...[
-              if (i > 0) Container(width: 1, height: 28, color: Colors.white10),
-              Expanded(child: _buildMiniStat(entries[i].$1, entries[i].$2)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMiniStat(String label, double value) {
-    final rank = PlayerStats.getRank(value);
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white38,
-            fontSize: 8,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value.toStringAsFixed(1),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          rank.label,
-          style: TextStyle(
-            color: rank.color,
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
     );
   }
 
