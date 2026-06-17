@@ -24,6 +24,7 @@ class Enemy implements CombatEntity {
   final double comboChance; // Chance to strike again immediately
 
   final Color themeColor;
+  final bool isBoss;
 
   @override
   int hp;
@@ -44,6 +45,7 @@ class Enemy implements CombatEntity {
     this.counterChance = 0.0,
     this.comboChance = 0.0,
     this.themeColor = Colors.redAccent,
+    this.isBoss = false,
     this.actionState = ActionState.idle,
     this.target,
   }) : hp = health;
@@ -66,6 +68,7 @@ class Enemy implements CombatEntity {
       counterChance: counterChance,
       comboChance: comboChance,
       themeColor: themeColor,
+      isBoss: isBoss,
     );
   }
 }

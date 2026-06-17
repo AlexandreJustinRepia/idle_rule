@@ -206,6 +206,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
         duration: const Duration(milliseconds: 300),
       );
     });
+    widget.onGangMemberRecruited?.call(newAlly);
   }
 
   Future<void> _startEncounter({bool isBoss = false}) async {
@@ -232,6 +233,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
         attackDelay: widget.activeBoss!.attackDelay,
         dodgeChance: widget.activeBoss!.dodgeChance,
         themeColor: widget.activeBoss!.themeColor,
+        isBoss: true,
       );
       _enemies.add(enemy);
       _enemyOriginalIndices[enemy] = 0;
@@ -542,6 +544,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       _allyAttackControllers[ally]?.dispose();
       _allyAttackControllers.remove(ally);
     });
+    widget.onGangMemberDismissed?.call(ally);
   }
 
   Future<void> _finishRecruitment() async {
@@ -729,7 +732,10 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     final controller = _enemyAttackControllers[enemy] ?? _playerHitController;
     await controller.forward(from: 0);
 
-    if (!mounted || !_isFighting || _isEnemyDying || !_enemies.contains(enemy)) {
+    if (!mounted ||
+        !_isFighting ||
+        _isEnemyDying ||
+        !_enemies.contains(enemy)) {
       return;
     }
 

@@ -30,7 +30,13 @@ class GhettoEnvironment extends StatefulWidget {
   final double playerMaxStamina;
   final double playerHunger;
   final double playerMaxHunger;
-  final void Function({double strength, double speed, double endurance, double reputation}) onStatsGained;
+  final void Function({
+    double strength,
+    double speed,
+    double endurance,
+    double reputation,
+  })
+  onStatsGained;
   final void Function(int damage) onPlayerDamaged;
   final VoidCallback onPlayerDefeated;
   final VoidCallback onNewEnemyApproached;
@@ -42,6 +48,9 @@ class GhettoEnvironment extends StatefulWidget {
   final int bossIndex;
   final void Function(int amount)? onMoneyGained;
   final bool hasGang;
+  final List<Ally> gangMembers;
+  final bool Function(Ally ally)? onGangMemberRecruited;
+  final void Function(Ally ally)? onGangMemberDismissed;
 
   const GhettoEnvironment({
     super.key,
@@ -64,6 +73,9 @@ class GhettoEnvironment extends StatefulWidget {
     this.bossIndex = 0,
     this.onMoneyGained,
     this.hasGang = false,
+    this.gangMembers = const [],
+    this.onGangMemberRecruited,
+    this.onGangMemberDismissed,
   });
 
   @override
@@ -74,8 +86,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     with TickerProviderStateMixin {
   late AnimationController _scrollController;
   late AnimationController _walkController;
-  late AnimationController _attackController; 
-  late AnimationController _playerHitController; 
+  late AnimationController _attackController;
+  late AnimationController _playerHitController;
   late AnimationController _deathController;
   late AnimationController _introController;
   late AnimationController _transitionController;
@@ -94,12 +106,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _playerWasHit = false;
   bool _playerWasDefeated = false;
   bool _playerMissed = false;
-  bool _isResting = true; 
+  bool _isResting = true;
   bool _isAtHome = true;
   bool _isEncounterChoice = false;
   bool _isTalking = false;
   String _currentDialogue = "";
-  
+
   final List<String> _randomInfo = [
     "The Gym is a great place to build endurance, but it costs money.",
     "Bosses hit hard! Make sure you recruit allies before facing them.",
@@ -111,7 +123,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   final List<Ally> _allies = [];
   final List<Enemy> _enemies = [];
   final List<Enemy> _dyingEnemies = [];
-  
+
   final Map<Ally, AnimationController> _allyChargeControllers = {};
   final Map<Ally, AnimationController> _allyAttackControllers = {};
   final Map<Enemy, AnimationController> _enemyChargeControllers = {};
@@ -173,7 +185,36 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       curve: Curves.easeInOut,
     );
 
+    _allies.addAll(widget.gangMembers);
+    for (final ally in _allies) {
+      _allyChargeControllers[ally] = AnimationController(
+        vsync: this,
+        duration: ally.attackDelay,
+      );
+      _allyAttackControllers[ally] = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 300),
+      );
+    }
+
     _startHomeLogic();
+  }
+
+  @override
+  void didUpdateWidget(covariant GhettoEnvironment oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    for (final ally in widget.gangMembers) {
+      if (_allies.contains(ally)) continue;
+      _allies.add(ally);
+      _allyChargeControllers[ally] = AnimationController(
+        vsync: this,
+        duration: ally.attackDelay,
+      );
+      _allyAttackControllers[ally] = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 300),
+      );
+    }
   }
 
   @override
@@ -206,21 +247,32 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
   @override
   Widget build(BuildContext context) {
-    bool isIdle = !_isFighting && !_isEnemyDying && !_playerWasDefeated && !_isRecruiting && !_isIntroAnimating && !_isTransitioning && !_isEncounterChoice && !_isTalking;
+    bool isIdle =
+        !_isFighting &&
+        !_isEnemyDying &&
+        !_playerWasDefeated &&
+        !_isRecruiting &&
+        !_isIntroAnimating &&
+        !_isTransitioning &&
+        !_isEncounterChoice &&
+        !_isTalking;
 
     return Stack(
       children: [
-        GhettoBackground(scrollAnimation: _scrollController, sceneWidth: sceneWidth),
-        
-        if (_isAtHome && !_isTransitioning)
-          const GhettoSafeHouseOverlay(),
+        GhettoBackground(
+          scrollAnimation: _scrollController,
+          sceneWidth: sceneWidth,
+        ),
+
+        if (_isAtHome && !_isTransitioning) const GhettoSafeHouseOverlay(),
 
         for (int i = 0; i < _allies.length; i++)
           GhettoAllyUnit(
             index: i,
             ally: _allies[i],
             walkAnimation: _walkController,
-            attackAnimation: _allyAttackControllers[_allies[i]] ?? _attackController,
+            attackAnimation:
+                _allyAttackControllers[_allies[i]] ?? _attackController,
             chargeAnimation: _allyChargeControllers[_allies[i]],
             idleAnimation: _idleAnimation,
             isFighting: _isFighting,
@@ -228,25 +280,33 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             onTap: () {
               if (!_isFighting || _allies[i].hp <= 0) return;
               setState(() {
-                _selectedCombatant = _selectedCombatant == _allies[i] ? null : _allies[i];
+                _selectedCombatant = _selectedCombatant == _allies[i]
+                    ? null
+                    : _allies[i];
               });
             },
           ),
 
         GhettoHeroUnit(
-          walkAnimation: _walkController, attackAnimation: _attackController,
-          enemyAttackAnimation: _playerHitController, idleAnimation: _idleAnimation,
-          isFighting: _isFighting, wasHit: _playerWasHit, missed: _playerMissed,
+          walkAnimation: _walkController,
+          attackAnimation: _attackController,
+          enemyAttackAnimation: _playerHitController,
+          idleAnimation: _idleAnimation,
+          isFighting: _isFighting,
+          wasHit: _playerWasHit,
+          missed: _playerMissed,
           isDefeated: widget.playerHealth <= 0 || _playerWasDefeated,
           isSelected: _selectedCombatant == 'player',
           onTap: () {
             if (!_isFighting || widget.playerHealth <= 0) return;
             setState(() {
-              _selectedCombatant = _selectedCombatant == 'player' ? null : 'player';
+              _selectedCombatant = _selectedCombatant == 'player'
+                  ? null
+                  : 'player';
             });
           },
         ),
-        
+
         if (!_isAtHome)
           for (int i = 0; i < _enemies.length; i++)
             GhettoEnemyUnit(
@@ -258,15 +318,19 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
               playerWasDefeated: _playerWasDefeated,
               enemyWasHit: _enemyWasHit && i == 0,
               attackAnimation: _attackController,
-              enemyAttackAnimation: _enemyAttackControllers[_enemies[i]] ?? _playerHitController,
+              enemyAttackAnimation:
+                  _enemyAttackControllers[_enemies[i]] ?? _playerHitController,
               deathAnimation: _deathController,
-              enemyChargeController: _enemyChargeControllers[_enemies[i]] ?? _playerHitController,
+              enemyChargeController:
+                  _enemyChargeControllers[_enemies[i]] ?? _playerHitController,
               idleAnimation: _idleAnimation,
               onTap: _attackEnemy,
               isBoss: widget.activeBoss != null && i == 0,
               targetingColors: [
                 if (_playerTarget == _enemies[i]) Colors.redAccent,
-                ..._allies.where((ally) => ally.target == _enemies[i] && ally.hp > 0).map((ally) => ally.themeColor),
+                ..._allies
+                    .where((ally) => ally.target == _enemies[i] && ally.hp > 0)
+                    .map((ally) => ally.themeColor),
               ],
             ),
 
@@ -288,7 +352,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           ),
 
         Positioned(
-          top: 80, left: 20, right: 20,
+          top: 80,
+          left: 20,
+          right: 20,
           child: PlayerHealthBar(
             health: widget.playerHealth,
             maxHealth: widget.playerMaxHealth,
@@ -303,22 +369,24 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             gangCapacity: _effectiveGangCapacity,
           ),
         ),
-        
+
         if (isIdle)
           Positioned(
-            bottom: 120, left: 20, right: 20,
+            bottom: 120,
+            left: 20,
+            right: 20,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 if (_isAtHome) ...[
-                   ActionCard(
+                  ActionCard(
                     icon: Icons.logout,
                     label: "EXIT",
                     onTap: _exitHouse,
                     color: Colors.redAccent,
                   ),
                 ] else ...[
-                   ActionCard(
+                  ActionCard(
                     icon: Icons.home,
                     label: "ENTER HOUSE",
                     onTap: _enterHouse,
@@ -334,32 +402,53 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
               ],
             ),
           ),
-        
-        GhettoHungerIndicator(isLowHunger: _isLowHunger, isCriticalHunger: _isCriticalHunger),
-        
+
+        GhettoHungerIndicator(
+          isLowHunger: _isLowHunger,
+          isCriticalHunger: _isCriticalHunger,
+        ),
+
         if (_playerMissed)
-          const Positioned(bottom: 120, left: 100, child: Text('MISS!', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 16))),
+          const Positioned(
+            bottom: 120,
+            left: 100,
+            child: Text(
+              'MISS!',
+              style: TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+              ),
+            ),
+          ),
 
         GhettoBattleStatusOverlay(
-          isEnemyDying: _isEnemyDying, 
-          playerWasDefeated: _playerWasDefeated, 
+          isEnemyDying: _isEnemyDying,
+          playerWasDefeated: _playerWasDefeated,
           isBoss: widget.activeBoss != null,
           isRecruiting: _isRecruiting,
         ),
 
-        if (!_isFighting && !_isRecruiting && !_isEnemyDying && !_playerWasDefeated && widget.activeBoss == null && _isBossReady && _isAtHome)
+        if (!_isFighting &&
+            !_isRecruiting &&
+            !_isEnemyDying &&
+            !_playerWasDefeated &&
+            widget.activeBoss == null &&
+            _isBossReady &&
+            _isAtHome)
           Positioned(
             bottom: 220,
             right: 20,
             child: FightBossButton(
               onPressed: () => widget.onStartBossFight?.call(),
-              nextBossName: gameBosses[widget.bossIndex % gameBosses.length].name,
+              nextBossName:
+                  gameBosses[widget.bossIndex % gameBosses.length].name,
             ),
           ),
 
         if (_isIntroAnimating)
           CinematicSlamOverlay(
-            animation: _introController, 
+            animation: _introController,
             title: _introEnemyName,
             subtitle: "Ghetto District",
           ),

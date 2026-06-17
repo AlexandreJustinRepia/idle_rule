@@ -10,7 +10,7 @@ class HeroCharacterPlaceholder extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 30, 
+          width: 30,
           height: 30,
           decoration: BoxDecoration(
             color: Colors.white,
@@ -26,25 +26,56 @@ class HeroCharacterPlaceholder extends StatelessWidget {
         ),
         const SizedBox(height: 3),
         Container(
-          width: 40, 
-          height: 55, 
+          width: 40,
+          height: 55,
           decoration: BoxDecoration(
             color: Colors.blueGrey[800],
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.5), width: 1.5),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 6, offset: const Offset(0, 3))],
+            border: Border.all(
+              color: Colors.blueAccent.withValues(alpha: 0.5),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: const Center(
-            child: Text('HERO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1, fontSize: 9)),
+            child: Text(
+              'HERO',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+                fontSize: 9,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 3),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 12, height: 24, decoration: BoxDecoration(color: Colors.blueGrey[900], borderRadius: BorderRadius.circular(3))),
+            Container(
+              width: 12,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.blueGrey[900],
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
             const SizedBox(width: 8),
-            Container(width: 12, height: 24, decoration: BoxDecoration(color: Colors.blueGrey[900], borderRadius: BorderRadius.circular(3))),
+            Container(
+              width: 12,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.blueGrey[900],
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
           ],
         ),
       ],
@@ -71,9 +102,11 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleHealth = health.clamp(0, enemy.health);
-    final healthPercent = enemy.health == 0 ? 0.0 : visibleHealth / enemy.health;
+    final healthPercent = enemy.health == 0
+        ? 0.0
+        : visibleHealth / enemy.health;
     final displayColor = enemy.themeColor;
-    final isBoss = enemy.type == EnemyType.regular && enemy.name != 'THUG' && enemy.name != 'PUNK' && enemy.name != 'BRUISER' && enemy.name != 'REBEL'; 
+    final isBoss = enemy.isBoss;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -81,13 +114,35 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(isBoss ? 'BOSS: ${enemy.name}' : '${enemy.name} #$enemyNumber', style: TextStyle(color: displayColor, fontWeight: FontWeight.bold, fontSize: isBoss ? 14 : 12)),
+            Text(
+              isBoss ? 'BOSS: ${enemy.name}' : enemy.name,
+              style: TextStyle(
+                color: displayColor,
+                fontWeight: FontWeight.bold,
+                fontSize: isBoss ? 14 : 12,
+              ),
+            ),
             const SizedBox(width: 8),
-            Text('ATK: ${enemy.damage}', style: TextStyle(color: displayColor.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.bold)),
+            Text(
+              'ATK: ${enemy.damage}',
+              style: TextStyle(
+                color: displayColor.withValues(alpha: 0.7),
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         if (enemy.type != EnemyType.regular)
-           Text(enemy.type.name.toUpperCase(), style: TextStyle(color: displayColor, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          Text(
+            enemy.type.name.toUpperCase(),
+            style: TextStyle(
+              color: displayColor,
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
         const SizedBox(height: 3),
         SizedBox(
           width: isBoss ? 90 : 60,
@@ -97,7 +152,9 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
               minHeight: isBoss ? 8 : 6,
               value: healthPercent,
               backgroundColor: Colors.black54,
-              valueColor: AlwaysStoppedAnimation<Color>(wasHit ? Colors.white : displayColor),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                wasHit ? Colors.white : displayColor,
+              ),
             ),
           ),
         ),
@@ -110,7 +167,9 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
               return LinearProgressIndicator(
                 value: chargeProgress.value,
                 backgroundColor: Colors.white10,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.orangeAccent.withValues(alpha: 0.6)),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.orangeAccent.withValues(alpha: 0.6),
+                ),
                 minHeight: 2,
               );
             },
@@ -140,20 +199,51 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
           decoration: BoxDecoration(
             color: isBoss ? Colors.black : Colors.red[900],
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: displayColor.withValues(alpha: 0.5), width: 1.5),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 6, offset: const Offset(0, 3))],
+            border: Border.all(
+              color: displayColor.withValues(alpha: 0.5),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Center(
-            child: Text(isBoss ? 'BOSS' : 'ENEMY', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1, fontSize: 9)),
+            child: Text(
+              isBoss ? 'BOSS' : 'ENEMY',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+                fontSize: 9,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 3),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 18, height: 24, decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(3))),
+            Container(
+              width: 18,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
             SizedBox(width: isBoss ? 12 : 8),
-            Container(width: 18, height: 24, decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(3))),
+            Container(
+              width: 18,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
           ],
         ),
       ],

@@ -87,7 +87,9 @@ class AllyCharacterPlaceholder extends StatelessWidget {
               builder: (context, _) => LinearProgressIndicator(
                 value: chargeProgress!.value,
                 backgroundColor: Colors.white10,
-                valueColor: AlwaysStoppedAnimation<Color>(themeColor.withValues(alpha: 0.7)),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  themeColor.withValues(alpha: 0.7),
+                ),
                 minHeight: 2,
               ),
             ),
@@ -137,14 +139,11 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleHealth = health.clamp(0, enemy.health);
-    final healthPercent = enemy.health == 0 ? 0.0 : visibleHealth / enemy.health;
+    final healthPercent = enemy.health == 0
+        ? 0.0
+        : visibleHealth / enemy.health;
     final displayColor = enemy.themeColor;
-    final isBoss =
-        enemy.type == EnemyType.regular &&
-        enemy.name != 'THUG' &&
-        enemy.name != 'PUNK' &&
-        enemy.name != 'BRUISER' &&
-        enemy.name != 'REBEL';
+    final isBoss = enemy.isBoss;
 
     final charW = isBoss ? 80.0 : 52.0;
     final charH = isBoss ? 140.0 : 112.0;
@@ -158,7 +157,7 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              isBoss ? 'BOSS: ${enemy.name}' : '${enemy.name} #$enemyNumber',
+              isBoss ? 'BOSS: ${enemy.name}' : enemy.name,
               style: TextStyle(
                 color: displayColor,
                 fontWeight: FontWeight.bold,
@@ -196,7 +195,9 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
               minHeight: isBoss ? 7 : 5,
               value: healthPercent,
               backgroundColor: Colors.black54,
-              valueColor: AlwaysStoppedAnimation<Color>(wasHit ? Colors.white : displayColor),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                wasHit ? Colors.white : displayColor,
+              ),
             ),
           ),
         ),

@@ -18,8 +18,9 @@ class GangsView extends StatelessWidget {
           return GangCreationPanel(gameController: gameController);
         }
         return GangProfilePanel(
+          gameController: gameController,
           gang: gang,
-          memberCapacity: gameController.stats.gangCapacity,
+          memberCapacity: gameController.gangMemberCapacity,
         );
       },
     );
@@ -136,7 +137,7 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 112, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -478,11 +479,13 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
 }
 
 class GangProfilePanel extends StatelessWidget {
+  final GameController gameController;
   final Gang gang;
   final int memberCapacity;
 
   const GangProfilePanel({
     super.key,
+    required this.gameController,
     required this.gang,
     required this.memberCapacity,
   });
@@ -491,7 +494,7 @@ class GangProfilePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 112, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -531,10 +534,17 @@ class GangProfilePanel extends StatelessWidget {
             _buildInfoCard(
               icon: Icons.group,
               title: 'MEMBER CAPACITY',
-              value: '$memberCapacity',
-              subtitle: 'Recruit from street fights after winning battles',
+              value: '${gameController.gangMembers.length}/$memberCapacity',
+              subtitle: 'Recruit from street fights or call exclusive members',
               accent: gang.primaryColor,
             ),
+            const SizedBox(height: 12),
+            _buildRecruitExclusiveCard(context),
+            const SizedBox(height: 12),
+            if (gameController.gangMembers.isEmpty)
+              _buildEmptyMembersCard()
+            else
+              ...gameController.gangMembers.map(_buildMemberCard),
             const SizedBox(height: 12),
             _buildInfoCard(
               icon: Icons.palette_outlined,
@@ -592,6 +602,187 @@ class GangProfilePanel extends StatelessWidget {
         color: color,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white24),
+      ),
+    );
+  }
+
+  Widget _buildRecruitExclusiveCard(BuildContext context) {
+    const cost = 250;
+    final canRecruit =
+        gameController.money >= cost &&
+        gameController.gangMembers.length < memberCapacity;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111116),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: gang.primaryColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.workspace_premium, color: gang.primaryColor, size: 24),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'EXCLUSIVE RECRUIT',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Call in a random named leader-grade member.',
+                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: canRecruit
+                ? () {
+                    final recruited = gameController
+                        .recruitRandomExclusiveMember();
+                    if (recruited) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('EXCLUSIVE MEMBER RECRUITED'),
+                          duration: Duration(milliseconds: 900),
+                        ),
+                      );
+                    }
+                  }
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: gang.primaryColor,
+              foregroundColor: gang.accentColor,
+              disabledBackgroundColor: Colors.white12,
+              disabledForegroundColor: Colors.white24,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              '\$250',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyMembersCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111116),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: const Text(
+        'No members yet. Recruit defeated enemies from Street or buy an exclusive recruit.',
+        style: TextStyle(color: Colors.white38, fontSize: 11, height: 1.4),
+      ),
+    );
+  }
+
+  Widget _buildMemberCard(Ally member) {
+    final cost = gameController.trainingCostFor(member);
+    final canTrain = member.canTrain && gameController.money >= cost;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111116),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: member.isExclusive
+              ? gang.primaryColor.withValues(alpha: 0.45)
+              : Colors.white10,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: member.themeColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              member.isExclusive ? Icons.workspace_premium : Icons.person,
+              color: member.themeColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member.name.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'ATK ${member.atk}  HP ${member.maxHp}  TRAIN ${member.trainingLevel}/${member.maxTrainingLevel}',
+                  style: const TextStyle(color: Colors.white38, fontSize: 10),
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: member.maxTrainingLevel == 0
+                        ? 1
+                        : member.trainingLevel / member.maxTrainingLevel,
+                    minHeight: 4,
+                    backgroundColor: Colors.white10,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      member.themeColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          ElevatedButton(
+            onPressed: canTrain
+                ? () => gameController.trainGangMember(member)
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: member.themeColor,
+              foregroundColor: Colors.black,
+              disabledBackgroundColor: Colors.white12,
+              disabledForegroundColor: Colors.white24,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              minimumSize: const Size(72, 36),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              member.canTrain ? '\$$cost' : 'MAX',
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+            ),
+          ),
+        ],
       ),
     );
   }

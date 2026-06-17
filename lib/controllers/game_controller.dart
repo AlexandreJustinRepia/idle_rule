@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../game_state.dart';
 
 class GameController extends ChangeNotifier {
+  static final math.Random _random = math.Random();
+
   PlayerStats _stats = const PlayerStats();
   int _playerHealth = 30;
   late double _playerStamina;
@@ -12,6 +15,7 @@ class GameController extends ChangeNotifier {
   String _playerName = '';
   CharacterClass _characterClass = CharacterClasses.allClasses.first;
   Gang? _gang;
+  final List<Ally> _gangMembers = [];
 
   GameController({
     String playerName = '',
@@ -39,6 +43,8 @@ class GameController extends ChangeNotifier {
   CharacterClass get characterClass => _characterClass;
   Gang? get gang => _gang;
   bool get hasGang => _gang != null;
+  List<Ally> get gangMembers => List.unmodifiable(_gangMembers);
+  int get gangMemberCapacity => hasGang ? _stats.gangCapacity : 0;
 
   bool get meetsGangRequirements =>
       _money >= GangCreationRequirements.moneyCost &&
@@ -67,20 +73,101 @@ class GameController extends ChangeNotifier {
     return true;
   }
 
-  void gainStats({double strength = 0, double speed = 0, double endurance = 0, double reputation = 0}) {
+  int trainingCostFor(Ally ally) =>
+      (ally.isExclusive ? 90 : 55) * (ally.trainingLevel + 1);
+
+  bool trainGangMember(Ally ally) {
+    if (!_gangMembers.contains(ally) || !ally.canTrain) return false;
+    final cost = trainingCostFor(ally);
+    if (_money < cost) return false;
+
+    _money -= cost;
+    ally.train();
+    notifyListeners();
+    return true;
+  }
+
+  bool recruitGangMember(Ally ally) {
+    if (!hasGang || gangMemberCapacity <= 0) return false;
+    if (_gangMembers.contains(ally)) return true;
+    if (_gangMembers.length >= gangMemberCapacity) {
+      _gangMembers.sort((a, b) => (a.atk + a.maxHp).compareTo(b.atk + b.maxHp));
+      _gangMembers.removeAt(0);
+    }
+    _gangMembers.add(ally);
+    notifyListeners();
+    return true;
+  }
+
+  void dismissGangMember(Ally ally) {
+    if (_gangMembers.remove(ally)) {
+      notifyListeners();
+    }
+  }
+
+  Ally _createExclusiveMember() {
+    const exclusiveNames = [
+      'Kane Voss',
+      'Mira Knox',
+      'Jax Calder',
+      'Rina Vale',
+      'Dante Cruz',
+      'Nyx Sol',
+      'Ari Steel',
+      'Vera Riot',
+    ];
+    final name = exclusiveNames[_random.nextInt(exclusiveNames.length)];
+    final rankBoost = 1 + _random.nextInt(4);
+    final hp = 42 + rankBoost * 10 + _random.nextInt(10);
+    return Ally(
+      name: name,
+      hp: hp,
+      maxHp: hp,
+      atk: 4 + rankBoost * 2,
+      attackDelay: Duration(milliseconds: 980 - rankBoost * 70),
+      dodgeChance: 0.12 + rankBoost * 0.025,
+      themeColor: Color.lerp(
+        _gang?.primaryColor ?? Colors.purpleAccent,
+        Colors.white,
+        0.22,
+      )!,
+      isExclusive: true,
+      maxTrainingLevel: 15,
+    );
+  }
+
+  bool recruitRandomExclusiveMember() {
+    if (!hasGang || _gangMembers.length >= gangMemberCapacity) return false;
+    const cost = 250;
+    if (_money < cost) return false;
+
+    _money -= cost;
+    _gangMembers.add(_createExclusiveMember());
+    notifyListeners();
+    return true;
+  }
+
+  void gainStats({
+    double strength = 0,
+    double speed = 0,
+    double endurance = 0,
+    double reputation = 0,
+  }) {
     final previousMaxStamina = _stats.maxStamina;
     final previousMaxHunger = _stats.maxHunger;
-    
+
     _stats = _stats.gain(
-      strength: strength, 
-      speed: speed, 
+      strength: strength,
+      speed: speed,
       endurance: endurance,
       reputation: reputation,
     );
-    
+
     _playerHealth = _playerHealth.clamp(0, _stats.maxHealth).toInt();
-    _playerStamina = (_playerStamina + (_stats.maxStamina - previousMaxStamina)).clamp(0, _stats.maxStamina);
-    _playerHunger = (_playerHunger + (_stats.maxHunger - previousMaxHunger)).clamp(0, _stats.maxHunger);
+    _playerStamina = (_playerStamina + (_stats.maxStamina - previousMaxStamina))
+        .clamp(0, _stats.maxStamina);
+    _playerHunger = (_playerHunger + (_stats.maxHunger - previousMaxHunger))
+        .clamp(0, _stats.maxHunger);
     notifyListeners();
   }
 
@@ -136,7 +223,12 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool buyItem({required int cost, double stamina = 0, double hunger = 0, int health = 0}) {
+  bool buyItem({
+    required int cost,
+    double stamina = 0,
+    double hunger = 0,
+    int health = 0,
+  }) {
     if (_money < cost) return false;
     _money -= cost;
     _playerStamina = (_playerStamina + stamina).clamp(0, _stats.maxStamina);

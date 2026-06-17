@@ -33,9 +33,7 @@ class MyApp extends StatelessWidget {
           seedColor: const Color(0xFFE24B4A),
           brightness: Brightness.dark,
         ),
-        textTheme: GoogleFonts.bebasNeueTextTheme(
-          ThemeData.dark().textTheme,
-        ),
+        textTheme: GoogleFonts.bebasNeueTextTheme(ThemeData.dark().textTheme),
         useMaterial3: true,
       ),
       home: const AppFlow(),
@@ -97,9 +95,7 @@ class _AppFlowState extends State<AppFlow> {
       case AppFlowPhase.loading:
         return LoadingScreen(onComplete: _onLoadingComplete);
       case AppFlowPhase.creation:
-        return CharacterCreationScreen(
-          onCharacterCreated: _onCharacterCreated,
-        );
+        return CharacterCreationScreen(onCharacterCreated: _onCharacterCreated);
       case AppFlowPhase.game:
         if (_gameController == null) {
           return const SizedBox.shrink();
@@ -159,7 +155,8 @@ class _GameScreen extends StatelessWidget {
                         onStatsGained: gameController.gainStats,
                         onPlayerDamaged: gameController.takeDamage,
                         onPlayerDefeated: gameController.recoverFromDefeat,
-                        onNewEnemyApproached: gameController.recoverHealthForNewEnemy,
+                        onNewEnemyApproached:
+                            gameController.recoverHealthForNewEnemy,
                         onStaminaSpent: gameController.spendStamina,
                         onNeedsRecovered: gameController.recoverNeeds,
                         activeBoss: gameController.activeBoss,
@@ -168,6 +165,9 @@ class _GameScreen extends StatelessWidget {
                         bossIndex: gameController.bossIndex,
                         onMoneyGained: gameController.gainMoney,
                         hasGang: gameController.hasGang,
+                        gangMembers: gameController.gangMembers,
+                        onGangMemberRecruited: gameController.recruitGangMember,
+                        onGangMemberDismissed: gameController.dismissGangMember,
                       ),
                       GymEnvironment(
                         stats: gameController.stats,
