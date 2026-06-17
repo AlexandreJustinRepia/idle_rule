@@ -23,6 +23,7 @@ class GameController extends ChangeNotifier {
     if (initialStats != null) {
       _stats = initialStats;
     }
+    _playerHealth = _stats.maxHealth;
     _playerStamina = _stats.maxStamina;
     _playerHunger = _stats.maxHunger;
   }

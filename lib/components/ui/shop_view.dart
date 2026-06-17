@@ -26,10 +26,7 @@ class ShopItem {
 class ShopView extends StatelessWidget {
   final GameController gameController;
 
-  const ShopView({
-    super.key,
-    required this.gameController,
-  });
+  const ShopView({super.key, required this.gameController});
 
   static const List<ShopItem> _items = [
     ShopItem(
@@ -71,7 +68,7 @@ class ShopView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16, 112, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -94,15 +91,24 @@ class ShopView extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E1E1E),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: Colors.amberAccent.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.monetization_on, color: Colors.amberAccent, size: 18),
+                    const Icon(
+                      Icons.monetization_on,
+                      color: Colors.amberAccent,
+                      size: 18,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '\$${gameController.money}',
@@ -120,6 +126,7 @@ class ShopView extends StatelessWidget {
           const SizedBox(height: 16),
           Expanded(
             child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: 24),
               itemCount: _items.length,
               itemBuilder: (context, index) {
                 final item = _items[index];
@@ -137,7 +144,7 @@ class ShopView extends StatelessWidget {
                         color: item.accentColor.withValues(alpha: 0.05),
                         blurRadius: 8,
                         spreadRadius: 1,
-                      )
+                      ),
                     ],
                   ),
                   child: Row(
@@ -149,7 +156,11 @@ class ShopView extends StatelessWidget {
                           color: item.accentColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(item.icon, color: item.accentColor, size: 28),
+                        child: Icon(
+                          item.icon,
+                          color: item.accentColor,
+                          size: 28,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -176,11 +187,23 @@ class ShopView extends StatelessWidget {
                             Row(
                               children: [
                                 if (item.healthRestore > 0)
-                                  _buildStatBadge(Icons.favorite, Colors.redAccent, '+${item.healthRestore} HP'),
+                                  _buildStatBadge(
+                                    Icons.favorite,
+                                    Colors.redAccent,
+                                    '+${item.healthRestore} HP',
+                                  ),
                                 if (item.staminaRestore > 0)
-                                  _buildStatBadge(Icons.bolt, Colors.cyanAccent, '+${item.staminaRestore.toInt()} Stam'),
+                                  _buildStatBadge(
+                                    Icons.bolt,
+                                    Colors.cyanAccent,
+                                    '+${item.staminaRestore.toInt()} Stam',
+                                  ),
                                 if (item.hungerRestore > 0)
-                                  _buildStatBadge(Icons.restaurant, Colors.orangeAccent, '+${item.hungerRestore.toInt()} Food'),
+                                  _buildStatBadge(
+                                    Icons.restaurant,
+                                    Colors.orangeAccent,
+                                    '+${item.hungerRestore.toInt()} Food',
+                                  ),
                               ],
                             ),
                           ],
@@ -193,7 +216,9 @@ class ShopView extends StatelessWidget {
                           Text(
                             '\$${item.cost}',
                             style: TextStyle(
-                              color: canAfford ? Colors.amberAccent : Colors.redAccent,
+                              color: canAfford
+                                  ? Colors.amberAccent
+                                  : Colors.redAccent,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -206,7 +231,9 @@ class ShopView extends StatelessWidget {
                               disabledBackgroundColor: Colors.white12,
                               disabledForegroundColor: Colors.white24,
                               minimumSize: const Size(60, 30),
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),
@@ -220,11 +247,18 @@ class ShopView extends StatelessWidget {
                                       health: item.healthRestore,
                                     );
                                     if (success) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text('PURCHASED ${item.name.toUpperCase()}'),
-                                          duration: const Duration(milliseconds: 800),
-                                          backgroundColor: item.accentColor.withValues(alpha: 0.8),
+                                          content: Text(
+                                            'PURCHASED ${item.name.toUpperCase()}',
+                                          ),
+                                          duration: const Duration(
+                                            milliseconds: 800,
+                                          ),
+                                          backgroundColor: item.accentColor
+                                              .withValues(alpha: 0.8),
                                         ),
                                       );
                                     }
@@ -232,7 +266,10 @@ class ShopView extends StatelessWidget {
                                 : null,
                             child: const Text(
                               'BUY',
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                         ],

@@ -9,7 +9,8 @@ class GymEnvironment extends StatefulWidget {
   final PlayerStats stats;
   final double playerStamina;
   final double playerHunger;
-  final void Function({double strength, double speed, double endurance}) onStatsGained;
+  final void Function({double strength, double speed, double endurance})
+  onStatsGained;
   final bool Function(double amount) onStaminaSpent;
   final void Function({double stamina, double hunger}) onNeedsRecovered;
 
@@ -27,7 +28,8 @@ class GymEnvironment extends StatefulWidget {
   State<GymEnvironment> createState() => _GymEnvironmentState();
 }
 
-class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStateMixin {
+class _GymEnvironmentState extends State<GymEnvironment>
+    with TickerProviderStateMixin {
   late AnimationController _animController;
   GymActivity _currentActivity = GymActivity.strength;
   bool _isTraining = false;
@@ -60,7 +62,7 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
   void _startTraining() {
     setState(() => _isTraining = true);
     _animController.repeat(reverse: true);
-    
+
     // Choose interval cost & gains based on the active training station
     double staminaCost = 4.0;
     double hungerCost = -0.8;
@@ -89,7 +91,9 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
         break;
     }
 
-    _trainingTimer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
+    _trainingTimer = Timer.periodic(const Duration(milliseconds: 1000), (
+      timer,
+    ) {
       if (!widget.onStaminaSpent(staminaCost)) {
         _stopTraining();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +105,11 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
         );
         return;
       }
-      widget.onStatsGained(strength: gStrength, speed: gSpeed, endurance: gEndurance);
+      widget.onStatsGained(
+        strength: gStrength,
+        speed: gSpeed,
+        endurance: gEndurance,
+      );
       widget.onNeedsRecovered(stamina: 0, hunger: hungerCost);
     });
   }
@@ -138,193 +146,215 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
     }
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF0F0F12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // HEADER WITH STATS SUMMARY
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'GOLDSMITH STREET GYM',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                        letterSpacing: 2,
-                        shadows: [
-                          Shadow(
-                            color: activityColor.withValues(alpha: 0.5),
-                            blurRadius: 10,
+      decoration: const BoxDecoration(color: Color(0xFF0F0F12)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 112, 16, 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - 136,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // HEADER WITH STATS SUMMARY
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'GOLDSMITH STREET GYM',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              letterSpacing: 2,
+                              shadows: [
+                                Shadow(
+                                  color: activityColor.withValues(alpha: 0.5),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'No pain, no gain. Train your attributes.',
+                            style: TextStyle(
+                              color: Colors.white70.withValues(alpha: 0.4),
+                              fontSize: 10,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'No pain, no gain. Train your attributes.',
-                      style: TextStyle(color: Colors.white70.withValues(alpha: 0.4), fontSize: 10),
-                    ),
-                  ],
-                ),
-                // Tiny stats preview
-                Row(
-                  children: [
-                    _buildStatIndicator(Icons.bolt, Colors.cyanAccent, widget.playerStamina.toInt()),
-                    const SizedBox(width: 8),
-                    _buildStatIndicator(Icons.restaurant, Colors.orangeAccent, widget.playerHunger.toInt()),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+                      // Tiny stats preview
+                      Row(
+                        children: [
+                          _buildStatIndicator(
+                            Icons.bolt,
+                            Colors.cyanAccent,
+                            widget.playerStamina.toInt(),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildStatIndicator(
+                            Icons.restaurant,
+                            Colors.orangeAccent,
+                            widget.playerHunger.toInt(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
 
-            // SELECTION TABS
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSelectorCard(
-                    activity: GymActivity.strength,
-                    title: 'STRENGTH',
-                    subtitle: 'Bench Press',
-                    icon: Icons.fitness_center,
-                    color: Colors.deepOrangeAccent,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildSelectorCard(
-                    activity: GymActivity.speed,
-                    title: 'SPEED',
-                    subtitle: 'Treadmill',
-                    icon: Icons.directions_run,
-                    color: Colors.cyanAccent,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildSelectorCard(
-                    activity: GymActivity.endurance,
-                    title: 'ENDURANCE',
-                    subtitle: 'Heavy Bag',
-                    icon: Icons.sports_mma,
-                    color: Colors.amberAccent,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // ANIMATED AREA CARD
-            Container(
-              height: 160,
-              decoration: BoxDecoration(
-                  color: const Color(0xFF16161C),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: activityColor.withValues(alpha: 0.03),
-                      blurRadius: 16,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Stack(
+                  // SELECTION TABS
+                  Row(
                     children: [
-                      // Grid lines background
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: GridBackgroundPainter(),
+                      Expanded(
+                        child: _buildSelectorCard(
+                          activity: GymActivity.strength,
+                          title: 'STRENGTH',
+                          subtitle: 'Bench Press',
+                          icon: Icons.fitness_center,
+                          color: Colors.deepOrangeAccent,
                         ),
                       ),
-                      
-                      Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              activityTitle,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 5,
-                              ),
-                            ),
-                             const SizedBox(height: 6),
-                            
-                            // Load corresponding animated graphic
-                            AnimatedBuilder(
-                              animation: _animController,
-                              builder: (context, child) {
-                                switch (_currentActivity) {
-                                  case GymActivity.strength:
-                                    return _buildBenchPressAnimation();
-                                  case GymActivity.speed:
-                                    return _buildTreadmillAnimation();
-                                  case GymActivity.endurance:
-                                    return _buildPunchingBagAnimation();
-                                }
-                              },
-                            ),
-                            
-                            const SizedBox(height: 6),
-                            Text(
-                              activityDetails,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildSelectorCard(
+                          activity: GymActivity.speed,
+                          title: 'SPEED',
+                          subtitle: 'Treadmill',
+                          icon: Icons.directions_run,
+                          color: Colors.cyanAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildSelectorCard(
+                          activity: GymActivity.endurance,
+                          title: 'ENDURANCE',
+                          subtitle: 'Heavy Bag',
+                          icon: Icons.sports_mma,
+                          color: Colors.amberAccent,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-            const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-            // TRAINING DETAILS
-            _buildDetailsCard(activityColor),
-            const SizedBox(height: 8),
+                  // ANIMATED AREA CARD
+                  Container(
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF16161C),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: activityColor.withValues(alpha: 0.03),
+                          blurRadius: 16,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Stack(
+                        children: [
+                          // Grid lines background
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: GridBackgroundPainter(),
+                            ),
+                          ),
 
-            // ACTION BUTTON
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isTraining ? Colors.redAccent : activityColor,
-                foregroundColor: Colors.black,
-                elevation: 6,
-                shadowColor: _isTraining ? Colors.redAccent : activityColor,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: _toggleTraining,
-              child: Text(
-                _isTraining ? 'STOP TRAINING' : 'START TRAINING',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  letterSpacing: 2,
-                ),
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  activityTitle,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 5,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+
+                                // Load corresponding animated graphic
+                                AnimatedBuilder(
+                                  animation: _animController,
+                                  builder: (context, child) {
+                                    switch (_currentActivity) {
+                                      case GymActivity.strength:
+                                        return _buildBenchPressAnimation();
+                                      case GymActivity.speed:
+                                        return _buildTreadmillAnimation();
+                                      case GymActivity.endurance:
+                                        return _buildPunchingBagAnimation();
+                                    }
+                                  },
+                                ),
+
+                                const SizedBox(height: 6),
+                                Text(
+                                  activityDetails,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // TRAINING DETAILS
+                  _buildDetailsCard(activityColor),
+                  const SizedBox(height: 8),
+
+                  // ACTION BUTTON
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isTraining
+                          ? Colors.redAccent
+                          : activityColor,
+                      foregroundColor: Colors.black,
+                      elevation: 6,
+                      shadowColor: _isTraining
+                          ? Colors.redAccent
+                          : activityColor,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _toggleTraining,
+                    child: Text(
+                      _isTraining ? 'STOP TRAINING' : 'START TRAINING',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -369,7 +399,9 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.08) : const Color(0xFF16161C),
+          color: isSelected
+              ? color.withValues(alpha: 0.08)
+              : const Color(0xFF16161C),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : Colors.white10,
@@ -381,7 +413,7 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
                     color: color.withValues(alpha: 0.15),
                     blurRadius: 8,
                     spreadRadius: 1,
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -404,7 +436,9 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
             Text(
               subtitle,
               style: TextStyle(
-                color: isSelected ? color.withValues(alpha: 0.8) : Colors.white30,
+                color: isSelected
+                    ? color.withValues(alpha: 0.8)
+                    : Colors.white30,
                 fontSize: 9,
               ),
             ),
@@ -465,11 +499,7 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
               ],
             ),
           ),
-          Container(
-            width: 1,
-            height: 40,
-            color: Colors.white10,
-          ),
+          Container(width: 1, height: 40, color: Colors.white10),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,17 +520,29 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
                   const SizedBox(width: 4),
                   Text(
                     '-${staminaVal.toStringAsFixed(1)} Stamina',
-                    style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 11),
+                    style: const TextStyle(
+                      color: Colors.cyanAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
               Row(
                 children: [
-                  const Icon(Icons.restaurant, color: Colors.orangeAccent, size: 14),
+                  const Icon(
+                    Icons.restaurant,
+                    color: Colors.orangeAccent,
+                    size: 14,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '-${hungerVal.toStringAsFixed(1)} Hunger',
-                    style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 11),
+                    style: const TextStyle(
+                      color: Colors.orangeAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -526,11 +568,19 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
           // Bench support
           Positioned(
             bottom: 5,
-            child: Container(width: 110, height: 8, color: const Color(0xFF212121)),
+            child: Container(
+              width: 110,
+              height: 8,
+              color: const Color(0xFF212121),
+            ),
           ),
           Positioned(
             bottom: 0,
-            child: Container(width: 10, height: 12, color: const Color(0xFF424242)),
+            child: Container(
+              width: 10,
+              height: 12,
+              color: const Color(0xFF424242),
+            ),
           ),
           // Hero Character lying down
           Positioned(
@@ -543,9 +593,15 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
                 decoration: BoxDecoration(
                   color: Colors.white12,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.deepOrangeAccent.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: Colors.deepOrangeAccent.withValues(alpha: 0.3),
+                  ),
                 ),
-                child: const Icon(Icons.person, color: Colors.deepOrangeAccent, size: 14),
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.deepOrangeAccent,
+                  size: 14,
+                ),
               ),
             ),
           ),
@@ -559,17 +615,9 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
             ),
           ),
           // Weight Plates Left
-          Positioned(
-            top: 7 + yOffset,
-            left: 15,
-            child: _buildBarbellWeight(),
-          ),
+          Positioned(top: 7 + yOffset, left: 15, child: _buildBarbellWeight()),
           // Weight Plates Right
-          Positioned(
-            top: 7 + yOffset,
-            right: 15,
-            child: _buildBarbellWeight(),
-          ),
+          Positioned(top: 7 + yOffset, right: 15, child: _buildBarbellWeight()),
         ],
       ),
     );
@@ -588,8 +636,12 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
   }
 
   Widget _buildTreadmillAnimation() {
-    final double runOffset = _isTraining ? math.sin(_animController.value * math.pi * 2) * 4.0 : 0.0;
-    final double speedLineWidth = _isTraining ? (_animController.value * 50) : 0.0;
+    final double runOffset = _isTraining
+        ? math.sin(_animController.value * math.pi * 2) * 4.0
+        : 0.0;
+    final double speedLineWidth = _isTraining
+        ? (_animController.value * 50)
+        : 0.0;
 
     return SizedBox(
       height: 90,
@@ -606,19 +658,29 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
               decoration: BoxDecoration(
                 color: const Color(0xFF212121),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: Colors.cyanAccent.withValues(alpha: 0.2),
+                ),
               ),
             ),
           ),
           Positioned(
             bottom: 12,
             left: 35,
-            child: Container(width: 4, height: 25, color: const Color(0xFF424242)),
+            child: Container(
+              width: 4,
+              height: 25,
+              color: const Color(0xFF424242),
+            ),
           ),
           Positioned(
             bottom: 35,
             left: 35,
-            child: Container(width: 20, height: 4, color: const Color(0xFF616161)),
+            child: Container(
+              width: 20,
+              height: 4,
+              color: const Color(0xFF616161),
+            ),
           ),
           // Runner (Hero)
           Positioned(
@@ -628,28 +690,42 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
               width: 24,
               height: 50,
               decoration: BoxDecoration(
-                color: _isTraining ? Colors.cyanAccent.withValues(alpha: 0.1) : Colors.white12,
+                color: _isTraining
+                    ? Colors.cyanAccent.withValues(alpha: 0.1)
+                    : Colors.white12,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4)),
+                border: Border.all(
+                  color: Colors.cyanAccent.withValues(alpha: 0.4),
+                ),
               ),
-              child: const Icon(Icons.directions_run, color: Colors.cyanAccent, size: 18),
+              child: const Icon(
+                Icons.directions_run,
+                color: Colors.cyanAccent,
+                size: 18,
+              ),
             ),
           ),
           if (_isTraining) ...[
             Positioned(
               bottom: 25,
               right: 25,
-              child: Container(width: speedLineWidth, height: 1.5, color: Colors.cyanAccent.withValues(alpha: 0.4)),
+              child: Container(
+                width: speedLineWidth,
+                height: 1.5,
+                color: Colors.cyanAccent.withValues(alpha: 0.4),
+              ),
             ),
-          ]
+          ],
         ],
       ),
     );
   }
 
   Widget _buildPunchingBagAnimation() {
-    final double swayAngle = _isTraining ? math.sin(_animController.value * math.pi * 2) * 0.12 : 0.0;
-    
+    final double swayAngle = _isTraining
+        ? math.sin(_animController.value * math.pi * 2) * 0.12
+        : 0.0;
+
     return SizedBox(
       height: 90,
       width: 200,
@@ -659,19 +735,31 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
           // Stand Frame
           Positioned(
             top: 0,
-            child: Container(width: 80, height: 4, color: const Color(0xFF424242)),
+            child: Container(
+              width: 80,
+              height: 4,
+              color: const Color(0xFF424242),
+            ),
           ),
           Positioned(
             top: 0,
             left: 60,
-            child: Container(width: 4, height: 90, color: const Color(0xFF212121)),
+            child: Container(
+              width: 4,
+              height: 90,
+              color: const Color(0xFF212121),
+            ),
           ),
           Positioned(
             bottom: 0,
             left: 30,
-            child: Container(width: 80, height: 6, color: const Color(0xFF424242)),
+            child: Container(
+              width: 80,
+              height: 6,
+              color: const Color(0xFF424242),
+            ),
           ),
-          
+
           // Swaying Heavy Bag
           Positioned(
             top: 4,
@@ -686,13 +774,23 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
                 decoration: BoxDecoration(
                   color: Colors.black87,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4), width: 1.5),
+                  border: Border.all(
+                    color: Colors.amberAccent.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Container(height: 1.5, color: Colors.amberAccent),
-                    const Text('MMA', style: TextStyle(color: Colors.white24, fontSize: 6, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'MMA',
+                      style: TextStyle(
+                        color: Colors.white24,
+                        fontSize: 6,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     Container(height: 1.5, color: Colors.amberAccent),
                   ],
                 ),
@@ -712,9 +810,15 @@ class _GymEnvironmentState extends State<GymEnvironment> with TickerProviderStat
                 decoration: BoxDecoration(
                   color: Colors.amberAccent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: Colors.amberAccent.withValues(alpha: 0.4),
+                  ),
                 ),
-                child: const Icon(Icons.sports_mma, color: Colors.amberAccent, size: 12),
+                child: const Icon(
+                  Icons.sports_mma,
+                  color: Colors.amberAccent,
+                  size: 12,
+                ),
               ),
             ),
           ),
@@ -732,12 +836,12 @@ class GridBackgroundPainter extends CustomPainter {
       ..strokeWidth = 1.0;
 
     const double step = 20.0;
-    
+
     // Draw vertical lines
     for (double x = 0; x < size.width; x += step) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
-    
+
     // Draw horizontal lines
     for (double y = 0; y < size.height; y += step) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
