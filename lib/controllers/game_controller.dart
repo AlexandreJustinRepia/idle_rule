@@ -45,6 +45,20 @@ class GameController extends ChangeNotifier {
   bool get hasGang => _gang != null;
   List<Ally> get gangMembers => List.unmodifiable(_gangMembers);
   int get gangMemberCapacity => hasGang ? _stats.gangCapacity : 0;
+  int get gangTotalPower =>
+      _gangMembers.fold(0, (total, member) => total + member.power);
+  int get gangAttackPower =>
+      _commandMembers.fold(0, (total, member) => total + member.power);
+  int get recruitCrewCost => 40 + (_gangMembers.length * 3);
+  int get trainCrewCost => _gangMembers
+      .where((member) => member.canTrain)
+      .fold(0, (total, member) => total + trainingCostFor(member));
+
+  List<Ally> get _commandMembers {
+    final sorted = [..._gangMembers]
+      ..sort((a, b) => b.power.compareTo(a.power));
+    return sorted.take(gangMemberCapacity).toList();
+  }
 
   bool get meetsGangRequirements =>
       _money >= GangCreationRequirements.moneyCost &&
@@ -87,14 +101,41 @@ class GameController extends ChangeNotifier {
     return true;
   }
 
-  bool recruitGangMember(Ally ally) {
-    if (!hasGang || gangMemberCapacity <= 0) return false;
-    if (_gangMembers.contains(ally)) return true;
-    if (_gangMembers.length >= gangMemberCapacity) {
-      _gangMembers.sort((a, b) => (a.atk + a.maxHp).compareTo(b.atk + b.maxHp));
-      _gangMembers.removeAt(0);
+  bool trainAllGangMembers() {
+    final trainableMembers = _gangMembers
+        .where((member) => member.canTrain)
+        .toList();
+    final cost = trainableMembers.fold(
+      0,
+      (total, member) => total + trainingCostFor(member),
+    );
+    if (trainableMembers.isEmpty || _money < cost) return false;
+
+    _money -= cost;
+    for (final member in trainableMembers) {
+      member.train();
     }
+    notifyListeners();
+    return true;
+  }
+
+  bool recruitGangMember(Ally ally) {
+    if (!hasGang) return false;
+    if (_gangMembers.contains(ally)) return true;
     _gangMembers.add(ally);
+    notifyListeners();
+    return true;
+  }
+
+  bool recruitCrewMembers({int count = 1}) {
+    if (!hasGang || count <= 0) return false;
+    final totalCost = recruitCrewCost * count;
+    if (_money < totalCost) return false;
+
+    _money -= totalCost;
+    for (var i = 0; i < count; i++) {
+      _gangMembers.add(_createCrewMember());
+    }
     notifyListeners();
     return true;
   }
@@ -136,8 +177,32 @@ class GameController extends ChangeNotifier {
     );
   }
 
+  Ally _createCrewMember() {
+    const crewNames = [
+      'Street Soldier',
+      'Corner Runner',
+      'Block Enforcer',
+      'Alley Scout',
+      'Rookie Guard',
+      'Turf Watcher',
+    ];
+    final name = crewNames[_random.nextInt(crewNames.length)];
+    final reputationBoost = (_stats.reputation / 25).floor().clamp(0, 8);
+    final hp = 24 + reputationBoost * 3 + _random.nextInt(10);
+    return Ally(
+      name: '$name ${_gangMembers.length + 1}',
+      hp: hp,
+      maxHp: hp,
+      atk: 2 + reputationBoost + _random.nextInt(3),
+      attackDelay: Duration(milliseconds: 1120 - reputationBoost * 25),
+      dodgeChance: 0.06 + reputationBoost * 0.008,
+      themeColor: _gang?.primaryColor ?? Colors.greenAccent,
+      maxTrainingLevel: 8,
+    );
+  }
+
   bool recruitRandomExclusiveMember() {
-    if (!hasGang || _gangMembers.length >= gangMemberCapacity) return false;
+    if (!hasGang) return false;
     const cost = 250;
     if (_money < cost) return false;
 
@@ -145,6 +210,26 @@ class GameController extends ChangeNotifier {
     _gangMembers.add(_createExclusiveMember());
     notifyListeners();
     return true;
+  }
+
+  double turfTakeoverChance(int territoryDefense) {
+    if (!hasGang || gangAttackPower <= 0) return 0;
+    final chance = gangAttackPower / (gangAttackPower + territoryDefense);
+    return chance.clamp(0.05, 0.95).toDouble();
+  }
+
+  bool attemptTurfTakeover(int territoryDefense) {
+    if (!hasGang || _gangMembers.isEmpty) return false;
+    final chance = turfTakeoverChance(territoryDefense);
+    final succeeded = _random.nextDouble() <= chance;
+    if (succeeded) {
+      gainStats(reputation: 3);
+      gainMoney((territoryDefense * 0.8).round());
+    } else {
+      _money = (_money - (territoryDefense * 0.12).round()).clamp(0, 999999);
+      notifyListeners();
+    }
+    return succeeded;
   }
 
   void gainStats({
@@ -173,6 +258,36 @@ class GameController extends ChangeNotifier {
 
   void gainMoney(int amount) {
     _money += amount;
+    notifyListeners();
+  }
+
+  void debugSetPlayerValues({
+    required int money,
+    required double strength,
+    required double speed,
+    required double endurance,
+    required double intelligence,
+    required double potential,
+    required double reputation,
+  }) {
+    final previousMaxStamina = _stats.maxStamina;
+    final previousMaxHunger = _stats.maxHunger;
+
+    _money = money.clamp(0, 999999).toInt();
+    _stats = PlayerStats(
+      strength: strength.clamp(0, PlayerStats.maxGradeValue).toDouble(),
+      speed: speed.clamp(0, PlayerStats.maxGradeValue).toDouble(),
+      endurance: endurance.clamp(0, PlayerStats.maxGradeValue).toDouble(),
+      intelligence: intelligence.clamp(0, PlayerStats.maxGradeValue).toDouble(),
+      potential: potential.clamp(0, PlayerStats.maxGradeValue).toDouble(),
+      reputation: reputation.clamp(0, PlayerStats.maxGradeValue).toDouble(),
+    );
+
+    _playerHealth = _playerHealth.clamp(0, _stats.maxHealth).toInt();
+    _playerStamina = (_playerStamina + (_stats.maxStamina - previousMaxStamina))
+        .clamp(0, _stats.maxStamina);
+    _playerHunger = (_playerHunger + (_stats.maxHunger - previousMaxHunger))
+        .clamp(0, _stats.maxHunger);
     notifyListeners();
   }
 

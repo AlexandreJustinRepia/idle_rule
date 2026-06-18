@@ -46,6 +46,7 @@ class Ally implements CombatEntity {
   });
 
   bool get canTrain => trainingLevel < maxTrainingLevel;
+  int get power => atk * 12 + maxHp + (dodgeChance * 100).round();
 
   void train() {
     if (!canTrain) return;

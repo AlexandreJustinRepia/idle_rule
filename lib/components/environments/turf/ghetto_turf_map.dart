@@ -13,6 +13,7 @@ const TurfMapData ghettoTurfMap = TurfMapData(
       widthFactor: 0.28,
       heightFactor: 0.18,
       color: Color(0xFF7E57C2),
+      defense: 260,
     ),
     TurfTerritory(
       id: 'block_corner',
@@ -22,6 +23,7 @@ const TurfMapData ghettoTurfMap = TurfMapData(
       widthFactor: 0.24,
       heightFactor: 0.16,
       color: Color(0xFFFB8C00),
+      defense: 140,
     ),
     TurfTerritory(
       id: 'graffiti_avenue',
@@ -31,6 +33,7 @@ const TurfMapData ghettoTurfMap = TurfMapData(
       widthFactor: 0.32,
       heightFactor: 0.20,
       color: Color(0xFF4FC3F7),
+      defense: 210,
     ),
     TurfTerritory(
       id: 'safe_house',
@@ -40,6 +43,7 @@ const TurfMapData ghettoTurfMap = TurfMapData(
       widthFactor: 0.24,
       heightFactor: 0.18,
       color: Color(0xFF66BB6A),
+      defense: 190,
     ),
     TurfTerritory(
       id: 'back_alley',
@@ -49,6 +53,7 @@ const TurfMapData ghettoTurfMap = TurfMapData(
       widthFactor: 0.28,
       heightFactor: 0.18,
       color: Color(0xFFE53935),
+      defense: 170,
     ),
   ],
 );

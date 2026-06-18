@@ -62,7 +62,7 @@ class PlayerStats {
   double get hitChance => 0.7 + (intelligence / (intelligence + 120)) * 0.28;
   double get counterMitigation => (intelligence / (intelligence + 250)) * 0.5;
 
-  int get gangCapacity => 1 + (reputation / 20).floor().clamp(0, 5);
+  int get gangCapacity => (5 + (reputation / 5).floor()).clamp(5, 250);
 
   static const List<_GradeBand> _gradeBands = [
     _GradeBand(2200, '???', Colors.white, Colors.deepPurpleAccent),

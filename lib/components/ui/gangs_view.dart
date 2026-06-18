@@ -135,9 +135,18 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
         controller.stats.reputation >=
         GangCreationRequirements.reputationRequired;
 
+    if (!meetsRequirements) {
+      return _buildLockedState(
+        money: controller.money,
+        reputation: controller.stats.reputation,
+        moneyMet: moneyMet,
+        repMet: repMet,
+      );
+    }
+
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 112, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 74, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -167,8 +176,8 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
               moneyMet: moneyMet,
               repMet: repMet,
             ),
-            const SizedBox(height: 20),
-            Center(child: GangBadge(gang: _previewGang, size: 96)),
+            const SizedBox(height: 16),
+            Center(child: GangBadge(gang: _previewGang, size: 84)),
             const SizedBox(height: 8),
             Text(
               _previewGang.name,
@@ -293,6 +302,81 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
                       : 'REQUIREMENTS NOT MET',
                   style: GoogleFonts.bebasNeue(fontSize: 20, letterSpacing: 3),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLockedState({
+    required int money,
+    required double reputation,
+    required bool moneyMet,
+    required bool repMet,
+  }) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 72, 20, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(
+              Icons.groups_2,
+              color: const Color(0xFFE24B4A).withValues(alpha: 0.75),
+              size: 30,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'FOUND YOUR GANG',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.bebasNeue(
+                fontSize: 28,
+                color: const Color(0xFFE24B4A),
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Earn enough money and reputation on the street to found your crew.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _buildRequirementsCard(
+              money: money,
+              reputation: reputation,
+              moneyMet: moneyMet,
+              repMet: repMet,
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111116),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.lock_outline, color: Colors.white38, size: 18),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Customization unlocks when both requirements are met.',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -533,11 +617,40 @@ class GangProfilePanel extends StatelessWidget {
             const SizedBox(height: 24),
             _buildInfoCard(
               icon: Icons.group,
-              title: 'MEMBER CAPACITY',
-              value: '${gameController.gangMembers.length}/$memberCapacity',
-              subtitle: 'Recruit from street fights or call exclusive members',
+              title: 'COMMAND SIZE',
+              value: '$memberCapacity',
+              subtitle:
+                  '${gameController.gangMembers.length} total members in roster',
               accent: gang.primaryColor,
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoCard(
+                    icon: Icons.bolt,
+                    title: 'ATTACK POWER',
+                    value: gameController.gangAttackPower.toString(),
+                    subtitle: 'Best members used for turf attacks',
+                    accent: const Color(0xFFE24B4A),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildInfoCard(
+                    icon: Icons.military_tech,
+                    title: 'TOTAL POWER',
+                    value: gameController.gangTotalPower.toString(),
+                    subtitle: 'Strength of every recruited member',
+                    accent: gang.accentColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildRecruitCrewCard(context),
+            const SizedBox(height: 12),
+            _buildTrainCrewCard(context),
             const SizedBox(height: 12),
             _buildRecruitExclusiveCard(context),
             const SizedBox(height: 12),
@@ -577,7 +690,7 @@ class GangProfilePanel extends StatelessWidget {
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
-                      'Head to the Street tab, win fights, and recruit defeated enemies into your gang.',
+                      'Recruit numbers, train them, then send your best command group to take turf.',
                       style: TextStyle(
                         color: Colors.white54,
                         fontSize: 11,
@@ -608,9 +721,7 @@ class GangProfilePanel extends StatelessWidget {
 
   Widget _buildRecruitExclusiveCard(BuildContext context) {
     const cost = 250;
-    final canRecruit =
-        gameController.money >= cost &&
-        gameController.gangMembers.length < memberCapacity;
+    final canRecruit = gameController.money >= cost;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -679,6 +790,145 @@ class GangProfilePanel extends StatelessWidget {
     );
   }
 
+  Widget _buildRecruitCrewCard(BuildContext context) {
+    const count = 5;
+    final cost = gameController.recruitCrewCost * count;
+    final canRecruit = gameController.money >= cost;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111116),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: gang.primaryColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.group_add, color: gang.primaryColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'RECRUIT CREW',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Bring in five regular members for turf jobs.',
+                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: canRecruit
+                ? () => gameController.recruitCrewMembers(count: count)
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: gang.primaryColor,
+              foregroundColor: gang.accentColor,
+              disabledBackgroundColor: Colors.white12,
+              disabledForegroundColor: Colors.white24,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'x$count \$$cost',
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrainCrewCard(BuildContext context) {
+    final cost = gameController.trainCrewCost;
+    final canTrain = cost > 0 && gameController.money >= cost;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111116),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: gang.accentColor.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: gang.accentColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.fitness_center,
+              color: gang.accentColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TRAIN ROSTER',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Upgrade every member who can still train.',
+                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: canTrain ? gameController.trainAllGangMembers : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: gang.accentColor,
+              foregroundColor: Colors.black,
+              disabledBackgroundColor: Colors.white12,
+              disabledForegroundColor: Colors.white24,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              cost > 0 ? '\$$cost' : 'MAX',
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmptyMembersCard() {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -688,7 +938,7 @@ class GangProfilePanel extends StatelessWidget {
         border: Border.all(color: Colors.white10),
       ),
       child: const Text(
-        'No members yet. Recruit defeated enemies from Street or buy an exclusive recruit.',
+        'No members yet. Recruit a crew, recruit defeated enemies from Street, or buy an exclusive leader.',
         style: TextStyle(color: Colors.white38, fontSize: 11, height: 1.4),
       ),
     );
@@ -741,7 +991,7 @@ class GangProfilePanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'ATK ${member.atk}  HP ${member.maxHp}  TRAIN ${member.trainingLevel}/${member.maxTrainingLevel}',
+                  'PWR ${member.power}  ATK ${member.atk}  HP ${member.maxHp}  TRAIN ${member.trainingLevel}/${member.maxTrainingLevel}',
                   style: const TextStyle(color: Colors.white38, fontSize: 10),
                 ),
                 const SizedBox(height: 6),

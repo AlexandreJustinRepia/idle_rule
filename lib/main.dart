@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'components/navigation/custom_navbar.dart';
 import 'components/navigation/custom_bottom_navbar.dart';
+import 'components/ui/debug_stats_modal.dart';
 import 'components/ui/stats_panel.dart';
 import 'components/ui/gangs_view.dart';
 import 'components/ui/shop_view.dart';
@@ -130,6 +131,11 @@ class _GameScreen extends StatelessWidget {
           appBar: CustomNavbar(
             money: gameController.money,
             playerName: gameController.playerName,
+            onMenuPressed: () => showDialog(
+              context: context,
+              builder: (context) =>
+                  DebugStatsModal(gameController: gameController),
+            ),
           ),
           bottomNavigationBar: CustomBottomNavbar(
             currentIndex: currentTabIndex,
@@ -178,7 +184,7 @@ class _GameScreen extends StatelessWidget {
                         onNeedsRecovered: gameController.recoverNeeds,
                       ),
                       ShopView(gameController: gameController),
-                      const TurfScreen(),
+                      TurfScreen(gameController: gameController),
                       GangsView(gameController: gameController),
                     ],
                   ),

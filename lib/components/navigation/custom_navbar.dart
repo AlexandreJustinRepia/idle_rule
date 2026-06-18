@@ -4,11 +4,13 @@ import '../ui/profile_edit_modal.dart';
 class CustomNavbar extends StatefulWidget implements PreferredSizeWidget {
   final int money;
   final String? playerName;
+  final VoidCallback? onMenuPressed;
 
   const CustomNavbar({
     super.key,
     this.money = 0,
     this.playerName,
+    this.onMenuPressed,
   });
 
   @override
@@ -62,7 +64,12 @@ class _CustomNavbarState extends State<CustomNavbar> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 24.0, bottom: 8.0),
+        padding: const EdgeInsets.only(
+          left: 16.0,
+          right: 16.0,
+          top: 24.0,
+          bottom: 8.0,
+        ),
         child: Container(
           decoration: BoxDecoration(
             color: const Color(0xFF111111),
@@ -94,27 +101,44 @@ class _CustomNavbarState extends State<CustomNavbar> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1A1A1A),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE24B4A).withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: const Color(0xFFE24B4A).withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.attach_money, size: 18, color: Color(0xFFE24B4A)),
+                    const Icon(
+                      Icons.attach_money,
+                      size: 18,
+                      color: Color(0xFFE24B4A),
+                    ),
                     const SizedBox(width: 4),
                     Text(
-                      widget.money.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.0),
+                      widget.money.toString().replaceAllMapped(
+                        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                        (Match m) => '${m[1]},',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1.0,
+                      ),
                     ),
                   ],
                 ),
               ),
               IconButton(
                 icon: const Icon(Icons.menu, color: Colors.white),
-                onPressed: () {},
+                onPressed: widget.onMenuPressed,
               ),
             ],
           ),
