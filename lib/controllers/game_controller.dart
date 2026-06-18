@@ -70,6 +70,13 @@ class GameController extends ChangeNotifier {
   bool get hasGang => _gang != null;
   List<Ally> get gangMembers => List.unmodifiable(_gangMembers);
   int get gangMemberCapacity => hasGang ? _stats.gangCapacity : 0;
+  /// Count of regular (non-exclusive) members against the cap
+  int get regularMemberCount =>
+      _gangMembers.where((m) => !m.isExclusive).length;
+  /// Exclusive leaders are bonus — capped separately at 3
+  int get exclusiveMemberCount =>
+      _gangMembers.where((m) => m.isExclusive).length;
+  bool get canRecruitExclusive => hasGang && exclusiveMemberCount < 3;
   List<Ally> get activeStreetGangMembers {
     final streetMembers = _gangMembers
         .where((member) => member.isStreetRecruit)
@@ -236,12 +243,16 @@ class GameController extends ChangeNotifier {
     if (!hasGang || gangMemberCapacity <= 0) return false;
     if (_gangMembers.contains(ally)) return true;
 
-    final streetMembers = _gangMembers
-        .where((member) => member.isStreetRecruit)
-        .toList();
-    if (streetMembers.length >= gangMemberCapacity) {
-      streetMembers.sort((a, b) => a.power.compareTo(b.power));
-      _gangMembers.remove(streetMembers.first);
+    // Exclusive members are not capped by gangCapacity
+    if (!ally.isExclusive) {
+      final regularMembers = _gangMembers
+          .where((member) => !member.isExclusive)
+          .toList();
+      if (regularMembers.length >= gangMemberCapacity) {
+        // Replace weakest non-exclusive member
+        regularMembers.sort((a, b) => a.power.compareTo(b.power));
+        _gangMembers.remove(regularMembers.first);
+      }
     }
 
     _gangMembers.add(ally);
@@ -366,7 +377,7 @@ class GameController extends ChangeNotifier {
   }
 
   bool recruitRandomExclusiveMember() {
-    if (!hasGang) return false;
+    if (!hasGang || !canRecruitExclusive) return false;
     const cost = 250;
     if (_money < cost) return false;
 
@@ -374,6 +385,26 @@ class GameController extends ChangeNotifier {
     _gangMembers.add(_createExclusiveMember());
     notifyListeners();
     return true;
+  }
+
+  /// Recruit a specific pre-generated exclusive member at a given cost.
+  bool recruitSpecificExclusiveMember(Ally member, int cost) {
+    if (!hasGang || !canRecruitExclusive) return false;
+    if (_money < cost) return false;
+
+    _money -= cost;
+    _gangMembers.add(member);
+    notifyListeners();
+    return true;
+  }
+
+  /// Generate a pool of exclusive recruit candidates for the browse page.
+  List<({Ally ally, int cost})> generateExclusiveCandidates(int count) {
+    return List.generate(count, (_) {
+      final ally = _createExclusiveMember();
+      final cost = 200 + ally.power ~/ 3;
+      return (ally: ally, cost: cost);
+    });
   }
 
   double turfTakeoverChance(int territoryDefense) {

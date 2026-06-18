@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/game_controller.dart';
 import '../../game_state.dart';
+import 'exclusive_recruit_page.dart';
 
 class GangsView extends StatelessWidget {
   final GameController gameController;
@@ -864,72 +865,93 @@ class GangProfilePanel extends StatelessWidget {
   }
 
   Widget _buildRecruitExclusiveCard(BuildContext context) {
-    const cost = 250;
-    final canRecruit = gameController.money >= cost;
+    final exclusiveCount = gameController.exclusiveMemberCount;
+    final canRecruit = gameController.canRecruitExclusive;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111116),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: gang.primaryColor.withValues(alpha: 0.3)),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              ExclusiveRecruitPage(gameController: gameController),
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.workspace_premium, color: gang.primaryColor, size: 24),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'EXCLUSIVE RECRUIT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'Call in a random named leader-grade member.',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
-                ),
-              ],
-            ),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              gang.primaryColor.withValues(alpha: 0.18),
+              const Color(0xFF111116),
+            ],
           ),
-          ElevatedButton(
-            onPressed: canRecruit
-                ? () {
-                    final recruited = gameController
-                        .recruitRandomExclusiveMember();
-                    if (recruited) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('EXCLUSIVE MEMBER RECRUITED'),
-                          duration: Duration(milliseconds: 900),
-                        ),
-                      );
-                    }
-                  }
-                : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: gang.primaryColor,
-              foregroundColor: gang.accentColor,
-              disabledBackgroundColor: Colors.white12,
-              disabledForegroundColor: Colors.white24,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: gang.primaryColor.withValues(alpha: 0.5),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    gang.primaryColor,
+                    gang.primaryColor.withValues(alpha: 0.6),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: gang.primaryColor.withValues(alpha: 0.4),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.workspace_premium,
+                color: gang.accentColor,
+                size: 22,
               ),
             ),
-            child: const Text(
-              '\$250',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'EXCLUSIVE LEADERS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    canRecruit
+                        ? 'Browse & recruit elite leaders ($exclusiveCount/3)'
+                        : 'Exclusive slots full (3/3)',
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Icon(
+              Icons.chevron_right,
+              color: gang.primaryColor.withValues(alpha: 0.7),
+              size: 22,
+            ),
+          ],
+        ),
       ),
     );
   }
