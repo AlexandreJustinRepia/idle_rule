@@ -45,8 +45,8 @@ class GhettoEnemyUnit extends StatelessWidget {
       alignment: Alignment.bottomRight,
       child: Padding(
         padding: EdgeInsets.only(
-          bottom: 45.0, 
-          right: 60.0 + (index * 50.0), // Offset based on index
+          bottom: 48.0 + ((index % 2 == 0) ? 10.0 : -4.0), // Stagger vertically for depth
+          right: (60.0 + (index * 12.0)).clamp(0.0, 200.0), // Formation behind the front enemy
         ),
         child: AnimatedBuilder(
           animation: Listenable.merge([attackAnimation, enemyAttackAnimation, deathAnimation, enemyChargeController, idleAnimation]),

@@ -153,27 +153,33 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Name + ATK row
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isBoss ? 'BOSS: ${enemy.name}' : enemy.name,
-              style: TextStyle(
-                color: displayColor,
-                fontWeight: FontWeight.bold,
-                fontSize: isBoss ? 13 : 11,
+        SizedBox(
+          width: barW,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  isBoss ? 'BOSS: ${enemy.name}' : enemy.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: displayColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: isBoss ? 13 : 10,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'ATK: ${enemy.damage}',
-              style: TextStyle(
-                color: displayColor.withValues(alpha: 0.7),
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
+              const SizedBox(width: 4),
+              Text(
+                '${enemy.damage}',
+                style: TextStyle(
+                  color: displayColor.withValues(alpha: 0.7),
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         if (enemy.type != EnemyType.regular)
           Text(

@@ -33,8 +33,8 @@ class GhettoAllyUnit extends StatelessWidget {
       alignment: Alignment.bottomLeft,
       child: Padding(
         padding: EdgeInsets.only(
-          bottom: 45.0, 
-          left: 15.0 + (index * 40.0), // Offset based on index
+          bottom: 48.0 + ((index % 2 == 0) ? 10.0 : -4.0), // Stagger vertically for depth
+          left: (40.0 - (index + 1) * 12.0).clamp(0.0, 60.0), // Behind the leader (hero is at left: 60)
         ),
         child: AnimatedBuilder(
           animation: Listenable.merge([

@@ -77,6 +77,7 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
   Color _primaryColor = GangColorPresets.primary.first;
   Color _accentColor = GangColorPresets.accent.first;
   String? _error;
+  bool _showCreationForm = false;
 
   @override
   void dispose() {
@@ -135,48 +136,32 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
         controller.stats.reputation >=
         GangCreationRequirements.reputationRequired;
 
-    if (!meetsRequirements) {
+    if (!meetsRequirements || !_showCreationForm) {
       return _buildLockedState(
         money: controller.money,
         reputation: controller.stats.reputation,
         moneyMet: moneyMet,
         repMet: repMet,
+        meetsRequirements: meetsRequirements,
       );
     }
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 74, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 52, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'FOUND YOUR GANG',
+              'CREATE YOUR GANG',
               textAlign: TextAlign.center,
               style: GoogleFonts.bebasNeue(
-                fontSize: 28,
-                color: const Color(0xFFE24B4A),
+                fontSize: 26,
+                color: Colors.white,
                 letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Earn enough money and reputation on the street to found your crew.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildRequirementsCard(
-              money: controller.money,
-              reputation: controller.stats.reputation,
-              moneyMet: moneyMet,
-              repMet: repMet,
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Center(child: GangBadge(gang: _previewGang, size: 84)),
             const SizedBox(height: 8),
             Text(
@@ -315,24 +300,25 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
     required double reputation,
     required bool moneyMet,
     required bool repMet,
+    required bool meetsRequirements,
   }) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 72, 20, 10),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 48, 20, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Icon(
               Icons.groups_2,
               color: const Color(0xFFE24B4A).withValues(alpha: 0.75),
-              size: 30,
+              size: 26,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               'FOUND YOUR GANG',
               textAlign: TextAlign.center,
               style: GoogleFonts.bebasNeue(
-                fontSize: 28,
+                fontSize: 26,
                 color: const Color(0xFFE24B4A),
                 letterSpacing: 2,
               ),
@@ -344,19 +330,19 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
               style: TextStyle(
                 color: Colors.white54,
                 fontSize: 12,
-                height: 1.3,
+                height: 1.2,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             _buildRequirementsCard(
               money: money,
               reputation: reputation,
               moneyMet: moneyMet,
               repMet: repMet,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.all(11),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: const Color(0xFF111116),
                 borderRadius: BorderRadius.circular(10),
@@ -371,12 +357,36 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
                       'Customization unlocks when both requirements are met.',
                       style: TextStyle(
                         color: Colors.white54,
-                        fontSize: 11,
-                        height: 1.3,
+                        fontSize: 10,
+                        height: 1.2,
                       ),
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: meetsRequirements
+                    ? () => setState(() => _showCreationForm = true)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE24B4A),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.white12,
+                  disabledForegroundColor: Colors.white24,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  meetsRequirements ? 'CREATE GANG' : 'REQUIREMENTS NOT MET',
+                  style: GoogleFonts.bebasNeue(fontSize: 19, letterSpacing: 3),
+                ),
               ),
             ),
           ],
@@ -404,7 +414,7 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
     required bool repMet,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF111116),
         borderRadius: BorderRadius.circular(12),
@@ -426,7 +436,7 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
               letterSpacing: 2,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _buildRequirementRow(
             icon: Icons.attach_money,
             label: 'MONEY',
@@ -438,7 +448,7 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
               1.0,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _buildRequirementRow(
             icon: Icons.star,
             label: 'REPUTATION',
@@ -615,6 +625,8 @@ class GangProfilePanel extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
+            _buildBuildingCard(),
+            const SizedBox(height: 12),
             _buildInfoCard(
               icon: Icons.group,
               title: 'COMMAND SIZE',
@@ -648,11 +660,11 @@ class GangProfilePanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            _buildRecruitCrewCard(context),
-            const SizedBox(height: 12),
-            _buildTrainCrewCard(context),
-            const SizedBox(height: 12),
             _buildRecruitExclusiveCard(context),
+            const SizedBox(height: 12),
+            _buildRecruitTiersSection(context),
+            const SizedBox(height: 12),
+            _buildFormationCard(),
             const SizedBox(height: 12),
             if (gameController.gangMembers.isEmpty)
               _buildEmptyMembersCard()
@@ -715,6 +727,138 @@ class GangProfilePanel extends StatelessWidget {
         color: color,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white24),
+      ),
+    );
+  }
+
+  Widget _buildBuildingCard() {
+    final canLevelUp =
+        gameController.money >= gameController.upgradeGangBuildingCost;
+    final canAdvance =
+        gameController.canAdvanceGangBuilding &&
+        gameController.money >= gameController.advanceGangBuildingCost;
+    final nextStageIndex = (gameController.gangBuildingStage + 1).clamp(
+      0,
+      GangBuildings.stages.length - 1,
+    );
+    final nextStage = GangBuildings.stages[nextStageIndex];
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111116),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: gang.primaryColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: gang.primaryColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.apartment,
+                  color: gang.primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      gameController.gangBuildingName.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'LV. ${gameController.gangBuildingLevel}',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                onPressed: canLevelUp
+                    ? gameController.upgradeGangBuilding
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: gang.primaryColor,
+                  foregroundColor: gang.accentColor,
+                  disabledBackgroundColor: Colors.white12,
+                  disabledForegroundColor: Colors.white24,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  '\$${gameController.upgradeGangBuildingCost}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (gameController.gangBuildingStage <
+              GangBuildings.stages.length - 1) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    gameController.canAdvanceGangBuilding
+                        ? 'READY TO UPGRADE INTO ${nextStage.name.toUpperCase()}'
+                        : '${nextStage.name.toUpperCase()} UNLOCKS AT LV.${nextStage.minLevel}',
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton(
+                  onPressed: canAdvance
+                      ? gameController.advanceGangBuildingStage
+                      : null,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: gang.primaryColor,
+                    disabledForegroundColor: Colors.white24,
+                    side: BorderSide(
+                      color: gameController.canAdvanceGangBuilding
+                          ? gang.primaryColor
+                          : Colors.white12,
+                    ),
+                  ),
+                  child: Text('\$${gameController.advanceGangBuildingCost}'),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -790,17 +934,82 @@ class GangProfilePanel extends StatelessWidget {
     );
   }
 
-  Widget _buildRecruitCrewCard(BuildContext context) {
+  Widget _buildRecruitTiersSection(BuildContext context) {
+    final job = gameController.gangTrainingJob;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (job != null) ...[
+          _buildTrainingJobCard(job),
+          const SizedBox(height: 10),
+        ],
+        ...RecruitTiers.all.map(
+          (tier) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _buildRecruitTierCard(tier),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrainingJobCard(GangTrainingJob job) {
+    final remaining = _formatDuration(job.remaining);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16161C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF34C759).withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.timer, color: Color(0xFF34C759), size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'TRAINING ${job.count}x ${job.tier.name.toUpperCase()}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          Text(
+            remaining == '0s' ? 'DONE' : remaining,
+            style: const TextStyle(
+              color: Color(0xFF34C759),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecruitTierCard(RecruitTier tier) {
     const count = 5;
-    final cost = gameController.recruitCrewCost * count;
-    final canRecruit = gameController.money >= cost;
+    final unlocked = gameController.isRecruitTierUnlocked(tier);
+    final busy = gameController.gangTrainingJob != null;
+    final cost = tier.cost * count;
+    final canTrain = unlocked && !busy && gameController.money >= cost;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF111116),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(
+          color: unlocked
+              ? gang.primaryColor.withValues(alpha: 0.25)
+              : Colors.white10,
+        ),
       ),
       child: Row(
         children: [
@@ -808,36 +1017,48 @@ class GangProfilePanel extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: gang.primaryColor.withValues(alpha: 0.15),
+              color: unlocked
+                  ? gang.primaryColor.withValues(alpha: 0.15)
+                  : Colors.white10,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.group_add, color: gang.primaryColor, size: 20),
+            child: Center(
+              child: Text(
+                'T${tier.tier}',
+                style: TextStyle(
+                  color: unlocked ? gang.primaryColor : Colors.white30,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'RECRUIT CREW',
+                  tier.name.toUpperCase(),
                   style: TextStyle(
-                    color: Colors.white,
+                    color: unlocked ? Colors.white : Colors.white38,
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
                     letterSpacing: 1.5,
                   ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
-                  'Bring in five regular members for turf jobs.',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                  unlocked
+                      ? '${tier.description}  ${_formatDuration(tier.trainingTime)} batch'
+                      : 'Unlock: ${tier.unlockText}',
+                  style: const TextStyle(color: Colors.white38, fontSize: 10),
                 ),
               ],
             ),
           ),
           ElevatedButton(
-            onPressed: canRecruit
-                ? () => gameController.recruitCrewMembers(count: count)
+            onPressed: canTrain
+                ? () => gameController.startRecruitTraining(tier, count: count)
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: gang.primaryColor,
@@ -859,74 +1080,129 @@ class GangProfilePanel extends StatelessWidget {
     );
   }
 
-  Widget _buildTrainCrewCard(BuildContext context) {
-    final cost = gameController.trainCrewCost;
-    final canTrain = cost > 0 && gameController.money >= cost;
+  Widget _buildFormationCard() {
+    final formationSize = gameController.gangFormationSize;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF111116),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: gang.accentColor.withValues(alpha: 0.25)),
+        border: Border.all(
+          color: const Color(0xFFE24B4A).withValues(alpha: 0.3),
+        ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: gang.accentColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              Icons.fitness_center,
-              color: gang.accentColor,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TRAIN ROSTER',
-                  style: TextStyle(
+          Row(
+            children: [
+              const Icon(
+                Icons.account_tree,
+                color: Color(0xFFE24B4A),
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'FORMATION $formationSize / $memberCapacity',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
                     letterSpacing: 1.5,
                   ),
                 ),
-                SizedBox(height: 3),
-                Text(
-                  'Upgrade every member who can still train.',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
-                ),
-              ],
-            ),
+              ),
+              TextButton(
+                onPressed: formationSize > 0
+                    ? gameController.clearFormation
+                    : null,
+                child: const Text('CLEAR'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: canTrain ? gameController.trainAllGangMembers : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: gang.accentColor,
-              foregroundColor: Colors.black,
-              disabledBackgroundColor: Colors.white12,
-              disabledForegroundColor: Colors.white24,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          const SizedBox(height: 8),
+          ...RecruitTiers.all.map(_buildFormationTierRow),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormationTierRow(RecruitTier tier) {
+    final available = gameController.gangTierCounts[tier.tier] ?? 0;
+    final selected = gameController.formationCounts[tier.tier] ?? 0;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'T${tier.tier} ${tier.name.toUpperCase()}',
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
               ),
             ),
-            child: Text(
-              cost > 0 ? '\$$cost' : 'MAX',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+          ),
+          Text(
+            '$selected / $available',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
             ),
+          ),
+          const SizedBox(width: 8),
+          _buildFormationButton(
+            Icons.remove,
+            selected > 0
+                ? () =>
+                      gameController.setFormationCount(tier.tier, selected - 1)
+                : null,
+          ),
+          const SizedBox(width: 6),
+          _buildFormationButton(
+            Icons.add,
+            available > selected &&
+                    gameController.gangFormationSize < memberCapacity
+                ? () =>
+                      gameController.setFormationCount(tier.tier, selected + 1)
+                : null,
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildFormationButton(IconData icon, VoidCallback? onPressed) {
+    return SizedBox(
+      width: 30,
+      height: 30,
+      child: IconButton(
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        icon: Icon(icon, size: 16),
+        style: IconButton.styleFrom(
+          backgroundColor: const Color(0xFF16161C),
+          disabledBackgroundColor: Colors.white10,
+          foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.white24,
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    if (duration.inMinutes >= 1) {
+      final minutes = duration.inMinutes;
+      final seconds = duration.inSeconds.remainder(60);
+      return seconds == 0 ? '${minutes}m' : '${minutes}m ${seconds}s';
+    }
+    return '${duration.inSeconds}s';
   }
 
   Widget _buildEmptyMembersCard() {
@@ -947,6 +1223,12 @@ class GangProfilePanel extends StatelessWidget {
   Widget _buildMemberCard(Ally member) {
     final cost = gameController.trainingCostFor(member);
     final canTrain = member.canTrain && gameController.money >= cost;
+    final currentTier = RecruitTiers.byTier(member.tier);
+    final nextTier = gameController.nextRecruitTierFor(member);
+    final promotionCost = gameController.promotionCostFor(member);
+    final canPromote =
+        gameController.canPromoteGangMember(member) &&
+        gameController.money >= promotionCost;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -991,6 +1273,18 @@ class GangProfilePanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
+                  member.isExclusive
+                      ? 'EXCLUSIVE LEADER'
+                      : 'T${currentTier.tier} ${currentTier.name.toUpperCase()}',
+                  style: TextStyle(
+                    color: member.themeColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
                   'PWR ${member.power}  ATK ${member.atk}  HP ${member.maxHp}  TRAIN ${member.trainingLevel}/${member.maxTrainingLevel}',
                   style: const TextStyle(color: Colors.white38, fontSize: 10),
                 ),
@@ -1015,6 +1309,8 @@ class GangProfilePanel extends StatelessWidget {
           ElevatedButton(
             onPressed: canTrain
                 ? () => gameController.trainGangMember(member)
+                : canPromote
+                ? () => gameController.promoteGangMember(member)
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: member.themeColor,
@@ -1028,7 +1324,11 @@ class GangProfilePanel extends StatelessWidget {
               ),
             ),
             child: Text(
-              member.canTrain ? '\$$cost' : 'MAX',
+              member.canTrain
+                  ? '\$$cost'
+                  : canPromote
+                  ? 'T${nextTier!.tier} \$$promotionCost'
+                  : 'MAX',
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
             ),
           ),

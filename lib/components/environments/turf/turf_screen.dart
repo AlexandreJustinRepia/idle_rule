@@ -72,7 +72,7 @@ class _TurfScreenState extends State<TurfScreen> {
     final canAttack =
         !isConquered &&
         widget.gameController.hasGang &&
-        widget.gameController.gangMembers.isNotEmpty;
+        widget.gameController.gangFormationSize > 0;
 
     return SafeArea(
       top: true,
@@ -198,7 +198,9 @@ class _TurfScreenState extends State<TurfScreen> {
                         isConquered
                             ? 'TERRITORY SECURED'
                             : widget.gameController.hasGang
-                            ? 'SEND GANG'
+                            ? widget.gameController.gangFormationSize > 0
+                                  ? 'SEND FORMATION'
+                                  : 'ASSEMBLE FORMATION'
                             : 'CREATE A GANG FIRST',
                         style: const TextStyle(
                           fontSize: 14,

@@ -253,8 +253,19 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
           widget.stats,
         );
         _enemies.add(enemy);
-        _enemyOriginalIndices[enemy] = i;
-        if (i == 0) mainName = enemy.name;
+      }
+
+      // Sort enemies so the strongest is at the front (index 0)
+      _enemies.sort((a, b) {
+        final powerA = a.damage + a.health;
+        final powerB = b.damage + b.health;
+        return powerB.compareTo(powerA);
+      });
+
+      // Reassign indices after sorting
+      for (int i = 0; i < _enemies.length; i++) {
+        _enemyOriginalIndices[_enemies[i]] = i;
+        if (i == 0) mainName = _enemies[i].name;
       }
     }
 

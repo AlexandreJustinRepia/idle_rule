@@ -2,6 +2,25 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../game_state.dart';
 
+class GangTrainingJob {
+  final RecruitTier tier;
+  final int count;
+  final DateTime completesAt;
+
+  const GangTrainingJob({
+    required this.tier,
+    required this.count,
+    required this.completesAt,
+  });
+
+  Duration get remaining {
+    final left = completesAt.difference(DateTime.now());
+    return left.isNegative ? Duration.zero : left;
+  }
+
+  bool get isComplete => remaining == Duration.zero;
+}
+
 class GameController extends ChangeNotifier {
   static final math.Random _random = math.Random();
 
@@ -16,6 +35,12 @@ class GameController extends ChangeNotifier {
   CharacterClass _characterClass = CharacterClasses.allClasses.first;
   Gang? _gang;
   final List<Ally> _gangMembers = [];
+  int _gangBuildingStage = 0;
+  int _gangBuildingLevel = 1;
+  GangTrainingJob? _gangTrainingJob;
+  final Map<int, int> _formationCounts = {
+    for (final tier in RecruitTiers.all) tier.tier: 0,
+  };
 
   GameController({
     String playerName = '',
@@ -45,19 +70,53 @@ class GameController extends ChangeNotifier {
   bool get hasGang => _gang != null;
   List<Ally> get gangMembers => List.unmodifiable(_gangMembers);
   int get gangMemberCapacity => hasGang ? _stats.gangCapacity : 0;
+  List<Ally> get activeStreetGangMembers {
+    final streetMembers = _gangMembers
+        .where((member) => member.isStreetRecruit)
+        .toList()
+      ..sort((a, b) => b.power.compareTo(a.power));
+    return List.unmodifiable(streetMembers.take(gangMemberCapacity));
+  }
   int get gangTotalPower =>
       _gangMembers.fold(0, (total, member) => total + member.power);
   int get gangAttackPower =>
-      _commandMembers.fold(0, (total, member) => total + member.power);
+      _formationMembers.fold(0, (total, member) => total + member.power);
+  int get gangFormationSize =>
+      _formationCounts.values.fold(0, (total, count) => total + count);
+  int get gangBuildingStage => _gangBuildingStage;
+  int get gangBuildingLevel => _gangBuildingLevel;
+  String get gangBuildingName => GangBuildings.stages[_gangBuildingStage].name;
+  GangTrainingJob? get gangTrainingJob => _gangTrainingJob;
+  int get upgradeGangBuildingCost =>
+      120 + (_gangBuildingLevel * 80 * (_gangBuildingStage + 1));
+  bool get canAdvanceGangBuilding =>
+      _gangBuildingStage < GangBuildings.stages.length - 1 &&
+      _gangBuildingLevel >=
+          GangBuildings.stages[_gangBuildingStage + 1].minLevel;
+  int get advanceGangBuildingCost => 500 * (_gangBuildingStage + 1);
   int get recruitCrewCost => 40 + (_gangMembers.length * 3);
   int get trainCrewCost => _gangMembers
       .where((member) => member.canTrain)
       .fold(0, (total, member) => total + trainingCostFor(member));
 
-  List<Ally> get _commandMembers {
-    final sorted = [..._gangMembers]
-      ..sort((a, b) => b.power.compareTo(a.power));
-    return sorted.take(gangMemberCapacity).toList();
+  Map<int, int> get gangTierCounts => {
+    for (final tier in RecruitTiers.all)
+      tier.tier: _gangMembers
+          .where((member) => member.tier == tier.tier)
+          .length,
+  };
+
+  Map<int, int> get formationCounts => Map.unmodifiable(_formationCounts);
+
+  List<Ally> get _formationMembers {
+    final selected = <Ally>[];
+    for (final entry in _formationCounts.entries) {
+      final members =
+          _gangMembers.where((member) => member.tier == entry.key).toList()
+            ..sort((a, b) => b.power.compareTo(a.power));
+      selected.addAll(members.take(entry.value));
+    }
+    return selected;
   }
 
   bool get meetsGangRequirements =>
@@ -87,8 +146,62 @@ class GameController extends ChangeNotifier {
     return true;
   }
 
+  bool isRecruitTierUnlocked(RecruitTier tier) {
+    return tier.isUnlocked(_gangBuildingStage, _gangBuildingLevel);
+  }
+
+  bool upgradeGangBuilding() {
+    if (!hasGang || _money < upgradeGangBuildingCost) return false;
+    _money -= upgradeGangBuildingCost;
+    _gangBuildingLevel++;
+    notifyListeners();
+    return true;
+  }
+
+  bool advanceGangBuildingStage() {
+    if (!hasGang || !canAdvanceGangBuilding) return false;
+    if (_money < advanceGangBuildingCost) return false;
+    _money -= advanceGangBuildingCost;
+    _gangBuildingStage++;
+    notifyListeners();
+    return true;
+  }
+
   int trainingCostFor(Ally ally) =>
       (ally.isExclusive ? 90 : 55) * (ally.trainingLevel + 1);
+
+  RecruitTier? nextRecruitTierFor(Ally ally) {
+    if (ally.isExclusive || ally.tier >= RecruitTiers.all.length) return null;
+    return RecruitTiers.byTier(ally.tier + 1);
+  }
+
+  int promotionCostFor(Ally ally) {
+    final nextTier = nextRecruitTierFor(ally);
+    if (nextTier == null) return 0;
+    return nextTier.cost * 2;
+  }
+
+  bool canPromoteGangMember(Ally ally) {
+    final nextTier = nextRecruitTierFor(ally);
+    return nextTier != null &&
+        _gangMembers.contains(ally) &&
+        !ally.canTrain &&
+        isRecruitTierUnlocked(nextTier);
+  }
+
+  bool promoteGangMember(Ally ally) {
+    if (!canPromoteGangMember(ally)) return false;
+    final nextTier = nextRecruitTierFor(ally);
+    if (nextTier == null) return false;
+    final cost = promotionCostFor(ally);
+    if (_money < cost) return false;
+
+    _money -= cost;
+    ally.promoteTo(nextTier);
+    _clampFormationToRoster();
+    notifyListeners();
+    return true;
+  }
 
   bool trainGangMember(Ally ally) {
     if (!_gangMembers.contains(ally) || !ally.canTrain) return false;
@@ -120,8 +233,17 @@ class GameController extends ChangeNotifier {
   }
 
   bool recruitGangMember(Ally ally) {
-    if (!hasGang) return false;
+    if (!hasGang || gangMemberCapacity <= 0) return false;
     if (_gangMembers.contains(ally)) return true;
+
+    final streetMembers = _gangMembers
+        .where((member) => member.isStreetRecruit)
+        .toList();
+    if (streetMembers.length >= gangMemberCapacity) {
+      streetMembers.sort((a, b) => a.power.compareTo(b.power));
+      _gangMembers.remove(streetMembers.first);
+    }
+
     _gangMembers.add(ally);
     notifyListeners();
     return true;
@@ -138,6 +260,52 @@ class GameController extends ChangeNotifier {
     }
     notifyListeners();
     return true;
+  }
+
+  bool startRecruitTraining(RecruitTier tier, {int count = 1}) {
+    _completeGangTrainingIfReady();
+    if (!hasGang || count <= 0 || _gangTrainingJob != null) return false;
+    if (!isRecruitTierUnlocked(tier)) return false;
+
+    final cost = tier.cost * count;
+    if (_money < cost) return false;
+
+    _money -= cost;
+    final duration = tier.trainingTime;
+    final completesAt = DateTime.now().add(duration);
+    _gangTrainingJob = GangTrainingJob(
+      tier: tier,
+      count: count,
+      completesAt: completesAt,
+    );
+    Future.delayed(duration, () {
+      if (_gangTrainingJob?.completesAt == completesAt) {
+        _finishGangTraining();
+      }
+    });
+    notifyListeners();
+    return true;
+  }
+
+  bool collectGangTraining() {
+    _completeGangTrainingIfReady();
+    return _gangTrainingJob == null;
+  }
+
+  void _completeGangTrainingIfReady() {
+    final job = _gangTrainingJob;
+    if (job == null || !job.isComplete) return;
+    _finishGangTraining();
+  }
+
+  void _finishGangTraining() {
+    final job = _gangTrainingJob;
+    if (job == null) return;
+    for (var i = 0; i < job.count; i++) {
+      _gangMembers.add(_createCrewMember(tier: job.tier));
+    }
+    _gangTrainingJob = null;
+    notifyListeners();
   }
 
   void dismissGangMember(Ally ally) {
@@ -177,27 +345,23 @@ class GameController extends ChangeNotifier {
     );
   }
 
-  Ally _createCrewMember() {
-    const crewNames = [
-      'Street Soldier',
-      'Corner Runner',
-      'Block Enforcer',
-      'Alley Scout',
-      'Rookie Guard',
-      'Turf Watcher',
-    ];
-    final name = crewNames[_random.nextInt(crewNames.length)];
+  Ally _createCrewMember({RecruitTier? tier}) {
+    final recruitTier = tier ?? RecruitTiers.all.first;
+    final name = recruitTier.name;
     final reputationBoost = (_stats.reputation / 25).floor().clamp(0, 8);
-    final hp = 24 + reputationBoost * 3 + _random.nextInt(10);
+    final hp = recruitTier.baseHp + reputationBoost * 3 + _random.nextInt(10);
     return Ally(
       name: '$name ${_gangMembers.length + 1}',
       hp: hp,
       maxHp: hp,
-      atk: 2 + reputationBoost + _random.nextInt(3),
-      attackDelay: Duration(milliseconds: 1120 - reputationBoost * 25),
-      dodgeChance: 0.06 + reputationBoost * 0.008,
+      atk: recruitTier.baseAtk + reputationBoost + _random.nextInt(3),
+      attackDelay: Duration(
+        milliseconds: 1160 - recruitTier.tier * 55 - reputationBoost * 25,
+      ),
+      dodgeChance: 0.05 + recruitTier.tier * 0.012 + reputationBoost * 0.008,
       themeColor: _gang?.primaryColor ?? Colors.greenAccent,
-      maxTrainingLevel: 8,
+      tier: recruitTier.tier,
+      maxTrainingLevel: recruitTier.maxTrainingLevel,
     );
   }
 
@@ -213,13 +377,15 @@ class GameController extends ChangeNotifier {
   }
 
   double turfTakeoverChance(int territoryDefense) {
+    _completeGangTrainingIfReady();
     if (!hasGang || gangAttackPower <= 0) return 0;
     final chance = gangAttackPower / (gangAttackPower + territoryDefense);
     return chance.clamp(0.05, 0.95).toDouble();
   }
 
   bool attemptTurfTakeover(int territoryDefense) {
-    if (!hasGang || _gangMembers.isEmpty) return false;
+    _completeGangTrainingIfReady();
+    if (!hasGang || gangFormationSize == 0) return false;
     final chance = turfTakeoverChance(territoryDefense);
     final succeeded = _random.nextDouble() <= chance;
     if (succeeded) {
@@ -230,6 +396,29 @@ class GameController extends ChangeNotifier {
       notifyListeners();
     }
     return succeeded;
+  }
+
+  void setFormationCount(int tier, int count) {
+    final available = gangTierCounts[tier] ?? 0;
+    final currentOtherCount = gangFormationSize - (_formationCounts[tier] ?? 0);
+    final openSlots = (gangMemberCapacity - currentOtherCount).clamp(0, 9999);
+    _formationCounts[tier] = count.clamp(0, math.min(available, openSlots));
+    notifyListeners();
+  }
+
+  void _clampFormationToRoster() {
+    final counts = gangTierCounts;
+    for (final tier in RecruitTiers.all) {
+      final selected = _formationCounts[tier.tier] ?? 0;
+      _formationCounts[tier.tier] = selected.clamp(0, counts[tier.tier] ?? 0);
+    }
+  }
+
+  void clearFormation() {
+    for (final tier in RecruitTiers.all) {
+      _formationCounts[tier.tier] = 0;
+    }
+    notifyListeners();
   }
 
   void gainStats({
