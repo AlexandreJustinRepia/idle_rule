@@ -4,12 +4,14 @@ import '../ui/profile_edit_modal.dart';
 class CustomNavbar extends StatefulWidget implements PreferredSizeWidget {
   final int money;
   final String? playerName;
+  final String? locationLabel;
   final VoidCallback? onMenuPressed;
 
   const CustomNavbar({
     super.key,
     this.money = 0,
     this.playerName,
+    this.locationLabel,
     this.onMenuPressed,
   });
 
@@ -87,13 +89,31 @@ class _CustomNavbarState extends State<CustomNavbar> {
                       onPressed: _showProfileModal,
                     ),
                     Flexible(
-                      child: Text(
-                        _characterName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _characterName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (widget.locationLabel != null &&
+                              widget.locationLabel!.isNotEmpty)
+                            Text(
+                              widget.locationLabel!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.48),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 8),
