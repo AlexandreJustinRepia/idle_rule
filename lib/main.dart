@@ -15,8 +15,8 @@ import 'controllers/game_controller.dart';
 import 'game_state.dart';
 import 'models/world_session.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'components/environments/turf/ghetto_turf_map.dart';
 import 'components/environments/turf/turf_map.dart';
+import 'logic/world_generator.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -112,7 +112,7 @@ class _AppFlowState extends State<AppFlow> {
     final world = GameWorld(
       id: 'world_$worldNumber',
       name: 'World $worldNumber',
-      mapData: createGhettoTurfMap(title: 'WORLD $worldNumber TURF'),
+      seed: worldNumber,
     );
     _worlds.add(world);
     return world;
@@ -157,10 +157,16 @@ class _AppFlowState extends State<AppFlow> {
 
   void _enterWorld(GameCharacterSession character, GameWorld world) {
     setState(() {
+      if (world.mapData == null) {
+        final result = WorldGenerator.generateWorld(world.seed);
+        world.mapData = result.mapData;
+        world.rivalGangs = result.rivalGangs;
+      }
+      
       final changedWorld = character.worldId != world.id;
       character.worldId = world.id;
       if (changedWorld || character.locationStreetId == null) {
-        character.locationStreetId = world.mapData.spawnStreetId;
+        character.locationStreetId = world.mapData!.spawnStreetId;
       }
       _activeCharacter = character;
       _currentTabIndex = 0;
@@ -253,8 +259,8 @@ class _GameScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gameController = character.controller;
-    final location = world.mapData.territoryById(
-      character.locationStreetId ?? world.mapData.spawnStreetId,
+    final location = world.mapData!.territoryById(
+      character.locationStreetId ?? world.mapData!.spawnStreetId,
     );
     return ListenableBuilder(
       listenable: gameController,
@@ -325,7 +331,7 @@ class _GameScreen extends StatelessWidget {
                       ShopView(gameController: gameController),
                       TurfScreen(
                         gameController: gameController,
-                        mapData: world.mapData,
+                        mapData: world.mapData!,
                         characterName: gameController.playerName,
                         worldName: world.name,
                         locationStreetId: character.locationStreetId,
@@ -487,7 +493,7 @@ class _CharacterLobbyCard extends StatelessWidget {
     final controller = character.controller;
     final location = currentWorld == null || character.locationStreetId == null
         ? null
-        : currentWorld!.mapData.territoryById(character.locationStreetId!);
+        : currentWorld!.mapData?.territoryById(character.locationStreetId!);
 
     return _LobbyCard(
       isSelected: isSelected,

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 enum TurfMapLevel {
-  country('Country', 0),
-  province('Province', 1),
-  city('City', 2),
-  town('Town', 3),
-  street('Street', 4);
+  world('World', 0),
+  country('Country', 1),
+  region('Region', 2),
+  province('Province', 3),
+  city('City', 4),
+  town('Town', 5),
+  street('Street', 6);
 
   final String label;
   final int depth;
@@ -21,6 +23,7 @@ class TurfTerritory {
   final int defense;
   final TurfMapLevel level;
   final String? parentId;
+  final String? occupyingGangId;
 
   /// Bounds are normalized (0.0-1.0) relative to the full map canvas.
   final Rect bounds;
@@ -34,6 +37,7 @@ class TurfTerritory {
     required this.level,
     required this.bounds,
     this.parentId,
+    this.occupyingGangId,
   });
 
   Offset get center => bounds.center;

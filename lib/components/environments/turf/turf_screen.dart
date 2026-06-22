@@ -432,7 +432,9 @@ class _TextTerritoryTitle extends StatelessWidget {
 
   IconData _iconForLevel(TurfMapLevel level) {
     return switch (level) {
-      TurfMapLevel.country => Icons.public,
+      TurfMapLevel.world => Icons.public,
+      TurfMapLevel.country => Icons.flag,
+      TurfMapLevel.region => Icons.map,
       TurfMapLevel.province => Icons.account_balance,
       TurfMapLevel.city => Icons.location_city,
       TurfMapLevel.town => Icons.home_work,

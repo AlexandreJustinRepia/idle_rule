@@ -18,7 +18,7 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
           'One country split into provinces, cities, towns, and turf streets.',
       color: Color(0xFF455A64),
       defense: 0,
-      level: TurfMapLevel.country,
+      level: TurfMapLevel.world,
       bounds: Rect.fromLTWH(0.04, 0.04, 0.92, 0.92),
     ),
   );

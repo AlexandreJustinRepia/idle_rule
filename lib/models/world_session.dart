@@ -1,15 +1,20 @@
 import '../components/environments/turf/turf_map.dart';
 import '../controllers/game_controller.dart';
+import 'gang.dart';
 
 class GameWorld {
   final String id;
   final String name;
-  final TurfMapData mapData;
+  final int seed;
+  TurfMapData? mapData;
+  List<Gang> rivalGangs;
 
-  const GameWorld({
+  GameWorld({
     required this.id,
     required this.name,
-    required this.mapData,
+    required this.seed,
+    this.mapData,
+    this.rivalGangs = const [],
   });
 }
 
