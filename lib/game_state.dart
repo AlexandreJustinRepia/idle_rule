@@ -5,3 +5,4 @@ export 'models/boss.dart';
 export 'models/ally.dart';
 export 'models/combat_entity.dart';
 export 'models/character_class.dart';
+export 'models/interactable_npc.dart';

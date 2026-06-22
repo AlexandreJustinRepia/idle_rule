@@ -41,6 +41,13 @@ class GameController extends ChangeNotifier {
   final Map<int, int> _formationCounts = {
     for (final tier in RecruitTiers.all) tier.tier: 0,
   };
+  InteractableNpc? _activeNpcChallenge;
+
+  InteractableNpc? get activeNpcChallenge => _activeNpcChallenge;
+  set activeNpcChallenge(InteractableNpc? val) {
+    _activeNpcChallenge = val;
+    notifyListeners();
+  }
 
   GameController({
     String playerName = '',
@@ -405,6 +412,65 @@ class GameController extends ChangeNotifier {
       final cost = 200 + ally.power ~/ 3;
       return (ally: ally, cost: cost);
     });
+  }
+
+  void talkToNpc(InteractableNpc npc) {
+    npc.changeRelationship(5);
+    notifyListeners();
+  }
+
+  bool bribeNpc(InteractableNpc npc, int cost) {
+    if (_money < cost) return false;
+    _money -= cost;
+    npc.changeRelationship(20);
+    notifyListeners();
+    return true;
+  }
+
+  bool recruitNpc(InteractableNpc npc) {
+    if (!hasGang || gangMemberCapacity <= 0 || npc.isRecruited) return false;
+    if (npc.relationship < 40) return false;
+
+    final newAlly = Ally(
+      name: npc.name,
+      hp: npc.hp,
+      maxHp: npc.maxHp,
+      atk: npc.atk,
+      attackDelay: const Duration(milliseconds: 900),
+      dodgeChance: npc.dodgeChance,
+      themeColor: Colors.deepOrangeAccent,
+      isExclusive: true,
+      maxTrainingLevel: 15,
+    );
+
+    if (_gangMembers.length >= gangMemberCapacity) {
+      final regularMembers = _gangMembers.where((m) => !m.isExclusive).toList();
+      if (regularMembers.isNotEmpty) {
+        regularMembers.sort((a, b) => a.power.compareTo(b.power));
+        _gangMembers.remove(regularMembers.first);
+      } else {
+        final sortedAll = List<Ally>.from(_gangMembers)..sort((a, b) => a.power.compareTo(b.power));
+        _gangMembers.remove(sortedAll.first);
+      }
+    }
+
+    _gangMembers.add(newAlly);
+    npc.isRecruited = true;
+    notifyListeners();
+    return true;
+  }
+
+  void fightNpc(InteractableNpc npc) {
+    npc.changeRelationship(-25);
+    _activeNpcChallenge = npc;
+    _playerHealth = _stats.maxHealth;
+    notifyListeners();
+  }
+
+  void onNpcDefeated(InteractableNpc npc) {
+    _activeNpcChallenge = null;
+    gainStats(reputation: npc.reputation);
+    notifyListeners();
   }
 
   double turfTakeoverChance(int territoryDefense) {

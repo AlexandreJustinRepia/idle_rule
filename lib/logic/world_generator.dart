@@ -2,12 +2,18 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/gang.dart';
 import '../components/environments/turf/turf_map.dart';
+import '../models/interactable_npc.dart';
 
 class WorldGeneratorResult {
   final TurfMapData mapData;
   final List<Gang> rivalGangs;
+  final List<InteractableNpc> interactableNpcs;
 
-  const WorldGeneratorResult({required this.mapData, required this.rivalGangs});
+  const WorldGeneratorResult({
+    required this.mapData,
+    required this.rivalGangs,
+    required this.interactableNpcs,
+  });
 }
 
 class WorldGenerator {
@@ -293,7 +299,51 @@ class WorldGenerator {
           : '',
     );
 
-    return WorldGeneratorResult(mapData: mapData, rivalGangs: rivalGangs);
+    // Generate unique named interactable NPCs on random streets
+    final interactableNpcs = <InteractableNpc>[];
+    const npcNames = [
+      'Ghost', 'Viper', 'Spike', 'Shadow', 'Bullet', 'Razor', 'Siren', 'Trigger'
+    ];
+    const npcDescriptions = [
+      'A silent veteran who knows every corner of this town.',
+      'Always looking for a lucrative deal. Highly opportunistic.',
+      'A hot-tempered brawler. Fights first, asks later.',
+      'A mysterious informant with ties to all syndicates.',
+      'A legendary marksman laying low in the slums.',
+      'A street blade master with a cold attitude.',
+      'A persuasive negotiator who can sweet-talk anyone.',
+      'A reckless driver and runner. Lives on the edge.'
+    ];
+
+    for (int i = 0; i < npcNames.length; i++) {
+      final npcId = 'npc_${seed}_$i';
+      final streetId = streetIds.isNotEmpty 
+          ? streetIds[random.nextInt(streetIds.length)] 
+          : 'spawn';
+      
+      final npcHp = 100 + random.nextInt(80);
+      interactableNpcs.add(
+        InteractableNpc(
+          id: npcId,
+          name: npcNames[i],
+          description: npcDescriptions[i],
+          level: 3 + random.nextInt(5),
+          hp: npcHp,
+          maxHp: npcHp,
+          atk: 8 + random.nextInt(6),
+          dodgeChance: 0.08 + random.nextDouble() * 0.08,
+          reputation: 25.0 + random.nextInt(25),
+          relationship: -20 + random.nextInt(40), // Initial relationship -20 to 20
+          locationStreetId: streetId,
+        ),
+      );
+    }
+
+    return WorldGeneratorResult(
+      mapData: mapData,
+      rivalGangs: rivalGangs,
+      interactableNpcs: interactableNpcs,
+    );
   }
 
   static List<Rect> _splitGrid(Rect rect, int columns, int rows) {

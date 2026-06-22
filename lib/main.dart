@@ -161,6 +161,7 @@ class _AppFlowState extends State<AppFlow> {
         final result = WorldGenerator.generateWorld(world.seed);
         world.mapData = result.mapData;
         world.rivalGangs = result.rivalGangs;
+        world.interactableNpcs = result.interactableNpcs;
       }
       
       final changedWorld = character.worldId != world.id;
@@ -348,6 +349,7 @@ class _GameScreen extends StatelessWidget {
                             .toList(),
                         onLocationChanged: onLocationChanged,
                         rivalGangs: world.rivalGangs,
+                        interactableNpcs: world.interactableNpcs,
                       ),
                       GangsView(gameController: gameController),
                     ],

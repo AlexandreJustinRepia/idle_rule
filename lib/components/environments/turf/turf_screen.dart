@@ -4,6 +4,8 @@ import '../../../models/gang.dart';
 import 'ghetto_turf_map.dart';
 import 'travel_animation_overlay.dart';
 import 'turf_map.dart';
+import '../../../models/interactable_npc.dart';
+import '../../ui/npc_interaction_modal.dart';
 
 class TurfScreen extends StatefulWidget {
   final GameController gameController;
@@ -14,6 +16,7 @@ class TurfScreen extends StatefulWidget {
   final List<String> residents;
   final ValueChanged<String>? onLocationChanged;
   final List<Gang> rivalGangs;
+  final List<InteractableNpc> interactableNpcs;
 
   const TurfScreen({
     super.key,
@@ -25,6 +28,7 @@ class TurfScreen extends StatefulWidget {
     this.residents = const [],
     this.onLocationChanged,
     this.rivalGangs = const [],
+    this.interactableNpcs = const [],
   });
 
   @override
@@ -283,6 +287,45 @@ class _TurfScreenState extends State<TurfScreen> {
               characterName: widget.characterName,
             ),
             const SizedBox(height: 12),
+
+            // Street Residents Section
+            if (widget.interactableNpcs.any((n) => n.locationStreetId == currentStreetId && !n.isRecruited)) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.people_alt, color: Color(0xFFFFD166), size: 14),
+                    const SizedBox(width: 8),
+                    Text(
+                      'LOCAL STREET RESIDENTS',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 70,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: widget.interactableNpcs
+                      .where((n) => n.locationStreetId == currentStreetId && !n.isRecruited)
+                      .map((npc) => _NpcCard(
+                            npc: npc,
+                            onTap: () {
+                              NpcInteractionModal.show(context, npc, widget.gameController);
+                            },
+                          ))
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Breadcrumb trail bar
             if (crumbs.isNotEmpty || _currentParentId != null)
@@ -825,6 +868,77 @@ class _TravelOptionCard extends StatelessWidget {
                 color: isEnabled ? Colors.white38 : Colors.white12,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NpcCard extends StatelessWidget {
+  final InteractableNpc npc;
+  final VoidCallback onTap;
+
+  const _NpcCard({
+    required this.npc,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tier = npc.relationshipTier;
+    
+    return Container(
+      width: 160,
+      margin: const EdgeInsets.only(right: 12),
+      child: Material(
+        color: const Color(0xFF1E2125),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: tier.color.withValues(alpha: 0.3)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: tier.color.withValues(alpha: 0.2),
+                  child: Icon(Icons.person, size: 20, color: tier.color),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        npc.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        tier.label.toUpperCase(),
+                        style: TextStyle(
+                          color: tier.color,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

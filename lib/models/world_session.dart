@@ -1,6 +1,7 @@
 import '../components/environments/turf/turf_map.dart';
 import '../controllers/game_controller.dart';
 import 'gang.dart';
+import 'interactable_npc.dart';
 
 class GameWorld {
   final String id;
@@ -8,6 +9,7 @@ class GameWorld {
   final int seed;
   TurfMapData? mapData;
   List<Gang> rivalGangs;
+  List<InteractableNpc> interactableNpcs;
 
   GameWorld({
     required this.id,
@@ -15,6 +17,7 @@ class GameWorld {
     required this.seed,
     this.mapData,
     this.rivalGangs = const [],
+    this.interactableNpcs = const [],
   });
 }
 
