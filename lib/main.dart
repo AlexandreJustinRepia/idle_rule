@@ -234,6 +234,11 @@ class _AppFlowState extends State<AppFlow> {
           currentTabIndex: _currentTabIndex,
           onTabChanged: (index) => setState(() => _currentTabIndex = index),
           onQuit: _quitToWorlds,
+          onLocationChanged: (newStreetId) {
+            setState(() {
+              activeCharacter.locationStreetId = newStreetId;
+            });
+          },
         );
     }
   }
@@ -246,6 +251,7 @@ class _GameScreen extends StatelessWidget {
   final int currentTabIndex;
   final Function(int) onTabChanged;
   final VoidCallback onQuit;
+  final ValueChanged<String> onLocationChanged;
 
   const _GameScreen({
     required this.character,
@@ -254,6 +260,7 @@ class _GameScreen extends StatelessWidget {
     required this.currentTabIndex,
     required this.onTabChanged,
     required this.onQuit,
+    required this.onLocationChanged,
   });
 
   @override
@@ -339,6 +346,8 @@ class _GameScreen extends StatelessWidget {
                             .where((resident) => resident.id != character.id)
                             .map((resident) => resident.controller.playerName)
                             .toList(),
+                        onLocationChanged: onLocationChanged,
+                        rivalGangs: world.rivalGangs,
                       ),
                       GangsView(gameController: gameController),
                     ],

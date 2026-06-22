@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../../../controllers/game_controller.dart';
+import '../../../models/gang.dart';
 import 'ghetto_turf_map.dart';
 import 'turf_map.dart';
 
@@ -11,6 +11,8 @@ class TurfScreen extends StatefulWidget {
   final String? worldName;
   final String? locationStreetId;
   final List<String> residents;
+  final ValueChanged<String>? onLocationChanged;
+  final List<Gang> rivalGangs;
 
   const TurfScreen({
     super.key,
@@ -20,6 +22,8 @@ class TurfScreen extends StatefulWidget {
     this.worldName,
     this.locationStreetId,
     this.residents = const [],
+    this.onLocationChanged,
+    this.rivalGangs = const [],
   });
 
   @override
@@ -27,22 +31,37 @@ class TurfScreen extends StatefulWidget {
 }
 
 class _TurfScreenState extends State<TurfScreen> {
-  late String _selectedTerritoryId;
+  String? _currentParentId;
   final Set<String> _conqueredTerritoryIds = {};
 
   TurfMapData get _mapData => widget.mapData ?? ghettoTurfMap;
 
-  TurfTerritory get _selectedTerritory =>
-      _mapData.territoryById(_selectedTerritoryId);
-
   @override
   void initState() {
     super.initState();
-    _selectedTerritoryId = widget.locationStreetId ?? _mapData.spawnStreetId;
+    // Default to viewing the parent level of the spawn/current street
+    final currentStreetId = widget.locationStreetId ?? _mapData.spawnStreetId;
+    try {
+      final currentStreet = _mapData.territoryById(currentStreetId);
+      _currentParentId = currentStreet.parentId;
+    } catch (_) {
+      _currentParentId = null;
+    }
   }
 
-  void _selectTerritory(TurfTerritory territory) {
-    setState(() => _selectedTerritoryId = territory.id);
+  List<TurfTerritory> get _breadcrumbs {
+    final list = <TurfTerritory>[];
+    String? currentId = _currentParentId;
+    while (currentId != null) {
+      try {
+        final territory = _mapData.territoryById(currentId);
+        list.insert(0, territory);
+        currentId = territory.parentId;
+      } catch (_) {
+        break;
+      }
+    }
+    return list;
   }
 
   List<TurfTerritory> _childrenOf(String? parentId) {
@@ -51,21 +70,30 @@ class _TurfScreenState extends State<TurfScreen> {
         .toList();
   }
 
-  void _conquerSelectedTerritory() {
-    final territory = _selectedTerritory;
+  Gang? _findGang(String? gangId) {
+    if (gangId == null) return null;
+    if (widget.gameController.gang?.name == gangId) {
+      return widget.gameController.gang;
+    }
+    for (final gang in widget.rivalGangs) {
+      if (gang.name == gangId) return gang;
+    }
+    return null;
+  }
+
+  void _conquerTerritory(TurfTerritory territory) {
     if (territory.level != TurfMapLevel.street) return;
     if (_conqueredTerritoryIds.contains(territory.id)) return;
 
-    final succeeded = widget.gameController.attemptTurfTakeover(
-      territory.defense,
-    );
+    final succeeded = widget.gameController.attemptTurfTakeover(territory.defense);
     if (!mounted) return;
 
     if (!succeeded) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${territory.label.toUpperCase()} TAKEOVER FAILED'),
-          duration: const Duration(milliseconds: 1100),
+          backgroundColor: Colors.red[900],
+          duration: const Duration(milliseconds: 1500),
         ),
       );
       return;
@@ -75,21 +103,112 @@ class _TurfScreenState extends State<TurfScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${territory.label.toUpperCase()} SECURED'),
-        duration: const Duration(milliseconds: 1100),
+        backgroundColor: Colors.green[800],
+        duration: const Duration(milliseconds: 1500),
       ),
+    );
+  }
+
+  void _showTravelDialog(TurfTerritory street) {
+    final controller = widget.gameController;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return ListenableBuilder(
+          listenable: controller,
+          builder: (context, child) {
+            final dynamicCanWalk = controller.playerStamina >= 15 && controller.playerHunger >= 10;
+            final dynamicCanTaxi = controller.money >= 15;
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16181B),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              title: Text(
+                'TRAVEL TO ${street.label.toUpperCase()}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Choose your method of transportation to reach this street turf.',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+                  // Walk Option Card
+                  _TravelOptionCard(
+                    title: 'Walk',
+                    subtitle: 'Consumes stamina & energy',
+                    icon: Icons.directions_walk,
+                    costText: '15 Stamina, 10 Hunger',
+                    isEnabled: dynamicCanWalk,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      if (controller.spendStamina(15)) {
+                        controller.recoverNeeds(hunger: -10);
+                        widget.onLocationChanged?.call(street.id);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Walked to ${street.label}'),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // Taxi Option Card
+                  _TravelOptionCard(
+                    title: 'Take Taxi',
+                    subtitle: 'Fast travel using cash',
+                    icon: Icons.local_taxi,
+                    costText: '\$15 Cash',
+                    isEnabled: dynamicCanTaxi,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      if (controller.buyItem(cost: 15)) {
+                        widget.onLocationChanged?.call(street.id);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Took a taxi to ${street.label}'),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('CANCEL', style: TextStyle(color: Colors.white38)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final selected = _selectedTerritory;
-    final isStreet = selected.level == TurfMapLevel.street;
-    final isConquered = _conqueredTerritoryIds.contains(selected.id);
-    final canAttack =
-        isStreet &&
-        !isConquered &&
-        widget.gameController.hasGang &&
-        widget.gameController.gangFormationSize > 0;
+    final currentStreetId = widget.locationStreetId ?? _mapData.spawnStreetId;
+    final currentStreet = _mapData.territoryById(currentStreetId);
+
+    final crumbs = _breadcrumbs;
+    final children = _childrenOf(_currentParentId);
 
     return SafeArea(
       top: true,
@@ -99,48 +218,105 @@ class _TurfScreenState extends State<TurfScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _TurfHeader(mapData: _mapData),
-            const SizedBox(height: 10),
-            _SpawnLine(
-              characterName: widget.characterName,
-              worldName: widget.worldName,
-              locationStreet: _mapData.territoryById(
-                widget.locationStreetId ?? _mapData.spawnStreetId,
-              ),
-              residents: widget.residents,
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF101214),
-                  border: Border.all(color: Colors.white12),
-                  borderRadius: BorderRadius.circular(8),
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _mapData.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _mapData.subtitle,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.62)),
+                      ),
+                    ],
+                  ),
                 ),
+                // Home/Root button to jump back to top level
+                if (_currentParentId != null)
+                  IconButton(
+                    icon: const Icon(Icons.home, color: Colors.white60),
+                    onPressed: () => setState(() => _currentParentId = null),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Current Location Indicator Banner
+            _LocationIndicatorBanner(
+              currentStreet: currentStreet,
+              residents: widget.residents,
+              characterName: widget.characterName,
+            ),
+            const SizedBox(height: 12),
+
+            // Breadcrumb trail bar
+            if (crumbs.isNotEmpty || _currentParentId != null)
+              Container(
+                height: 38,
+                margin: const EdgeInsets.only(bottom: 12),
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  scrollDirection: Axis.horizontal,
                   children: [
-                    for (final territory in _childrenOf(null))
-                      _TurfTextNode(
-                        territory: territory,
-                        childrenOf: _childrenOf,
-                        selectedTerritoryId: _selectedTerritoryId,
-                        spawnStreetId: _mapData.spawnStreetId,
-                        conqueredTerritoryIds: _conqueredTerritoryIds,
-                        onSelected: _selectTerritory,
+                    _BreadcrumbNode(
+                      label: 'Root',
+                      isLast: _currentParentId == null,
+                      onTap: () => setState(() => _currentParentId = null),
+                    ),
+                    for (int i = 0; i < crumbs.length; i++)
+                      _BreadcrumbNode(
+                        label: crumbs[i].label,
+                        isLast: i == crumbs.length - 1,
+                        onTap: () => setState(() => _currentParentId = crumbs[i].id),
                       ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            _SelectedTurfBar(
-              territory: selected,
-              isConquered: isConquered,
-              canAttack: canAttack,
-              hasGang: widget.gameController.hasGang,
-              hasFormation: widget.gameController.gangFormationSize > 0,
-              onAttack: _conquerSelectedTerritory,
+
+            // Active Card List of Sub-Territories
+            Expanded(
+              child: children.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No sub-territories found here.',
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: children.length,
+                      itemBuilder: (context, index) {
+                        final child = children[index];
+                        final isStreetLevel = child.level == TurfMapLevel.street;
+                        final isCurrentLocation = child.id == currentStreetId;
+                        final isConquered = _conqueredTerritoryIds.contains(child.id);
+
+                        return _TerritoryCard(
+                          territory: child,
+                          isCurrentLocation: isCurrentLocation,
+                          isConquered: isConquered,
+                          occupantGang: _findGang(child.occupyingGangId),
+                          isStreetLevel: isStreetLevel,
+                          gameController: widget.gameController,
+                          onTap: () {
+                            if (!isStreetLevel) {
+                              setState(() => _currentParentId = child.id);
+                            }
+                          },
+                          onTravel: () => _showTravelDialog(child),
+                          onConquer: () => _conquerTerritory(child),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -149,286 +325,135 @@ class _TurfScreenState extends State<TurfScreen> {
   }
 }
 
-class _TurfHeader extends StatelessWidget {
-  final TurfMapData mapData;
+class _LocationIndicatorBanner extends StatelessWidget {
+  final TurfTerritory currentStreet;
+  final List<String> residents;
+  final String? characterName;
 
-  const _TurfHeader({required this.mapData});
+  const _LocationIndicatorBanner({
+    required this.currentStreet,
+    required this.residents,
+    this.characterName,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF17191C),
+        border: Border.all(
+          color: const Color(0xFFFFD166).withValues(alpha: 0.35),
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.my_location,
+            color: Color(0xFFFFD166),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'CURRENTLY AT: ${currentStreet.label.toUpperCase()}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  residents.isEmpty
+                      ? 'You are alone on this street.'
+                      : 'Also here: ${residents.join(', ')}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BreadcrumbNode extends StatelessWidget {
+  final String label;
+  final bool isLast;
+  final VoidCallback onTap;
+
+  const _BreadcrumbNode({
+    required this.label,
+    required this.isLast,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          mapData.title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isLast ? const Color(0xFF262A30) : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isLast ? Colors.white : Colors.white60,
+                fontSize: 12,
+                fontWeight: isLast ? FontWeight.w800 : FontWeight.normal,
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          mapData.subtitle,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.62)),
-        ),
+        if (!isLast)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Icon(Icons.chevron_right, size: 14, color: Colors.white30),
+          ),
       ],
     );
   }
 }
 
-class _SpawnLine extends StatelessWidget {
-  final String? characterName;
-  final String? worldName;
-  final TurfTerritory locationStreet;
-  final List<String> residents;
-
-  const _SpawnLine({
-    required this.locationStreet,
-    required this.residents,
-    this.characterName,
-    this.worldName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF17191C),
-        border: Border.all(
-          color: const Color(0xFFFFD166).withValues(alpha: 0.45),
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.person_pin_circle,
-              color: Color(0xFFFFD166),
-              size: 18,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${characterName ?? 'Character'} is in ${worldName ?? 'this world'} at ${locationStreet.label}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    residents.isEmpty
-                        ? 'No other characters here yet.'
-                        : 'Also here: ${residents.join(', ')}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.52),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TurfTextNode extends StatelessWidget {
+class _TerritoryCard extends StatelessWidget {
   final TurfTerritory territory;
-  final List<TurfTerritory> Function(String? parentId) childrenOf;
-  final String selectedTerritoryId;
-  final String spawnStreetId;
-  final Set<String> conqueredTerritoryIds;
-  final ValueChanged<TurfTerritory> onSelected;
-
-  const _TurfTextNode({
-    required this.territory,
-    required this.childrenOf,
-    required this.selectedTerritoryId,
-    required this.spawnStreetId,
-    required this.conqueredTerritoryIds,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final children = childrenOf(territory.id);
-    final isStreet = territory.level == TurfMapLevel.street;
-    final isSelected = territory.id == selectedTerritoryId;
-    final isSpawn = territory.id == spawnStreetId;
-    final isConquered = conqueredTerritoryIds.contains(territory.id);
-
-    if (children.isEmpty) {
-      return _TextTerritoryRow(
-        territory: territory,
-        isSelected: isSelected,
-        isSpawn: isSpawn,
-        isConquered: isConquered,
-        onTap: () => onSelected(territory),
-      );
-    }
-
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        initiallyExpanded: territory.level.depth <= 1,
-        tilePadding: EdgeInsets.only(
-          left: 12 + territory.level.depth * 14,
-          right: 10,
-        ),
-        childrenPadding: EdgeInsets.zero,
-        iconColor: Colors.white70,
-        collapsedIconColor: Colors.white38,
-        title: _TextTerritoryTitle(
-          territory: territory,
-          isSelected: isSelected,
-          isSpawn: isSpawn,
-          isConquered: isConquered,
-          onTap: () => onSelected(territory),
-        ),
-        subtitle: Text(
-          '${children.length} ${_childLabel(isStreet, children.first.level)}',
-          style: const TextStyle(color: Colors.white38, fontSize: 11),
-        ),
-        children: [
-          for (final child in children)
-            _TurfTextNode(
-              territory: child,
-              childrenOf: childrenOf,
-              selectedTerritoryId: selectedTerritoryId,
-              spawnStreetId: spawnStreetId,
-              conqueredTerritoryIds: conqueredTerritoryIds,
-              onSelected: onSelected,
-            ),
-        ],
-      ),
-    );
-  }
-
-  String _childLabel(bool isStreet, TurfMapLevel level) {
-    final label = level.label.toLowerCase();
-    return isStreet ? label : '${label}s';
-  }
-}
-
-class _TextTerritoryRow extends StatelessWidget {
-  final TurfTerritory territory;
-  final bool isSelected;
-  final bool isSpawn;
+  final bool isCurrentLocation;
   final bool isConquered;
+  final Gang? occupantGang;
+  final bool isStreetLevel;
+  final GameController gameController;
   final VoidCallback onTap;
+  final VoidCallback onTravel;
+  final VoidCallback onConquer;
 
-  const _TextTerritoryRow({
+  const _TerritoryCard({
     required this.territory,
-    required this.isSelected,
-    required this.isSpawn,
+    required this.isCurrentLocation,
     required this.isConquered,
+    required this.occupantGang,
+    required this.isStreetLevel,
+    required this.gameController,
     required this.onTap,
+    required this.onTravel,
+    required this.onConquer,
   });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 16 + territory.level.depth * 14,
-          right: 10,
-          top: 6,
-          bottom: 6,
-        ),
-        child: _TextTerritoryTitle(
-          territory: territory,
-          isSelected: isSelected,
-          isSpawn: isSpawn,
-          isConquered: isConquered,
-          onTap: onTap,
-        ),
-      ),
-    );
-  }
-}
-
-class _TextTerritoryTitle extends StatelessWidget {
-  final TurfTerritory territory;
-  final bool isSelected;
-  final bool isSpawn;
-  final bool isConquered;
-  final VoidCallback onTap;
-
-  const _TextTerritoryTitle({
-    required this.territory,
-    required this.isSelected,
-    required this.isSpawn,
-    required this.isConquered,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final status = [
-      if (isSpawn) 'SPAWN',
-      if (isConquered) 'RULED',
-      if (isSelected) 'SELECTED',
-    ].join('  ');
-
-    return InkWell(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Icon(
-            _iconForLevel(territory.level),
-            size: 15,
-            color: isConquered
-                ? const Color(0xFF2DDA77)
-                : isSpawn
-                ? const Color(0xFFFFD166)
-                : Colors.white54,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '${territory.level.label}: ${territory.label}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white70,
-                fontSize: territory.level == TurfMapLevel.street ? 13 : 14,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
-              ),
-            ),
-          ),
-          if (status.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            Text(
-              status,
-              style: TextStyle(
-                color: isConquered
-                    ? const Color(0xFF2DDA77)
-                    : isSpawn
-                    ? const Color(0xFFFFD166)
-                    : Colors.white38,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
   IconData _iconForLevel(TurfMapLevel level) {
     return switch (level) {
@@ -441,104 +466,344 @@ class _TextTerritoryTitle extends StatelessWidget {
       TurfMapLevel.street => Icons.signpost,
     };
   }
-}
-
-class _SelectedTurfBar extends StatelessWidget {
-  final TurfTerritory territory;
-  final bool isConquered;
-  final bool canAttack;
-  final bool hasGang;
-  final bool hasFormation;
-  final VoidCallback onAttack;
-
-  const _SelectedTurfBar({
-    required this.territory,
-    required this.isConquered,
-    required this.canAttack,
-    required this.hasGang,
-    required this.hasFormation,
-    required this.onAttack,
-  });
 
   @override
   Widget build(BuildContext context) {
-    final isStreet = territory.level == TurfMapLevel.street;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF101214),
-        border: Border.all(color: Colors.white12),
-        borderRadius: BorderRadius.circular(8),
+    final borderGlowColor = isCurrentLocation
+        ? const Color(0xFFFFD166).withValues(alpha: 0.5)
+        : isConquered
+            ? const Color(0xFF2DDA77).withValues(alpha: 0.4)
+            : Colors.white.withValues(alpha: 0.08);
+
+    final canAttack = isStreetLevel &&
+        !isConquered &&
+        gameController.hasGang &&
+        gameController.gangFormationSize > 0;
+
+    return Card(
+      color: const Color(0xFF111316),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: borderGlowColor, width: isCurrentLocation || isConquered ? 1.5 : 1),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Row 1: Header (Icon, Level, Title, Status Badges)
+              Row(
                 children: [
-                  Text(
-                    '${territory.level.label}: ${territory.label}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: territory.color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _iconForLevel(territory.level),
+                      color: territory.color,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    _subtitleText(isStreet),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 11,
-                      height: 1.25,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          territory.level.label.toUpperCase(),
+                          style: TextStyle(
+                            color: territory.color.withValues(alpha: 0.85),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Text(
+                          territory.label,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  if (isCurrentLocation)
+                    _Badge(
+                      label: 'YOU ARE HERE',
+                      color: const Color(0xFFFFD166),
+                      textColor: Colors.black,
+                    )
+                  else if (isConquered)
+                    const _Badge(
+                      label: 'SECURED',
+                      color: Color(0xFF2DDA77),
+                      textColor: Colors.white,
+                    ),
                 ],
               ),
-            ),
-            const SizedBox(width: 10),
-            if (isStreet)
-              ElevatedButton.icon(
-                onPressed: canAttack ? onAttack : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isConquered
-                      ? Colors.grey[700]
-                      : const Color(0xFFE24B4A),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                icon: Icon(isConquered ? Icons.check : Icons.flag, size: 18),
-                label: Text(
-                  isConquered ? 'RULED' : _buttonText(),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+              const SizedBox(height: 10),
+
+              // Description / Stats Info
+              Text(
+                territory.description,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  fontSize: 12,
                 ),
               ),
-          ],
+
+              const SizedBox(height: 10),
+
+              // Occupant Gang badge (if any)
+              if (occupantGang != null) ...[
+                Row(
+                  children: [
+                    Icon(
+                      occupantGang!.emblem,
+                      color: occupantGang!.primaryColor,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Occupied by: ',
+                      style: TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
+                    Text(
+                      occupantGang!.name,
+                      style: TextStyle(
+                        color: occupantGang!.primaryColor,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ] else if (isStreetLevel && !isConquered) ...[
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.security,
+                      color: Colors.redAccent,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Defense: ',
+                      style: TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
+                    Text(
+                      '${territory.defense}',
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Actions (Drill down arrow or travel/conquer buttons)
+              if (isStreetLevel) ...[
+                const Divider(color: Colors.white12, height: 1),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (!isCurrentLocation)
+                      ElevatedButton.icon(
+                        onPressed: onTravel,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white70,
+                          shadowColor: Colors.transparent,
+                          side: const BorderSide(color: Colors.white24),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.alt_route, size: 16),
+                        label: const Text(
+                          'TRAVEL',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    if (!isCurrentLocation && canAttack) ...[
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: onConquer,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE24B4A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.gavel, size: 16),
+                        label: const Text(
+                          'RULE',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ] else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      'ENTER',
+                      style: TextStyle(
+                        color: territory.color,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 10,
+                      color: territory.color,
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  String _subtitleText(bool isStreet) {
-    if (!isStreet) return 'Open this branch and select a street to rule.';
-    if (isConquered) return 'This street is under your control.';
-    return territory.description;
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Color textColor;
+
+  const _Badge({
+    required this.label,
+    required this.color,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
   }
+}
 
-  String _buttonText() {
-    if (!hasGang) return 'NO GANG';
-    if (!hasFormation) return 'NO CREW';
-    return 'RULE';
+class _TravelOptionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String costText;
+  final bool isEnabled;
+  final VoidCallback onTap;
+
+  const _TravelOptionCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.costText,
+    required this.isEnabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: isEnabled ? const Color(0xFF202327) : const Color(0xFF1A1A1E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: isEnabled ? Colors.white.withValues(alpha: 0.06) : Colors.transparent,
+        ),
+      ),
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        onTap: isEnabled ? onTap : null,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isEnabled ? const Color(0xFFFFD166) : Colors.white24,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: isEnabled ? Colors.white : Colors.white30,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: isEnabled ? Colors.white60 : Colors.white24,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Cost: $costText',
+                      style: TextStyle(
+                        color: isEnabled ? Colors.orangeAccent : Colors.white24,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 12,
+                color: isEnabled ? Colors.white38 : Colors.white12,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

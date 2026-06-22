@@ -7,36 +7,72 @@ class WorldGeneratorResult {
   final TurfMapData mapData;
   final List<Gang> rivalGangs;
 
-  const WorldGeneratorResult({
-    required this.mapData,
-    required this.rivalGangs,
-  });
+  const WorldGeneratorResult({required this.mapData, required this.rivalGangs});
 }
 
 class WorldGenerator {
   static const _provinceNames = [
-    'Aethelgard', 'Boreal', 'Crescent', 'Dustwallow',
-    'Ebonhold', 'Frostford', 'Glimmer', 'Hearth',
+    'Aethelgard',
+    'Boreal',
+    'Crescent',
+    'Dustwallow',
+    'Ebonhold',
+    'Frostford',
+    'Glimmer',
+    'Hearth',
   ];
 
   static const _cityNames = [
-    'Vesper City', 'Rookhaven', 'Lowbridge', 'Grayside',
-    'Copper Gate', 'Ashcross', 'Neon Ward', 'Port Mercy',
-    'Apex', 'New Babel', 'Iron Cast', 'Hollow Point',
-    'Steelton', 'Gloomville', 'Nova Ridge', 'Silver Peak'
+    'Vesper City',
+    'Rookhaven',
+    'Lowbridge',
+    'Grayside',
+    'Copper Gate',
+    'Ashcross',
+    'Neon Ward',
+    'Port Mercy',
+    'Apex',
+    'New Babel',
+    'Iron Cast',
+    'Hollow Point',
+    'Steelton',
+    'Gloomville',
+    'Nova Ridge',
+    'Silver Peak',
   ];
 
   static const _townNames = [
-    'Cinder Town', 'Lock Row', 'Mason End', 'Glass Hill',
-    'Wire Bend', 'Rail Flats', 'Old Pike', 'Knox Yard',
-    'Smokestack', 'Rust Belt', 'Gritville', 'Siren Point'
+    'Cinder Town',
+    'Lock Row',
+    'Mason End',
+    'Glass Hill',
+    'Wire Bend',
+    'Rail Flats',
+    'Old Pike',
+    'Knox Yard',
+    'Smokestack',
+    'Rust Belt',
+    'Gritville',
+    'Siren Point',
   ];
 
   static const _streetNames = [
-    'Graffiti Ave', 'Back Alley', 'Block Corner', 'Lantern Lane',
-    'Razor Street', 'Dock Road', 'Switchback', 'Market Cut',
-    'Foundry Walk', 'Signal Way', 'Hollow Run', 'East Steps',
-    'Neon Ave', 'Shadow Blvd', 'Echo Lane', 'Crimson St'
+    'Graffiti Ave',
+    'Back Alley',
+    'Block Corner',
+    'Lantern Lane',
+    'Razor Street',
+    'Dock Road',
+    'Switchback',
+    'Market Cut',
+    'Foundry Walk',
+    'Signal Way',
+    'Hollow Run',
+    'East Steps',
+    'Neon Ave',
+    'Shadow Blvd',
+    'Echo Lane',
+    'Crimson St',
   ];
 
   static WorldGeneratorResult generateWorld(int seed) {
@@ -49,14 +85,18 @@ class WorldGenerator {
     for (var i = 0; i < 2; i++) {
       final name = 'Syndicate ${String.fromCharCode(65 + i)}';
       final emblem = GangEmblems.all[random.nextInt(GangEmblems.all.length)];
-      final colorPrimary = GangColorPresets.primary[random.nextInt(GangColorPresets.primary.length)];
-      final colorAccent = GangColorPresets.accent[random.nextInt(GangColorPresets.accent.length)];
-      rivalGangs.add(Gang(
-        name: name.toUpperCase(),
-        emblemId: emblem.id,
-        primaryColor: colorPrimary,
-        accentColor: colorAccent,
-      ));
+      final colorPrimary = GangColorPresets
+          .primary[random.nextInt(GangColorPresets.primary.length)];
+      final colorAccent = GangColorPresets
+          .accent[random.nextInt(GangColorPresets.accent.length)];
+      rivalGangs.add(
+        Gang(
+          name: name.toUpperCase(),
+          emblemId: emblem.id,
+          primaryColor: colorPrimary,
+          accentColor: colorAccent,
+        ),
+      );
     }
 
     final worldId = 'world_$seed';
@@ -87,10 +127,30 @@ class WorldGenerator {
     );
 
     final regions = [
-      _RegionSeed('region_north_$seed', 'Northern Sector', const Color(0xFF7E57C2), const Rect.fromLTWH(0.06, 0.07, 0.42, 0.40)),
-      _RegionSeed('region_east_$seed', 'Eastern Bloc', const Color(0xFF26A69A), const Rect.fromLTWH(0.52, 0.07, 0.42, 0.40)),
-      _RegionSeed('region_south_$seed', 'Southern Expanse', const Color(0xFFE24B4A), const Rect.fromLTWH(0.06, 0.53, 0.42, 0.40)),
-      _RegionSeed('region_west_$seed', 'Western Frontier', const Color(0xFFFB8C00), const Rect.fromLTWH(0.52, 0.53, 0.42, 0.40)),
+      _RegionSeed(
+        'region_north_$seed',
+        'Northern Sector',
+        const Color(0xFF7E57C2),
+        const Rect.fromLTWH(0.06, 0.07, 0.42, 0.40),
+      ),
+      _RegionSeed(
+        'region_east_$seed',
+        'Eastern Bloc',
+        const Color(0xFF26A69A),
+        const Rect.fromLTWH(0.52, 0.07, 0.42, 0.40),
+      ),
+      _RegionSeed(
+        'region_south_$seed',
+        'Southern Expanse',
+        const Color(0xFFE24B4A),
+        const Rect.fromLTWH(0.06, 0.53, 0.42, 0.40),
+      ),
+      _RegionSeed(
+        'region_west_$seed',
+        'Western Frontier',
+        const Color(0xFFFB8C00),
+        const Rect.fromLTWH(0.52, 0.53, 0.42, 0.40),
+      ),
     ];
 
     int provinceCount = 0;
@@ -116,7 +176,8 @@ class WorldGenerator {
       final provinceRects = _splitGrid(region.bounds.deflate(0.01), 1, 2);
       for (var pIndex = 0; pIndex < provinceRects.length; pIndex++) {
         final provinceId = '${region.id}_prov_$pIndex';
-        final provinceName = _provinceNames[provinceCount % _provinceNames.length];
+        final provinceName =
+            _provinceNames[provinceCount % _provinceNames.length];
         provinceCount++;
 
         territories.add(
@@ -124,7 +185,11 @@ class WorldGenerator {
             id: provinceId,
             label: provinceName,
             description: 'Province $provinceName in ${region.name}.',
-            color: Color.lerp(region.color, Colors.white, 0.05 + pIndex * 0.05)!,
+            color: Color.lerp(
+              region.color,
+              Colors.white,
+              0.05 + pIndex * 0.05,
+            )!,
             defense: 0,
             level: TurfMapLevel.province,
             parentId: region.id,
@@ -138,14 +203,20 @@ class WorldGenerator {
           final cityName = _cityNames[cityCount % _cityNames.length];
           cityCount++;
 
-          final occupyingGang = random.nextDouble() > 0.5 ? rivalGangs[random.nextInt(rivalGangs.length)] : null;
+          final occupyingGang = random.nextDouble() > 0.5
+              ? rivalGangs[random.nextInt(rivalGangs.length)]
+              : null;
 
           territories.add(
             TurfTerritory(
               id: cityId,
               label: cityName,
               description: '$cityName controls the area.',
-              color: Color.lerp(region.color, Colors.white, 0.1 + cIndex * 0.05)!,
+              color: Color.lerp(
+                region.color,
+                Colors.white,
+                0.1 + cIndex * 0.05,
+              )!,
               defense: 0,
               level: TurfMapLevel.city,
               parentId: provinceId,
@@ -159,13 +230,17 @@ class WorldGenerator {
             final townId = '${cityId}_town_$tIndex';
             final townName = _townNames[townCount % _townNames.length];
             townCount++;
-            
+
             territories.add(
               TurfTerritory(
                 id: townId,
                 label: townName,
                 description: 'A town inside $cityName.',
-                color: Color.lerp(region.color, Colors.black, 0.05 + tIndex * 0.05)!,
+                color: Color.lerp(
+                  region.color,
+                  Colors.black,
+                  0.05 + tIndex * 0.05,
+                )!,
                 defense: 0,
                 level: TurfMapLevel.town,
                 parentId: cityId,
@@ -174,19 +249,28 @@ class WorldGenerator {
               ),
             );
 
-            final streetRects = _splitGrid(townRects[tIndex].deflate(0.01), 2, 2);
+            final streetRects = _splitGrid(
+              townRects[tIndex].deflate(0.01),
+              2,
+              2,
+            );
             for (var sIndex = 0; sIndex < streetRects.length; sIndex++) {
               final streetId = '${townId}_street_$sIndex';
-              final streetName = _streetNames[streetCount % _streetNames.length];
+              final streetName =
+                  _streetNames[streetCount % _streetNames.length];
               streetCount++;
               streetIds.add(streetId);
-              
+
               territories.add(
                 TurfTerritory(
                   id: streetId,
                   label: streetName,
                   description: 'A street turf.',
-                  color: Color.lerp(region.color, Colors.white, 0.15 + sIndex * 0.05)!,
+                  color: Color.lerp(
+                    region.color,
+                    Colors.white,
+                    0.15 + sIndex * 0.05,
+                  )!,
                   defense: 50 + random.nextInt(100),
                   level: TurfMapLevel.street,
                   parentId: townId,
@@ -201,10 +285,12 @@ class WorldGenerator {
     }
 
     final mapData = TurfMapData(
-      title: 'GENERATED TURF',
-      subtitle: 'A dynamically generated world.',
+      title: 'TURFS',
+      subtitle: '',
       territories: territories,
-      spawnStreetId: streetIds.isNotEmpty ? streetIds[random.nextInt(streetIds.length)] : '',
+      spawnStreetId: streetIds.isNotEmpty
+          ? streetIds[random.nextInt(streetIds.length)]
+          : '',
     );
 
     return WorldGeneratorResult(mapData: mapData, rivalGangs: rivalGangs);
