@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../controllers/game_controller.dart';
 import '../../../models/gang.dart';
 import 'ghetto_turf_map.dart';
+import 'travel_animation_overlay.dart';
 import 'turf_map.dart';
 
 class TurfScreen extends StatefulWidget {
@@ -109,6 +110,25 @@ class _TurfScreenState extends State<TurfScreen> {
     );
   }
 
+  void _showTravelAnimation(TurfTerritory street, bool isTaxi, VoidCallback onAnimationComplete) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: false,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return TravelAnimationOverlay(
+            streetName: street.label,
+            isTaxi: isTaxi,
+            onComplete: () {
+              Navigator.of(context).pop();
+              onAnimationComplete();
+            },
+          );
+        },
+      ),
+    );
+  }
+
   void _showTravelDialog(TurfTerritory street) {
     final controller = widget.gameController;
 
@@ -154,16 +174,18 @@ class _TurfScreenState extends State<TurfScreen> {
                     isEnabled: dynamicCanWalk,
                     onTap: () {
                       Navigator.of(context).pop();
-                      if (controller.spendStamina(15)) {
-                        controller.recoverNeeds(hunger: -10);
-                        widget.onLocationChanged?.call(street.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Walked to ${street.label}'),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      }
+                      _showTravelAnimation(street, false, () {
+                        if (controller.spendStamina(15)) {
+                          controller.recoverNeeds(hunger: -10);
+                          widget.onLocationChanged?.call(street.id);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Walked to ${street.label}'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      });
                     },
                   ),
                   const SizedBox(height: 12),
@@ -176,15 +198,17 @@ class _TurfScreenState extends State<TurfScreen> {
                     isEnabled: dynamicCanTaxi,
                     onTap: () {
                       Navigator.of(context).pop();
-                      if (controller.buyItem(cost: 15)) {
-                        widget.onLocationChanged?.call(street.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Took a taxi to ${street.label}'),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      }
+                      _showTravelAnimation(street, true, () {
+                        if (controller.buyItem(cost: 15)) {
+                          widget.onLocationChanged?.call(street.id);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Took a taxi to ${street.label}'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      });
                     },
                   ),
                 ],

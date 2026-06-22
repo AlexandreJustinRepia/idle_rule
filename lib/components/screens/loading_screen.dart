@@ -92,26 +92,39 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
       height: 120,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFE24B4A),
-            const Color(0xFF8B0000),
-          ],
-        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE24B4A).withValues(alpha: 0.5),
-            blurRadius: 30,
-            spreadRadius: 5,
+            color: const Color(0xFFE24B4A).withValues(alpha: 0.4),
+            blurRadius: 35,
+            spreadRadius: 8,
           ),
         ],
       ),
-      child: const Icon(
-        Icons.shield,
-        size: 60,
-        color: Colors.white,
+      child: ClipOval(
+        child: Image.asset(
+          'assets/logo/logo.png',
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFFE24B4A),
+                    const Color(0xFF8B0000),
+                  ],
+                ),
+              ),
+              child: const Icon(
+                Icons.shield,
+                size: 60,
+                color: Colors.white,
+              ),
+            );
+          },
+        ),
       ),
     );
   }
