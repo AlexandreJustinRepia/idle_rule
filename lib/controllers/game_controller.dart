@@ -21,6 +21,38 @@ class GangTrainingJob {
   bool get isComplete => remaining == Duration.zero;
 }
 
+class TurfAttackResult {
+  final bool succeeded;
+  final bool usedGang;
+  final int attackPower;
+  final double chance;
+  final String leaderReaction;
+
+  const TurfAttackResult({
+    required this.succeeded,
+    required this.usedGang,
+    required this.attackPower,
+    required this.chance,
+    required this.leaderReaction,
+  });
+}
+
+class PendingTurfConquest {
+  final String territoryId;
+  final String territoryName;
+  final int territoryDefense;
+  final String? occupyingGangName;
+  final bool usedGang;
+
+  const PendingTurfConquest({
+    required this.territoryId,
+    required this.territoryName,
+    required this.territoryDefense,
+    this.occupyingGangName,
+    this.usedGang = false,
+  });
+}
+
 class GameController extends ChangeNotifier {
   static final math.Random _random = math.Random();
 
@@ -42,8 +74,31 @@ class GameController extends ChangeNotifier {
     for (final tier in RecruitTiers.all) tier.tier: 0,
   };
   InteractableNpc? _activeNpcChallenge;
+  PendingTurfConquest? _pendingTurfConquest;
+  final Set<String> _conqueredTerritoryIds = {};
+  final Map<String, DateTime> _gangTurfAttackCooldowns = {};
 
   InteractableNpc? get activeNpcChallenge => _activeNpcChallenge;
+  PendingTurfConquest? get pendingTurfConquest =>
+      _pendingTurfConquest;
+  Set<String> get conqueredTerritoryIds =>
+      Set.unmodifiable(_conqueredTerritoryIds);
+  bool isTerritoryConquered(String territoryId) =>
+      _conqueredTerritoryIds.contains(territoryId);
+
+  Duration gangTurfCooldownRemaining(String territoryId) {
+    final expiresAt = _gangTurfAttackCooldowns[territoryId];
+    if (expiresAt == null) return Duration.zero;
+    final remaining = expiresAt.difference(DateTime.now());
+    if (remaining.isNegative) {
+      _gangTurfAttackCooldowns.remove(territoryId);
+      return Duration.zero;
+    }
+    return remaining;
+  }
+
+  bool isGangTurfAttackOnCooldown(String territoryId) =>
+      gangTurfCooldownRemaining(territoryId) > Duration.zero;
   set activeNpcChallenge(InteractableNpc? val) {
     _activeNpcChallenge = val;
     notifyListeners();
@@ -77,20 +132,22 @@ class GameController extends ChangeNotifier {
   bool get hasGang => _gang != null;
   List<Ally> get gangMembers => List.unmodifiable(_gangMembers);
   int get gangMemberCapacity => hasGang ? _stats.gangCapacity : 0;
+
   /// Count of regular (non-exclusive) members against the cap
   int get regularMemberCount =>
       _gangMembers.where((m) => !m.isExclusive).length;
+
   /// Exclusive leaders are bonus — capped separately at 3
   int get exclusiveMemberCount =>
       _gangMembers.where((m) => m.isExclusive).length;
   bool get canRecruitExclusive => hasGang && exclusiveMemberCount < 3;
   List<Ally> get activeStreetGangMembers {
-    final streetMembers = _gangMembers
-        .where((member) => member.isStreetRecruit)
-        .toList()
-      ..sort((a, b) => b.power.compareTo(a.power));
+    final streetMembers =
+        _gangMembers.where((member) => member.isStreetRecruit).toList()
+          ..sort((a, b) => b.power.compareTo(a.power));
     return List.unmodifiable(streetMembers.take(gangMemberCapacity));
   }
+
   int get gangTotalPower =>
       _gangMembers.fold(0, (total, member) => total + member.power);
   int get gangAttackPower =>
@@ -121,6 +178,7 @@ class GameController extends ChangeNotifier {
   };
 
   Map<int, int> get formationCounts => Map.unmodifiable(_formationCounts);
+  List<Ally> get formationMembers => _formationMembers;
 
   List<Ally> get _formationMembers {
     final selected = <Ally>[];
@@ -449,7 +507,8 @@ class GameController extends ChangeNotifier {
         regularMembers.sort((a, b) => a.power.compareTo(b.power));
         _gangMembers.remove(regularMembers.first);
       } else {
-        final sortedAll = List<Ally>.from(_gangMembers)..sort((a, b) => a.power.compareTo(b.power));
+        final sortedAll = List<Ally>.from(_gangMembers)
+          ..sort((a, b) => a.power.compareTo(b.power));
         _gangMembers.remove(sortedAll.first);
       }
     }
@@ -474,25 +533,199 @@ class GameController extends ChangeNotifier {
   }
 
   double turfTakeoverChance(int territoryDefense) {
+    return turfAttackChance(territoryDefense);
+  }
+
+  int get soloTurfAttackPower {
+    final power =
+        _stats.attackDamage * 14 +
+        _stats.maxHealth +
+        (_stats.speed * 1.4).round() +
+        (_stats.endurance * 1.1).round() +
+        (_stats.reputation * 0.6).round();
+    return power.clamp(1, 999999).toInt();
+  }
+
+  int get turfAttackPower {
     _completeGangTrainingIfReady();
-    if (!hasGang || gangAttackPower <= 0) return 0;
-    final chance = gangAttackPower / (gangAttackPower + territoryDefense);
-    return chance.clamp(0.05, 0.95).toDouble();
+    return gangFormationSize > 0 ? gangAttackPower : soloTurfAttackPower;
+  }
+
+  bool get isTurfAttackUsingGang {
+    _completeGangTrainingIfReady();
+    return hasGang && gangFormationSize > 0;
+  }
+
+  double turfAttackChance(int territoryDefense) {
+    final power = turfAttackPower;
+    final chance = power / (power + territoryDefense);
+    final maxChance = isTurfAttackUsingGang ? 0.95 : 0.75;
+    return chance.clamp(0.03, maxChance).toDouble();
+  }
+
+  TurfAttackResult attackTurfTerritory({
+    required int territoryDefense,
+    String? territoryId,
+    String? territoryName,
+    String? occupyingGangName,
+  }) {
+    _completeGangTrainingIfReady();
+    final usedGang = isTurfAttackUsingGang;
+    final power = turfAttackPower;
+    final chance = turfAttackChance(territoryDefense);
+    final succeeded = _random.nextDouble() <= chance;
+
+    if (succeeded) {
+      if (territoryId != null) {
+        _conqueredTerritoryIds.add(territoryId);
+        _gangTurfAttackCooldowns.remove(territoryId);
+      }
+      gainStats(reputation: usedGang ? 3 : 5);
+      gainMoney((territoryDefense * (usedGang ? 0.8 : 0.55)).round());
+    } else {
+      final lossRate = usedGang ? 0.12 : 0.08;
+      _money = (_money - (territoryDefense * lossRate).round()).clamp(
+        0,
+        999999,
+      );
+      if (usedGang && territoryId != null) {
+        _gangTurfAttackCooldowns[territoryId] = DateTime.now().add(
+          const Duration(seconds: 45),
+        );
+      } else if (!usedGang) {
+        _playerHealth = (_playerHealth - math.max(1, territoryDefense ~/ 18))
+            .clamp(0, _stats.maxHealth)
+            .toInt();
+      }
+      notifyListeners();
+    }
+
+    return TurfAttackResult(
+      succeeded: succeeded,
+      usedGang: usedGang,
+      attackPower: power,
+      chance: chance,
+      leaderReaction: _turfLeaderReaction(
+        succeeded: succeeded,
+        usedGang: usedGang,
+        territoryName: territoryName,
+        occupyingGangName: occupyingGangName,
+      ),
+    );
   }
 
   bool attemptTurfTakeover(int territoryDefense) {
-    _completeGangTrainingIfReady();
-    if (!hasGang || gangFormationSize == 0) return false;
-    final chance = turfTakeoverChance(territoryDefense);
-    final succeeded = _random.nextDouble() <= chance;
-    if (succeeded) {
-      gainStats(reputation: 3);
-      gainMoney((territoryDefense * 0.8).round());
-    } else {
-      _money = (_money - (territoryDefense * 0.12).round()).clamp(0, 999999);
-      notifyListeners();
+    return attackTurfTerritory(territoryDefense: territoryDefense).succeeded;
+  }
+
+  PendingTurfConquest beginSoloTurfConquest({
+    required String territoryId,
+    required String territoryName,
+    required int territoryDefense,
+    String? occupyingGangName,
+    bool usedGang = false,
+  }) {
+    final request = PendingTurfConquest(
+      territoryId: territoryId,
+      territoryName: territoryName,
+      territoryDefense: territoryDefense,
+      occupyingGangName: occupyingGangName,
+      usedGang: usedGang,
+    );
+    _pendingTurfConquest = request;
+    _playerHealth = _stats.maxHealth;
+    notifyListeners();
+    return request;
+  }
+
+  TurfAttackResult completeSoloTurfConquest(String territoryId) {
+    final request = _pendingTurfConquest;
+    final defense = request?.territoryDefense ?? 0;
+    final territoryName = request?.territoryName;
+    final occupyingGangName = request?.occupyingGangName;
+    final usedGang = request?.usedGang ?? false;
+
+    if (request != null && request.territoryId == territoryId) {
+      _conqueredTerritoryIds.add(territoryId);
+      _gangTurfAttackCooldowns.remove(territoryId);
+      _pendingTurfConquest = null;
     }
-    return succeeded;
+
+    gainStats(reputation: usedGang ? 4 : 5);
+    gainMoney((defense * (usedGang ? 0.8 : 0.55)).round());
+
+    return TurfAttackResult(
+      succeeded: true,
+      usedGang: usedGang,
+      attackPower: usedGang ? gangAttackPower : soloTurfAttackPower,
+      chance: 1,
+      leaderReaction: _turfLeaderReaction(
+        succeeded: true,
+        usedGang: usedGang,
+        territoryName: territoryName,
+        occupyingGangName: occupyingGangName,
+      ),
+    );
+  }
+
+  TurfAttackResult failSoloTurfConquest(String territoryId) {
+    final request = _pendingTurfConquest;
+    final defense = request?.territoryDefense ?? 0;
+    final territoryName = request?.territoryName;
+    final occupyingGangName = request?.occupyingGangName;
+    final usedGang = request?.usedGang ?? false;
+
+    if (request != null && request.territoryId == territoryId) {
+      _pendingTurfConquest = null;
+    }
+
+    _money = (_money - (defense * (usedGang ? 0.12 : 0.08)).round()).clamp(
+      0,
+      999999,
+    );
+    notifyListeners();
+
+    return TurfAttackResult(
+      succeeded: false,
+      usedGang: usedGang,
+      attackPower: usedGang ? gangAttackPower : soloTurfAttackPower,
+      chance: 0,
+      leaderReaction: _turfLeaderReaction(
+        succeeded: false,
+        usedGang: usedGang,
+        territoryName: territoryName,
+        occupyingGangName: occupyingGangName,
+      ),
+    );
+  }
+
+  void cancelSoloTurfConquest(String territoryId) {
+    if (_pendingTurfConquest?.territoryId != territoryId) return;
+    _pendingTurfConquest = null;
+    notifyListeners();
+  }
+
+  String _turfLeaderReaction({
+    required bool succeeded,
+    required bool usedGang,
+    String? territoryName,
+    String? occupyingGangName,
+  }) {
+    final leader = occupyingGangName == null
+        ? 'A local gang leader'
+        : '$occupyingGangName leader';
+    final turf = territoryName ?? 'that turf';
+
+    if (succeeded && usedGang) {
+      return '$leader respects the move on $turf.';
+    }
+    if (succeeded) {
+      return '$leader is impressed you took $turf solo.';
+    }
+    if (usedGang) {
+      return '$leader mocks your crew for folding on $turf.';
+    }
+    return '$leader laughs at your solo run on $turf.';
   }
 
   void setFormationCount(int tier, int count) {

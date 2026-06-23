@@ -163,7 +163,7 @@ class _AppFlowState extends State<AppFlow> {
         world.rivalGangs = result.rivalGangs;
         world.interactableNpcs = result.interactableNpcs;
       }
-      
+
       final changedWorld = character.worldId != world.id;
       character.worldId = world.id;
       if (changedWorld || character.locationStreetId == null) {
@@ -240,6 +240,12 @@ class _AppFlowState extends State<AppFlow> {
               activeCharacter.locationStreetId = newStreetId;
             });
           },
+          onTurfConquestStarted: (request) {
+            setState(() {
+              activeCharacter.locationStreetId = request.territoryId;
+              _currentTabIndex = 0;
+            });
+          },
         );
     }
   }
@@ -253,6 +259,7 @@ class _GameScreen extends StatelessWidget {
   final Function(int) onTabChanged;
   final VoidCallback onQuit;
   final ValueChanged<String> onLocationChanged;
+  final ValueChanged<PendingTurfConquest> onTurfConquestStarted;
 
   const _GameScreen({
     required this.character,
@@ -262,6 +269,7 @@ class _GameScreen extends StatelessWidget {
     required this.onTabChanged,
     required this.onQuit,
     required this.onLocationChanged,
+    required this.onTurfConquestStarted,
   });
 
   @override
@@ -311,6 +319,7 @@ class _GameScreen extends StatelessWidget {
                         playerMaxStamina: gameController.stats.maxStamina,
                         playerHunger: gameController.playerHunger,
                         playerMaxHunger: gameController.stats.maxHunger,
+                        backgroundAsset: location.backgroundAsset ?? 'assets/background/ghetto.png',
                         onStatsGained: gameController.gainStats,
                         onPlayerDamaged: gameController.takeDamage,
                         onPlayerDefeated: gameController.recoverFromDefeat,
@@ -324,9 +333,15 @@ class _GameScreen extends StatelessWidget {
                         bossIndex: gameController.bossIndex,
                         onMoneyGained: gameController.gainMoney,
                         hasGang: gameController.hasGang,
-                        gangMembers: gameController.gangMembers,
+                        gangMembers: gameController.formationMembers,
                         onGangMemberRecruited: gameController.recruitGangMember,
                         onGangMemberDismissed: gameController.dismissGangMember,
+                        pendingTurfConquest:
+                            gameController.pendingTurfConquest,
+                        onSoloTurfConquestCleared:
+                            gameController.completeSoloTurfConquest,
+                        onSoloTurfConquestFailed:
+                            gameController.failSoloTurfConquest,
                       ),
                       GymEnvironment(
                         stats: gameController.stats,
@@ -348,6 +363,7 @@ class _GameScreen extends StatelessWidget {
                             .map((resident) => resident.controller.playerName)
                             .toList(),
                         onLocationChanged: onLocationChanged,
+                        onSoloTurfConquestStarted: onTurfConquestStarted,
                         rivalGangs: world.rivalGangs,
                         interactableNpcs: world.interactableNpcs,
                       ),

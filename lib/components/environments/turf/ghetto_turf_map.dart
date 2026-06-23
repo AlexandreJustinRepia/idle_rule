@@ -1,7 +1,5 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-
 import 'turf_map.dart';
 
 final TurfMapData ghettoTurfMap = createGhettoTurfMap();
@@ -49,6 +47,8 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
       Rect.fromLTWH(0.52, 0.53, 0.42, 0.40),
     ),
   ];
+
+  final random = math.Random();
 
   for (final province in provinces) {
     territories.add(
@@ -125,6 +125,10 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
               _streetNames[(cityIndex * 24 + townIndex * 6 + streetIndex) %
                   _streetNames.length];
           streetIds.add(streetId);
+          
+          // Randomly assign one of the new backgrounds
+          final bgAsset = _streetBackgrounds[random.nextInt(_streetBackgrounds.length)];
+
           territories.add(
             TurfTerritory(
               id: streetId,
@@ -139,6 +143,7 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
               level: TurfMapLevel.street,
               parentId: townId,
               bounds: streetRects[streetIndex],
+              backgroundAsset: bgAsset,
             ),
           );
         }
@@ -146,7 +151,6 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
     }
   }
 
-  final random = math.Random();
   return TurfMapData(
     title: title,
     subtitle: 'Read the chain from country down to the streets you can rule.',
@@ -218,4 +222,15 @@ const _streetNames = [
   'Signal Way',
   'Hollow Run',
   'East Steps',
+];
+
+const _streetBackgrounds = [
+  'assets/background/ghetto.png',
+  'assets/background/harbor.png',
+  'assets/background/school.png',
+  'assets/background/downtown.png',
+  'assets/background/suburban.png',
+  'assets/background/chinatown.png',
+  'assets/background/industrial.png',
+  'assets/background/entertainment.png',
 ];

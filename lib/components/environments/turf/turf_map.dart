@@ -24,6 +24,7 @@ class TurfTerritory {
   final TurfMapLevel level;
   final String? parentId;
   final String? occupyingGangId;
+  final String? backgroundAsset;
 
   /// Bounds are normalized (0.0-1.0) relative to the full map canvas.
   final Rect bounds;
@@ -38,6 +39,7 @@ class TurfTerritory {
     required this.bounds,
     this.parentId,
     this.occupyingGangId,
+    this.backgroundAsset,
   });
 
   Offset get center => bounds.center;

@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 class GhettoBackground extends StatelessWidget {
   final Animation<double> scrollAnimation;
   final double sceneWidth;
+  final String backgroundAsset;
 
   const GhettoBackground({
     super.key,
     required this.scrollAnimation,
+    required this.backgroundAsset,
     this.sceneWidth = 900.0,
   });
 
@@ -28,13 +30,13 @@ class GhettoBackground extends StatelessWidget {
                 child: Row(
                   children: [
                     Image.asset(
-                      'assets/background/ghetto.png',
+                      backgroundAsset,
                       width: sceneWidth,
                       height: MediaQuery.of(context).size.height,
                       fit: BoxFit.cover,
                     ),
                     Image.asset(
-                      'assets/background/ghetto.png',
+                      backgroundAsset,
                       width: sceneWidth,
                       height: MediaQuery.of(context).size.height,
                       fit: BoxFit.cover,

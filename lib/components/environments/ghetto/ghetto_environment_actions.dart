@@ -40,6 +40,65 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     );
   }
 
+  Future<void> _startSoloTurfConquest(PendingTurfConquest request) async {
+    if (_activeSoloConquestId == request.territoryId &&
+        (_isFighting || _isIntroAnimating || _isRecruiting)) {
+      return;
+    }
+    _activeSoloConquestId = request.territoryId;
+
+    if (_isAtHome) {
+      await _exitHouse();
+    }
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'CLEAR ${request.territoryName.toUpperCase()} TO CLAIM IT SOLO',
+        ),
+        backgroundColor: const Color(0xFFE24B4A),
+        duration: const Duration(milliseconds: 1800),
+      ),
+    );
+
+    await _startEncounter(conquest: request);
+  }
+
+  void _finishSoloTurfConquest() {
+    final territoryId = _activeSoloConquestId;
+    if (territoryId == null) return;
+    _activeSoloConquestId = null;
+
+    final result = widget.onSoloTurfConquestCleared?.call(territoryId);
+    if (result == null || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('TURF SECURED - ${result.leaderReaction}'),
+        backgroundColor: Colors.green[800],
+        duration: const Duration(milliseconds: 2400),
+      ),
+    );
+  }
+
+  void _failSoloTurfConquest() {
+    final territoryId = _activeSoloConquestId;
+    if (territoryId == null) return;
+    _activeSoloConquestId = null;
+
+    final result = widget.onSoloTurfConquestFailed?.call(territoryId);
+    if (result == null || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('SOLO RAID FAILED - ${result.leaderReaction}'),
+        backgroundColor: Colors.red[900],
+        duration: const Duration(milliseconds: 2400),
+      ),
+    );
+  }
+
   void _startHomeLogic() {
     _stopAllCombatAnimations();
     setState(() {
@@ -209,7 +268,10 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     widget.onGangMemberRecruited?.call(newAlly);
   }
 
-  Future<void> _startEncounter({bool isBoss = false}) async {
+  Future<void> _startEncounter({
+    bool isBoss = false,
+    PendingTurfConquest? conquest,
+  }) async {
     _enemies.clear();
     _dyingEnemies.clear();
     _enemyOriginalIndices.clear();
@@ -238,6 +300,28 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       _enemies.add(enemy);
       _enemyOriginalIndices[enemy] = 0;
       mainName = enemy.name;
+    } else if (conquest != null) {
+      final count = (conquest.territoryDefense / 35).ceil().clamp(2, 8);
+      final levelBase = (conquest.territoryDefense / 18).ceil().clamp(1, 99);
+      for (int i = 0; i < count; i++) {
+        _enemyNumber++;
+        final enemy = GhettoEnemyFactory.generateRandomEnemy(
+          levelBase + i,
+          widget.stats,
+        );
+        _enemies.add(enemy);
+      }
+
+      _enemies.sort((a, b) {
+        final powerA = a.damage + a.health;
+        final powerB = b.damage + b.health;
+        return powerB.compareTo(powerA);
+      });
+
+      for (int i = 0; i < _enemies.length; i++) {
+        _enemyOriginalIndices[_enemies[i]] = i;
+      }
+      mainName = '${conquest.territoryName} Crew';
     } else {
       int minEnemies = 1 + (widget.stats.reputation / 30).floor();
       int maxEnemies = 3 + (widget.stats.reputation / 15).floor();
@@ -287,7 +371,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     _walkController.stop();
     _trainingTimer?.cancel();
 
-    if (isBoss) {
+    if (isBoss || conquest != null) {
       setState(() {
         _introEnemyName = mainName;
         _isIntroAnimating = true;
@@ -568,6 +652,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     await _deathController.forward(from: 0);
     if (mounted) {
       if (widget.activeBoss != null) widget.onBossDefeated?.call();
+      if (_activeSoloConquestId != null) _finishSoloTurfConquest();
       _stopAllCombatAnimations();
       setState(() {
         _isFighting = false;
@@ -834,6 +919,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
   Future<void> _handlePlayerDefeated() async {
     _stopAllCombatAnimations();
+    _failSoloTurfConquest();
     widget.onPlayerDefeated();
 
     setState(() {

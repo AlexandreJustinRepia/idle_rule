@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../controllers/game_controller.dart';
 import '../../game_state.dart';
 import '../../logic/combat_engine.dart';
 import '../../logic/combat_stat_rewards.dart';
@@ -30,6 +31,7 @@ class GhettoEnvironment extends StatefulWidget {
   final double playerMaxStamina;
   final double playerHunger;
   final double playerMaxHunger;
+  final String backgroundAsset;
   final void Function({
     double strength,
     double speed,
@@ -51,6 +53,10 @@ class GhettoEnvironment extends StatefulWidget {
   final List<Ally> gangMembers;
   final bool Function(Ally ally)? onGangMemberRecruited;
   final void Function(Ally ally)? onGangMemberDismissed;
+  final PendingTurfConquest? pendingTurfConquest;
+  final TurfAttackResult Function(String territoryId)?
+  onSoloTurfConquestCleared;
+  final TurfAttackResult Function(String territoryId)? onSoloTurfConquestFailed;
 
   const GhettoEnvironment({
     super.key,
@@ -61,6 +67,7 @@ class GhettoEnvironment extends StatefulWidget {
     required this.playerMaxStamina,
     required this.playerHunger,
     required this.playerMaxHunger,
+    this.backgroundAsset = 'assets/background/ghetto.png',
     required this.onStatsGained,
     required this.onPlayerDamaged,
     required this.onPlayerDefeated,
@@ -76,6 +83,9 @@ class GhettoEnvironment extends StatefulWidget {
     this.gangMembers = const [],
     this.onGangMemberRecruited,
     this.onGangMemberDismissed,
+    this.pendingTurfConquest,
+    this.onSoloTurfConquestCleared,
+    this.onSoloTurfConquestFailed,
   });
 
   @override
@@ -137,8 +147,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   String _introEnemyName = "";
   dynamic _selectedCombatant;
   Enemy? _playerTarget;
-
-  // Combat and encounter actions are implemented in the _GhettoEnvironmentActions extension.
+  String? _activeSoloConquestId;
 
   @override
   void initState() {
@@ -198,11 +207,25 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     }
 
     _startHomeLogic();
+    if (widget.pendingTurfConquest != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _startSoloTurfConquest(widget.pendingTurfConquest!);
+      });
+    }
   }
 
   @override
   void didUpdateWidget(covariant GhettoEnvironment oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final pending = widget.pendingTurfConquest;
+    if (pending != null &&
+        pending.territoryId != oldWidget.pendingTurfConquest?.territoryId &&
+        pending.territoryId != _activeSoloConquestId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _startSoloTurfConquest(pending);
+      });
+    }
+
     for (final ally in widget.gangMembers) {
       if (_allies.contains(ally)) continue;
       _allies.add(ally);
@@ -262,6 +285,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         GhettoBackground(
           scrollAnimation: _scrollController,
           sceneWidth: sceneWidth,
+          backgroundAsset: widget.backgroundAsset,
         ),
 
         if (_isAtHome && !_isTransitioning) const GhettoSafeHouseOverlay(),
@@ -450,7 +474,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           CinematicSlamOverlay(
             animation: _introController,
             title: _introEnemyName,
-            subtitle: "Ghetto District",
+            subtitle: "Territory Raid",
           ),
 
         if (_isEncounterChoice)

@@ -15,6 +15,7 @@ class TurfScreen extends StatefulWidget {
   final String? locationStreetId;
   final List<String> residents;
   final ValueChanged<String>? onLocationChanged;
+  final ValueChanged<PendingTurfConquest>? onSoloTurfConquestStarted;
   final List<Gang> rivalGangs;
   final List<InteractableNpc> interactableNpcs;
 
@@ -27,6 +28,7 @@ class TurfScreen extends StatefulWidget {
     this.locationStreetId,
     this.residents = const [],
     this.onLocationChanged,
+    this.onSoloTurfConquestStarted,
     this.rivalGangs = const [],
     this.interactableNpcs = const [],
   });
@@ -37,8 +39,6 @@ class TurfScreen extends StatefulWidget {
 
 class _TurfScreenState extends State<TurfScreen> {
   String? _currentParentId;
-  final Set<String> _conqueredTerritoryIds = {};
-
   TurfMapData get _mapData => widget.mapData ?? ghettoTurfMap;
 
   @override
@@ -86,35 +86,47 @@ class _TurfScreenState extends State<TurfScreen> {
     return null;
   }
 
-  void _conquerTerritory(TurfTerritory territory) {
+  void _leadTerritoryAttack(TurfTerritory territory) {
     if (territory.level != TurfMapLevel.street) return;
-    if (_conqueredTerritoryIds.contains(territory.id)) return;
+    if (widget.gameController.isTerritoryConquered(territory.id)) return;
 
-    final succeeded = widget.gameController.attemptTurfTakeover(territory.defense);
+    final isUsingGang = widget.gameController.isTurfAttackUsingGang;
+    
+    final request = widget.gameController.beginSoloTurfConquest(
+      territoryId: territory.id,
+      territoryName: territory.label,
+      territoryDefense: territory.defense,
+      occupyingGangName: territory.occupyingGangId,
+      usedGang: isUsingGang,
+    );
+    
+    widget.onLocationChanged?.call(territory.id);
+    widget.onSoloTurfConquestStarted?.call(request);
+    
     if (!mounted) return;
-
-    if (!succeeded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${territory.label.toUpperCase()} TAKEOVER FAILED'),
-          backgroundColor: Colors.red[900],
-          duration: const Duration(milliseconds: 1500),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _conqueredTerritoryIds.add(territory.id));
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${territory.label.toUpperCase()} SECURED'),
-        backgroundColor: Colors.green[800],
-        duration: const Duration(milliseconds: 1500),
+        content: Text(
+          isUsingGang 
+            ? 'GANG RAID STARTED - TAKING OVER ${territory.label.toUpperCase()}'
+            : 'SOLO RAID STARTED - CLEAR ${territory.label.toUpperCase()} ON THE STREET',
+        ),
+        backgroundColor: const Color(0xFFE24B4A),
+        duration: const Duration(milliseconds: 2200),
       ),
     );
   }
 
-  void _showTravelAnimation(TurfTerritory street, bool isTaxi, VoidCallback onAnimationComplete) {
+  void _sendGangToTerritory(TurfTerritory territory) {
+    _leadTerritoryAttack(territory);
+  }
+
+  void _showTravelAnimation(
+    TurfTerritory street,
+    bool isTaxi,
+    VoidCallback onAnimationComplete,
+  ) {
     Navigator.of(context).push(
       PageRouteBuilder(
         opaque: false,
@@ -142,7 +154,8 @@ class _TurfScreenState extends State<TurfScreen> {
         return ListenableBuilder(
           listenable: controller,
           builder: (context, child) {
-            final dynamicCanWalk = controller.playerStamina >= 15 && controller.playerHunger >= 10;
+            final dynamicCanWalk =
+                controller.playerStamina >= 15 && controller.playerHunger >= 10;
             final dynamicCanTaxi = controller.money >= 15;
 
             return AlertDialog(
@@ -166,7 +179,10 @@ class _TurfScreenState extends State<TurfScreen> {
                 children: [
                   Text(
                     'Choose your method of transportation to reach this street turf.',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   // Walk Option Card
@@ -220,7 +236,10 @@ class _TurfScreenState extends State<TurfScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('CANCEL', style: TextStyle(color: Colors.white38)),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.white38),
+                  ),
                 ),
               ],
             );
@@ -265,7 +284,9 @@ class _TurfScreenState extends State<TurfScreen> {
                       const SizedBox(height: 4),
                       Text(
                         _mapData.subtitle,
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.62)),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.62),
+                        ),
                       ),
                     ],
                   ),
@@ -289,12 +310,18 @@ class _TurfScreenState extends State<TurfScreen> {
             const SizedBox(height: 12),
 
             // Street Residents Section
-            if (widget.interactableNpcs.any((n) => n.locationStreetId == currentStreetId && !n.isRecruited)) ...[
+            if (widget.interactableNpcs.any(
+              (n) => n.locationStreetId == currentStreetId && !n.isRecruited,
+            )) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.people_alt, color: Color(0xFFFFD166), size: 14),
+                    const Icon(
+                      Icons.people_alt,
+                      color: Color(0xFFFFD166),
+                      size: 14,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'LOCAL STREET RESIDENTS',
@@ -314,13 +341,23 @@ class _TurfScreenState extends State<TurfScreen> {
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: widget.interactableNpcs
-                      .where((n) => n.locationStreetId == currentStreetId && !n.isRecruited)
-                      .map((npc) => _NpcCard(
-                            npc: npc,
-                            onTap: () {
-                              NpcInteractionModal.show(context, npc, widget.gameController);
-                            },
-                          ))
+                      .where(
+                        (n) =>
+                            n.locationStreetId == currentStreetId &&
+                            !n.isRecruited,
+                      )
+                      .map(
+                        (npc) => _NpcCard(
+                          npc: npc,
+                          onTap: () {
+                            NpcInteractionModal.show(
+                              context,
+                              npc,
+                              widget.gameController,
+                            );
+                          },
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -344,7 +381,8 @@ class _TurfScreenState extends State<TurfScreen> {
                       _BreadcrumbNode(
                         label: crumbs[i].label,
                         isLast: i == crumbs.length - 1,
-                        onTap: () => setState(() => _currentParentId = crumbs[i].id),
+                        onTap: () =>
+                            setState(() => _currentParentId = crumbs[i].id),
                       ),
                   ],
                 ),
@@ -356,16 +394,20 @@ class _TurfScreenState extends State<TurfScreen> {
                   ? Center(
                       child: Text(
                         'No sub-territories found here.',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.4),
+                        ),
                       ),
                     )
                   : ListView.builder(
                       itemCount: children.length,
                       itemBuilder: (context, index) {
                         final child = children[index];
-                        final isStreetLevel = child.level == TurfMapLevel.street;
+                        final isStreetLevel =
+                            child.level == TurfMapLevel.street;
                         final isCurrentLocation = child.id == currentStreetId;
-                        final isConquered = _conqueredTerritoryIds.contains(child.id);
+                        final isConquered = widget.gameController
+                            .isTerritoryConquered(child.id);
 
                         return _TerritoryCard(
                           territory: child,
@@ -380,7 +422,8 @@ class _TurfScreenState extends State<TurfScreen> {
                             }
                           },
                           onTravel: () => _showTravelDialog(child),
-                          onConquer: () => _conquerTerritory(child),
+                          onSendGang: () => _sendGangToTerritory(child),
+                          onLeadAttack: () => _leadTerritoryAttack(child),
                         );
                       },
                     ),
@@ -416,11 +459,7 @@ class _LocationIndicatorBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
-          const Icon(
-            Icons.my_location,
-            color: Color(0xFFFFD166),
-            size: 20,
-          ),
+          const Icon(Icons.my_location, color: Color(0xFFFFD166), size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -508,7 +547,8 @@ class _TerritoryCard extends StatelessWidget {
   final GameController gameController;
   final VoidCallback onTap;
   final VoidCallback onTravel;
-  final VoidCallback onConquer;
+  final VoidCallback onSendGang;
+  final VoidCallback onLeadAttack;
 
   const _TerritoryCard({
     required this.territory,
@@ -519,7 +559,8 @@ class _TerritoryCard extends StatelessWidget {
     required this.gameController,
     required this.onTap,
     required this.onTravel,
-    required this.onConquer,
+    required this.onSendGang,
+    required this.onLeadAttack,
   });
 
   IconData _iconForLevel(TurfMapLevel level) {
@@ -539,19 +580,20 @@ class _TerritoryCard extends StatelessWidget {
     final borderGlowColor = isCurrentLocation
         ? const Color(0xFFFFD166).withValues(alpha: 0.5)
         : isConquered
-            ? const Color(0xFF2DDA77).withValues(alpha: 0.4)
-            : Colors.white.withValues(alpha: 0.08);
+        ? const Color(0xFF2DDA77).withValues(alpha: 0.4)
+        : Colors.white.withValues(alpha: 0.08);
 
-    final canAttack = isStreetLevel &&
-        !isConquered &&
-        gameController.hasGang &&
-        gameController.gangFormationSize > 0;
+    final canAttack = isStreetLevel && !isConquered;
+    final attackUsesGang = gameController.isTurfAttackUsingGang;
 
     return Card(
       color: const Color(0xFF111316),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: borderGlowColor, width: isCurrentLocation || isConquered ? 1.5 : 1),
+        side: BorderSide(
+          color: borderGlowColor,
+          width: isCurrentLocation || isConquered ? 1.5 : 1,
+        ),
       ),
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -695,7 +737,10 @@ class _TerritoryCard extends StatelessWidget {
                           foregroundColor: Colors.white70,
                           shadowColor: Colors.transparent,
                           side: const BorderSide(color: Colors.white24),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -703,25 +748,34 @@ class _TerritoryCard extends StatelessWidget {
                         icon: const Icon(Icons.alt_route, size: 16),
                         label: const Text(
                           'TRAVEL',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     if (!isCurrentLocation && canAttack) ...[
                       const SizedBox(width: 8),
                       ElevatedButton.icon(
-                        onPressed: onConquer,
+                        onPressed: attackUsesGang ? onSendGang : onLeadAttack,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFE24B4A),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                         icon: const Icon(Icons.gavel, size: 16),
-                        label: const Text(
-                          'RULE',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                        label: Text(
+                          attackUsesGang ? 'SEND' : 'SOLO',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ],
@@ -813,7 +867,9 @@ class _TravelOptionCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: isEnabled ? Colors.white.withValues(alpha: 0.06) : Colors.transparent,
+          color: isEnabled
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.transparent,
         ),
       ),
       elevation: 0,
@@ -879,15 +935,12 @@ class _NpcCard extends StatelessWidget {
   final InteractableNpc npc;
   final VoidCallback onTap;
 
-  const _NpcCard({
-    required this.npc,
-    required this.onTap,
-  });
+  const _NpcCard({required this.npc, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final tier = npc.relationshipTier;
-    
+
     return Container(
       width: 160,
       margin: const EdgeInsets.only(right: 12),

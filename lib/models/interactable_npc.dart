@@ -4,8 +4,8 @@ enum NpcRelationshipTier {
   hostile('Hostile', Color(0xFFD9383A)),
   aggressive('Aggressive', Color(0xFFFF9500)),
   neutral('Neutral', Color(0xFF8E8E93)),
-  friendly('Friendly', const Color(0xFF34C759)),
-  loyal('Loyal', const Color(0xFF30D158));
+  friendly('Friendly', Color(0xFF34C759)),
+  loyal('Loyal', Color(0xFF30D158));
 
   final String label;
   final Color color;
