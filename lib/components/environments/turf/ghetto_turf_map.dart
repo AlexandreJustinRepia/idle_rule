@@ -125,9 +125,9 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
               _streetNames[(cityIndex * 24 + townIndex * 6 + streetIndex) %
                   _streetNames.length];
           streetIds.add(streetId);
-          
-          // Randomly assign one of the new backgrounds
-          final bgAsset = _streetBackgrounds[random.nextInt(_streetBackgrounds.length)];
+
+          final streetType = StreetType.values[
+              random.nextInt(StreetType.values.length)];
 
           territories.add(
             TurfTerritory(
@@ -143,7 +143,8 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
               level: TurfMapLevel.street,
               parentId: townId,
               bounds: streetRects[streetIndex],
-              backgroundAsset: bgAsset,
+              backgroundAsset: streetType.assetPath,
+              streetType: streetType,
             ),
           );
         }
@@ -224,13 +225,3 @@ const _streetNames = [
   'East Steps',
 ];
 
-const _streetBackgrounds = [
-  'assets/background/ghetto.png',
-  'assets/background/harbor.png',
-  'assets/background/school.png',
-  'assets/background/downtown.png',
-  'assets/background/suburban.png',
-  'assets/background/chinatown.png',
-  'assets/background/industrial.png',
-  'assets/background/entertainment.png',
-];

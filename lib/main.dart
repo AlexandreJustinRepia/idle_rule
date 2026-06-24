@@ -100,18 +100,15 @@ class _AppFlowState extends State<AppFlow> {
       _characters.add(character);
       _activeCharacter = character;
       _selectedCharacter = character;
-      if (_worlds.isEmpty) {
-        _createWorld();
-      }
       _phase = AppFlowPhase.worldSelection;
     });
   }
 
-  GameWorld _createWorld() {
+  GameWorld _createWorld(String name) {
     final worldNumber = _nextWorldId++;
     final world = GameWorld(
       id: 'world_$worldNumber',
-      name: 'World $worldNumber',
+      name: name.trim().isEmpty ? 'New World $worldNumber' : name.trim(),
       seed: worldNumber,
     );
     _worlds.add(world);
@@ -122,9 +119,9 @@ class _AppFlowState extends State<AppFlow> {
     setState(() => _phase = AppFlowPhase.creation);
   }
 
-  void _addWorld() {
+  void _addWorld(String name) {
     setState(() {
-      _createWorld();
+      _createWorld(name);
     });
   }
 
@@ -392,7 +389,7 @@ class _WorldSelectionScreen extends StatelessWidget {
   final GameWorld? Function(String? id) worldById;
   final List<GameCharacterSession> Function(GameWorld world) charactersInWorld;
   final VoidCallback onCreateCharacter;
-  final VoidCallback onCreateWorld;
+  final ValueChanged<String> onCreateWorld;
   final ValueChanged<GameWorld> onDeleteWorld;
   final ValueChanged<GameCharacterSession> onDeleteCharacter;
   final ValueChanged<GameCharacterSession> onSelectCharacter;
@@ -412,6 +409,44 @@ class _WorldSelectionScreen extends StatelessWidget {
     required this.onSelectCharacter,
     required this.onEnterWorld,
   });
+
+  void _promptForWorldName(BuildContext context) {
+    final controller = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF121212),
+          title: const Text('Create World'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Enter a world name',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('CANCEL'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isEmpty) return;
+                Navigator.of(context).pop();
+                onCreateWorld(name);
+              },
+              child: const Text('CREATE'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -451,7 +486,7 @@ class _WorldSelectionScreen extends StatelessWidget {
                     child: _LobbyButton(
                       icon: Icons.public,
                       label: 'CREATE WORLD',
-                      onTap: onCreateWorld,
+                      onTap: () => _promptForWorldName(context),
                     ),
                   ),
                 ],

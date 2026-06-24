@@ -448,6 +448,8 @@ class _LocationIndicatorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final streetTypeLabel = currentStreet.streetType?.label;
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF17191C),
@@ -474,6 +476,18 @@ class _LocationIndicatorBanner extends StatelessWidget {
                     letterSpacing: 0.5,
                   ),
                 ),
+                if (streetTypeLabel != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'STREET TYPE: ${streetTypeLabel.toUpperCase()}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 2),
                 Text(
                   residents.isEmpty
@@ -641,6 +655,19 @@ class _TerritoryCard extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                           ),
                         ),
+                        if (territory.level == TurfMapLevel.street &&
+                            territory.streetType != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            territory.streetType!.label.toUpperCase(),
+                            style: TextStyle(
+                              color: territory.color.withValues(alpha: 0.65),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

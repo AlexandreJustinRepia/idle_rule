@@ -46,6 +46,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       return;
     }
     _activeSoloConquestId = request.territoryId;
+    _isConquestEncounter = true;
 
     if (_isAtHome) {
       await _exitHouse();
@@ -410,6 +411,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       setState(() {
         _introEnemyName = mainName;
         _isEncounterChoice = true;
+        _isConquestEncounter = false;
       });
     }
   }
@@ -452,6 +454,9 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
   }
 
   void _onChooseTalk() {
+    if (_isConquestEncounter) {
+      return;
+    }
     setState(() {
       _isEncounterChoice = false;
       _isTalking = true;

@@ -120,6 +120,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _isAtHome = true;
   bool _isEncounterChoice = false;
   bool _isTalking = false;
+  bool _isConquestEncounter = false;
   String _currentDialogue = "";
 
   final List<String> _randomInfo = [
@@ -481,7 +482,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           EncounterChoiceOverlay(
             npcName: _introEnemyName,
             onFight: _onChooseFight,
-            onTalk: _onChooseTalk,
+            onTalk: _isConquestEncounter ? null : _onChooseTalk,
           ),
 
         if (_isTalking)

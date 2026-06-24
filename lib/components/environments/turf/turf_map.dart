@@ -15,6 +15,22 @@ enum TurfMapLevel {
   const TurfMapLevel(this.label, this.depth);
 }
 
+enum StreetType {
+  ghetto('Ghetto', 'assets/background/ghetto.png'),
+  harbor('Harbor', 'assets/background/harbor.png'),
+  school('School', 'assets/background/school.png'),
+  downtown('Downtown', 'assets/background/downtown.png'),
+  suburban('Suburban', 'assets/background/suburban.png'),
+  chinatown('Chinatown', 'assets/background/chinatown.png'),
+  industrial('Industrial', 'assets/background/industrial.png'),
+  entertainment('Entertainment', 'assets/background/entertainment.png');
+
+  final String label;
+  final String assetPath;
+
+  const StreetType(this.label, this.assetPath);
+}
+
 class TurfTerritory {
   final String id;
   final String label;
@@ -25,6 +41,7 @@ class TurfTerritory {
   final String? parentId;
   final String? occupyingGangId;
   final String? backgroundAsset;
+  final StreetType? streetType;
 
   /// Bounds are normalized (0.0-1.0) relative to the full map canvas.
   final Rect bounds;
@@ -40,6 +57,7 @@ class TurfTerritory {
     this.parentId,
     this.occupyingGangId,
     this.backgroundAsset,
+    this.streetType,
   });
 
   Offset get center => bounds.center;

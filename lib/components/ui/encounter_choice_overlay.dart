@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 class EncounterChoiceOverlay extends StatelessWidget {
   final String npcName;
   final VoidCallback onFight;
-  final VoidCallback onTalk;
+  final VoidCallback? onTalk;
 
   const EncounterChoiceOverlay({
     super.key,
     required this.npcName,
     required this.onFight,
-    required this.onTalk,
+    this.onTalk,
   });
 
   @override
@@ -62,6 +62,7 @@ class EncounterChoiceOverlay extends StatelessWidget {
                       label: 'TALK',
                       onTap: onTalk,
                       isPrimary: false,
+                      isDisabled: onTalk == null,
                     ),
                   ],
                 ),
@@ -73,16 +74,24 @@ class EncounterChoiceOverlay extends StatelessWidget {
     );
   }
 
-  Widget _buildButton({required String label, required VoidCallback onTap, required bool isPrimary}) {
+  Widget _buildButton({required String label, required VoidCallback? onTap, required bool isPrimary, bool isDisabled = false}) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isDisabled ? null : onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          color: isPrimary ? const Color(0xFFE24B4A).withValues(alpha: 0.9) : const Color(0xFF111111),
+          color: isPrimary
+              ? const Color(0xFFE24B4A).withValues(alpha: 0.9)
+              : isDisabled
+                  ? Colors.grey[850]
+                  : const Color(0xFF111111),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isPrimary ? const Color(0xFFE24B4A) : Colors.grey[800]!,
+            color: isPrimary
+                ? const Color(0xFFE24B4A)
+                : isDisabled
+                    ? Colors.grey[700]!
+                    : Colors.grey[800]!,
             width: 2,
           ),
           boxShadow: isPrimary
@@ -98,7 +107,11 @@ class EncounterChoiceOverlay extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: isPrimary ? Colors.white : Colors.grey[400],
+            color: isPrimary
+                ? Colors.white
+                : isDisabled
+                    ? Colors.grey[600]
+                    : Colors.grey[400],
             fontWeight: FontWeight.bold,
             fontSize: 16,
             letterSpacing: 1.5,

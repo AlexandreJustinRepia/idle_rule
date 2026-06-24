@@ -267,6 +267,9 @@ class WorldGenerator {
               streetCount++;
               streetIds.add(streetId);
 
+              final streetType = StreetType.values[
+                  random.nextInt(StreetType.values.length)];
+
               territories.add(
                 TurfTerritory(
                   id: streetId,
@@ -282,6 +285,8 @@ class WorldGenerator {
                   parentId: townId,
                   bounds: streetRects[sIndex],
                   occupyingGangId: occupyingGang?.name,
+                  backgroundAsset: streetType.assetPath,
+                  streetType: streetType,
                 ),
               );
             }
