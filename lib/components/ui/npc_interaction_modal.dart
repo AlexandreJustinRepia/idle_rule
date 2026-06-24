@@ -5,20 +5,31 @@ import '../../../models/interactable_npc.dart';
 class NpcInteractionModal extends StatefulWidget {
   final InteractableNpc npc;
   final GameController controller;
+  final bool disableTalk;
 
   const NpcInteractionModal({
     super.key,
     required this.npc,
     required this.controller,
+    this.disableTalk = false,
   });
 
-  static void show(BuildContext context, InteractableNpc npc, GameController controller) {
+  static void show(
+    BuildContext context,
+    InteractableNpc npc,
+    GameController controller, {
+    bool disableTalk = false,
+  }) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (context) => ListenableBuilder(
         listenable: controller,
-        builder: (context, _) => NpcInteractionModal(npc: npc, controller: controller),
+        builder: (context, _) => NpcInteractionModal(
+          npc: npc,
+          controller: controller,
+          disableTalk: disableTalk,
+        ),
       ),
     );
   }
@@ -302,9 +313,9 @@ class _NpcInteractionModalState extends State<NpcInteractionModal> {
                       children: [
                         _ActionButton(
                           icon: Icons.chat_bubble_outline,
-                          label: 'TALK',
-                          color: Colors.blueAccent,
-                          onTap: _onTalk,
+                          label: widget.disableTalk ? 'TALK (LOCKED)' : 'TALK',
+                          color: widget.disableTalk ? Colors.white24 : Colors.blueAccent,
+                          onTap: widget.disableTalk ? null : _onTalk,
                         ),
                         _ActionButton(
                           icon: Icons.attach_money,

@@ -267,8 +267,8 @@ class WorldGenerator {
               streetCount++;
               streetIds.add(streetId);
 
-              final streetType = StreetType.values[
-                  random.nextInt(StreetType.values.length)];
+              final streetType =
+                  StreetType.values[random.nextInt(StreetType.values.length)];
 
               territories.add(
                 TurfTerritory(
@@ -307,7 +307,14 @@ class WorldGenerator {
     // Generate unique named interactable NPCs on random streets
     final interactableNpcs = <InteractableNpc>[];
     const npcNames = [
-      'Ghost', 'Viper', 'Spike', 'Shadow', 'Bullet', 'Razor', 'Siren', 'Trigger'
+      'Ghost',
+      'Viper',
+      'Spike',
+      'Shadow',
+      'Bullet',
+      'Razor',
+      'Siren',
+      'Trigger',
     ];
     const npcDescriptions = [
       'A silent veteran who knows every corner of this town.',
@@ -317,15 +324,15 @@ class WorldGenerator {
       'A legendary marksman laying low in the slums.',
       'A street blade master with a cold attitude.',
       'A persuasive negotiator who can sweet-talk anyone.',
-      'A reckless driver and runner. Lives on the edge.'
+      'A reckless driver and runner. Lives on the edge.',
     ];
 
     for (int i = 0; i < npcNames.length; i++) {
       final npcId = 'npc_${seed}_$i';
-      final streetId = streetIds.isNotEmpty 
-          ? streetIds[random.nextInt(streetIds.length)] 
+      final streetId = streetIds.isNotEmpty
+          ? streetIds[random.nextInt(streetIds.length)]
           : 'spawn';
-      
+
       final npcHp = 100 + random.nextInt(80);
       interactableNpcs.add(
         InteractableNpc(
@@ -338,7 +345,8 @@ class WorldGenerator {
           atk: 8 + random.nextInt(6),
           dodgeChance: 0.08 + random.nextDouble() * 0.08,
           reputation: 25.0 + random.nextInt(25),
-          relationship: -20 + random.nextInt(40), // Initial relationship -20 to 20
+          relationship:
+              -20 + random.nextInt(40), // Initial relationship -20 to 20
           locationStreetId: streetId,
         ),
       );

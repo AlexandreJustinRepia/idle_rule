@@ -74,7 +74,12 @@ class EncounterChoiceOverlay extends StatelessWidget {
     );
   }
 
-  Widget _buildButton({required String label, required VoidCallback? onTap, required bool isPrimary, bool isDisabled = false}) {
+  Widget _buildButton({
+    required String label,
+    required VoidCallback? onTap,
+    required bool isPrimary,
+    bool isDisabled = false,
+  }) {
     return GestureDetector(
       onTap: isDisabled ? null : onTap,
       child: Container(
@@ -83,15 +88,15 @@ class EncounterChoiceOverlay extends StatelessWidget {
           color: isPrimary
               ? const Color(0xFFE24B4A).withValues(alpha: 0.9)
               : isDisabled
-                  ? Colors.grey[850]
-                  : const Color(0xFF111111),
+              ? Colors.grey[850]
+              : const Color(0xFF111111),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isPrimary
                 ? const Color(0xFFE24B4A)
                 : isDisabled
-                    ? Colors.grey[700]!
-                    : Colors.grey[800]!,
+                ? Colors.grey[700]!
+                : Colors.grey[800]!,
             width: 2,
           ),
           boxShadow: isPrimary
@@ -110,8 +115,8 @@ class EncounterChoiceOverlay extends StatelessWidget {
             color: isPrimary
                 ? Colors.white
                 : isDisabled
-                    ? Colors.grey[600]
-                    : Colors.grey[400],
+                ? Colors.grey[600]
+                : Colors.grey[400],
             fontWeight: FontWeight.bold,
             fontSize: 16,
             letterSpacing: 1.5,

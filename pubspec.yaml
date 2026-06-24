@@ -62,4 +62,9 @@ flutter:
   assets:
     - assets/background/
     - assets/logo/
-    - google_fonts/
+
+  # Register bundled fonts so builds and offline runs use them correctly.
+  fonts:
+    - family: Bebas Neue
+      fonts:
+        - asset: google_fonts/BebasNeue-Regular.ttf

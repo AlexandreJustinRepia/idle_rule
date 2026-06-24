@@ -52,6 +52,35 @@ class _TurfScreenState extends State<TurfScreen> {
     } catch (_) {
       _currentParentId = null;
     }
+
+    if (widget.gameController.isSoloRaidFailedTerritory(currentStreetId)) {
+      _markStreetNpcsAggressive(currentStreetId);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TurfScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldStreetId = oldWidget.locationStreetId ?? _mapData.spawnStreetId;
+    final newStreetId = widget.locationStreetId ?? _mapData.spawnStreetId;
+    if (newStreetId != oldStreetId &&
+        widget.gameController.isSoloRaidFailedTerritory(newStreetId)) {
+      _markStreetNpcsAggressive(newStreetId);
+    }
+  }
+
+  void _markStreetNpcsAggressive(String streetId) {
+    var updated = false;
+    for (final npc in widget.interactableNpcs) {
+      if (npc.locationStreetId != streetId || npc.isRecruited) continue;
+      if (npc.relationship > -20) {
+        npc.relationship = -20;
+        updated = true;
+      }
+    }
+    if (updated && mounted) {
+      setState(() {});
+    }
   }
 
   List<TurfTerritory> get _breadcrumbs {
@@ -91,7 +120,7 @@ class _TurfScreenState extends State<TurfScreen> {
     if (widget.gameController.isTerritoryConquered(territory.id)) return;
 
     final isUsingGang = widget.gameController.isTurfAttackUsingGang;
-    
+
     final request = widget.gameController.beginSoloTurfConquest(
       territoryId: territory.id,
       territoryName: territory.label,
@@ -99,18 +128,18 @@ class _TurfScreenState extends State<TurfScreen> {
       occupyingGangName: territory.occupyingGangId,
       usedGang: isUsingGang,
     );
-    
-    widget.onLocationChanged?.call(territory.id);
+
     widget.onSoloTurfConquestStarted?.call(request);
-    
+    widget.onLocationChanged?.call(territory.id);
+
     if (!mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          isUsingGang 
-            ? 'GANG RAID STARTED - TAKING OVER ${territory.label.toUpperCase()}'
-            : 'SOLO RAID STARTED - CLEAR ${territory.label.toUpperCase()} ON THE STREET',
+          isUsingGang
+              ? 'GANG RAID STARTED - TAKING OVER ${territory.label.toUpperCase()}'
+              : 'SOLO RAID STARTED - CLEAR ${territory.label.toUpperCase()} ON THE STREET',
         ),
         backgroundColor: const Color(0xFFE24B4A),
         duration: const Duration(milliseconds: 2200),
@@ -350,10 +379,14 @@ class _TurfScreenState extends State<TurfScreen> {
                         (npc) => _NpcCard(
                           npc: npc,
                           onTap: () {
+                            final currentStreetId = widget.locationStreetId ?? _mapData.spawnStreetId;
+                            final disableTalk = widget.gameController
+                                .isSoloRaidFailedTerritory(currentStreetId);
                             NpcInteractionModal.show(
                               context,
                               npc,
                               widget.gameController,
+                              disableTalk: disableTalk,
                             );
                           },
                         ),

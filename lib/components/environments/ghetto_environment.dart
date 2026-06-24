@@ -57,6 +57,7 @@ class GhettoEnvironment extends StatefulWidget {
   final TurfAttackResult Function(String territoryId)?
   onSoloTurfConquestCleared;
   final TurfAttackResult Function(String territoryId)? onSoloTurfConquestFailed;
+  final bool hasSafeHouse;
 
   const GhettoEnvironment({
     super.key,
@@ -86,6 +87,7 @@ class GhettoEnvironment extends StatefulWidget {
     this.pendingTurfConquest,
     this.onSoloTurfConquestCleared,
     this.onSoloTurfConquestFailed,
+    this.hasSafeHouse = false,
   });
 
   @override
@@ -227,6 +229,17 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       });
     }
 
+    if (!widget.hasSafeHouse && oldWidget.hasSafeHouse && _isAtHome) {
+      setState(() {
+        _isAtHome = false;
+        _isResting = false;
+        _isTransitioning = false;
+        _scrollController.stop();
+        _walkController.stop();
+        _walkController.value = 0;
+      });
+    }
+
     for (final ally in widget.gangMembers) {
       if (_allies.contains(ally)) continue;
       _allies.add(ally);
@@ -289,7 +302,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
           backgroundAsset: widget.backgroundAsset,
         ),
 
-        if (_isAtHome && !_isTransitioning) const GhettoSafeHouseOverlay(),
+        if (_isAtHome && !_isTransitioning && widget.hasSafeHouse)
+          const GhettoSafeHouseOverlay(),
 
         for (int i = 0; i < _allies.length; i++)
           GhettoAllyUnit(

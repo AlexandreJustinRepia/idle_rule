@@ -126,8 +126,8 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
                   _streetNames.length];
           streetIds.add(streetId);
 
-          final streetType = StreetType.values[
-              random.nextInt(StreetType.values.length)];
+          final streetType =
+              StreetType.values[random.nextInt(StreetType.values.length)];
 
           territories.add(
             TurfTerritory(
@@ -224,4 +224,3 @@ const _streetNames = [
   'Hollow Run',
   'East Steps',
 ];
-

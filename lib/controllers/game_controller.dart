@@ -76,6 +76,7 @@ class GameController extends ChangeNotifier {
   InteractableNpc? _activeNpcChallenge;
   PendingTurfConquest? _pendingTurfConquest;
   final Set<String> _conqueredTerritoryIds = {};
+  final Set<String> _failedSoloRaidTerritoryIds = {};
   final Map<String, DateTime> _gangTurfAttackCooldowns = {};
 
   InteractableNpc? get activeNpcChallenge => _activeNpcChallenge;
@@ -83,8 +84,12 @@ class GameController extends ChangeNotifier {
       _pendingTurfConquest;
   Set<String> get conqueredTerritoryIds =>
       Set.unmodifiable(_conqueredTerritoryIds);
+  Set<String> get failedSoloRaidTerritoryIds =>
+      Set.unmodifiable(_failedSoloRaidTerritoryIds);
   bool isTerritoryConquered(String territoryId) =>
       _conqueredTerritoryIds.contains(territoryId);
+  bool isSoloRaidFailedTerritory(String territoryId) =>
+      _failedSoloRaidTerritoryIds.contains(territoryId);
 
   Duration gangTurfCooldownRemaining(String territoryId) {
     final expiresAt = _gangTurfAttackCooldowns[territoryId];
@@ -677,6 +682,9 @@ class GameController extends ChangeNotifier {
 
     if (request != null && request.territoryId == territoryId) {
       _pendingTurfConquest = null;
+      if (!usedGang) {
+        _failedSoloRaidTerritoryIds.add(territoryId);
+      }
     }
 
     _money = (_money - (defense * (usedGang ? 0.12 : 0.08)).round()).clamp(

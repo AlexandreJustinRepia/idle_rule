@@ -64,6 +64,7 @@ class _AppFlowState extends State<AppFlow> {
   int _currentTabIndex = 0;
   int _nextCharacterId = 1;
   int _nextWorldId = 1;
+  String? _previousLocationStreetId;
 
   void _onLoadingComplete() {
     if (!mounted) return;
@@ -166,6 +167,7 @@ class _AppFlowState extends State<AppFlow> {
       if (changedWorld || character.locationStreetId == null) {
         character.locationStreetId = world.mapData!.spawnStreetId;
       }
+      _previousLocationStreetId = character.locationStreetId;
       _activeCharacter = character;
       _currentTabIndex = 0;
       _phase = AppFlowPhase.game;
@@ -239,9 +241,26 @@ class _AppFlowState extends State<AppFlow> {
           },
           onTurfConquestStarted: (request) {
             setState(() {
-              activeCharacter.locationStreetId = request.territoryId;
+              _previousLocationStreetId = activeCharacter.locationStreetId;
               _currentTabIndex = 0;
             });
+          },
+          onSoloTurfConquestFailed: (territoryId) {
+            final result = activeCharacter.controller.failSoloTurfConquest(
+              territoryId,
+            );
+            if (_previousLocationStreetId != null) {
+              activeCharacter.locationStreetId = _previousLocationStreetId!;
+              _previousLocationStreetId = null;
+            }
+            return result;
+          },
+          onPlayerDefeated: () {
+            final spawnStreetId = activeWorld.mapData!.spawnStreetId;
+            setState(() {
+              activeCharacter.locationStreetId = spawnStreetId;
+            });
+            activeCharacter.controller.recoverFromDefeat();
           },
         );
     }
@@ -257,6 +276,8 @@ class _GameScreen extends StatelessWidget {
   final VoidCallback onQuit;
   final ValueChanged<String> onLocationChanged;
   final ValueChanged<PendingTurfConquest> onTurfConquestStarted;
+  final TurfAttackResult Function(String territoryId)? onSoloTurfConquestFailed;
+  final VoidCallback onPlayerDefeated;
 
   const _GameScreen({
     required this.character,
@@ -267,6 +288,8 @@ class _GameScreen extends StatelessWidget {
     required this.onQuit,
     required this.onLocationChanged,
     required this.onTurfConquestStarted,
+    required this.onPlayerDefeated,
+    this.onSoloTurfConquestFailed,
   });
 
   @override
@@ -316,10 +339,12 @@ class _GameScreen extends StatelessWidget {
                         playerMaxStamina: gameController.stats.maxStamina,
                         playerHunger: gameController.playerHunger,
                         playerMaxHunger: gameController.stats.maxHunger,
-                        backgroundAsset: location.backgroundAsset ?? 'assets/background/ghetto.png',
+                        backgroundAsset:
+                            location.backgroundAsset ??
+                            'assets/background/ghetto.png',
                         onStatsGained: gameController.gainStats,
                         onPlayerDamaged: gameController.takeDamage,
-                        onPlayerDefeated: gameController.recoverFromDefeat,
+                        onPlayerDefeated: onPlayerDefeated,
                         onNewEnemyApproached:
                             gameController.recoverHealthForNewEnemy,
                         onStaminaSpent: gameController.spendStamina,
@@ -333,12 +358,13 @@ class _GameScreen extends StatelessWidget {
                         gangMembers: gameController.formationMembers,
                         onGangMemberRecruited: gameController.recruitGangMember,
                         onGangMemberDismissed: gameController.dismissGangMember,
-                        pendingTurfConquest:
-                            gameController.pendingTurfConquest,
+                        pendingTurfConquest: gameController.pendingTurfConquest,
                         onSoloTurfConquestCleared:
                             gameController.completeSoloTurfConquest,
-                        onSoloTurfConquestFailed:
-                            gameController.failSoloTurfConquest,
+                        onSoloTurfConquestFailed: onSoloTurfConquestFailed,
+                        hasSafeHouse:
+                            character.locationStreetId ==
+                                world.mapData!.spawnStreetId,
                       ),
                       GymEnvironment(
                         stats: gameController.stats,
@@ -424,9 +450,7 @@ class _WorldSelectionScreen extends StatelessWidget {
             controller: controller,
             autofocus: true,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              hintText: 'Enter a world name',
-            ),
+            decoration: const InputDecoration(hintText: 'Enter a world name'),
           ),
           actions: [
             TextButton(
