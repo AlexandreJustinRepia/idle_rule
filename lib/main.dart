@@ -365,6 +365,9 @@ class _GameScreen extends StatelessWidget {
                         hasSafeHouse:
                             character.locationStreetId ==
                                 world.mapData!.spawnStreetId,
+                        isHostileStreet: gameController.isSoloRaidFailedTerritory(
+                          character.locationStreetId ?? world.mapData!.spawnStreetId,
+                        ),
                       ),
                       GymEnvironment(
                         stats: gameController.stats,

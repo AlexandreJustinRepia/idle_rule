@@ -380,14 +380,19 @@ class _TurfScreenState extends State<TurfScreen> {
                           npc: npc,
                           onTap: () {
                             final currentStreetId = widget.locationStreetId ?? _mapData.spawnStreetId;
-                            final disableTalk = widget.gameController
+                            final isHostileStreet = widget.gameController
                                 .isSoloRaidFailedTerritory(currentStreetId);
-                            NpcInteractionModal.show(
-                              context,
-                              npc,
-                              widget.gameController,
-                              disableTalk: disableTalk,
-                            );
+                            if (isHostileStreet) {
+                              // Street is hostile after a failed solo raid —
+                              // NPCs attack on sight, no dialog.
+                              widget.gameController.fightNpc(npc);
+                            } else {
+                              NpcInteractionModal.show(
+                                context,
+                                npc,
+                                widget.gameController,
+                              );
+                            }
                           },
                         ),
                       )

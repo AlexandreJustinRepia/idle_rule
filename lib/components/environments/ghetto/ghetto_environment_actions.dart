@@ -372,7 +372,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     _walkController.stop();
     _trainingTimer?.cancel();
 
-    if (isBoss || conquest != null) {
+    if (isBoss || conquest != null || widget.isHostileStreet) {
       setState(() {
         _introEnemyName = mainName;
         _isIntroAnimating = true;

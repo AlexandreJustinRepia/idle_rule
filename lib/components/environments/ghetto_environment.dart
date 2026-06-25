@@ -58,6 +58,7 @@ class GhettoEnvironment extends StatefulWidget {
   onSoloTurfConquestCleared;
   final TurfAttackResult Function(String territoryId)? onSoloTurfConquestFailed;
   final bool hasSafeHouse;
+  final bool isHostileStreet;
 
   const GhettoEnvironment({
     super.key,
@@ -88,6 +89,7 @@ class GhettoEnvironment extends StatefulWidget {
     this.onSoloTurfConquestCleared,
     this.onSoloTurfConquestFailed,
     this.hasSafeHouse = false,
+    this.isHostileStreet = false,
   });
 
   @override
