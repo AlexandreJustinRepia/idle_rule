@@ -10,6 +10,7 @@ import 'components/environments/ghetto_environment.dart';
 import 'components/environments/gym_environment.dart';
 import 'components/environments/turf/turf_screen.dart';
 import 'components/screens/loading_screen.dart';
+import 'components/screens/world_loading_screen.dart';
 import 'components/screens/character_creation_screen.dart';
 import 'controllers/game_controller.dart';
 import 'game_state.dart';
@@ -46,7 +47,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-enum AppFlowPhase { loading, creation, worldSelection, game }
+enum AppFlowPhase { loading, creation, worldSelection, worldLoading, game }
 
 class AppFlow extends StatefulWidget {
   const AppFlow({super.key});
@@ -61,6 +62,9 @@ class _AppFlowState extends State<AppFlow> {
   final List<GameWorld> _worlds = [];
   GameCharacterSession? _activeCharacter;
   GameCharacterSession? _selectedCharacter;
+  GameCharacterSession? _pendingWorldCharacter;
+  GameWorld? _pendingWorld;
+  bool _pendingWorldNeedsGeneration = false;
   int _currentTabIndex = 0;
   int _nextCharacterId = 1;
   int _nextWorldId = 1;
@@ -155,6 +159,22 @@ class _AppFlowState extends State<AppFlow> {
 
   void _enterWorld(GameCharacterSession character, GameWorld world) {
     setState(() {
+      _pendingWorldCharacter = character;
+      _pendingWorld = world;
+      _pendingWorldNeedsGeneration = world.mapData == null;
+      _phase = AppFlowPhase.worldLoading;
+    });
+  }
+
+  void _finishEnterWorld() {
+    final character = _pendingWorldCharacter;
+    final world = _pendingWorld;
+    if (character == null || world == null) {
+      setState(() => _phase = AppFlowPhase.worldSelection);
+      return;
+    }
+
+    setState(() {
       if (world.mapData == null) {
         final result = WorldGenerator.generateWorld(world.seed);
         world.mapData = result.mapData;
@@ -169,6 +189,9 @@ class _AppFlowState extends State<AppFlow> {
       }
       _previousLocationStreetId = character.locationStreetId;
       _activeCharacter = character;
+      _pendingWorldCharacter = null;
+      _pendingWorld = null;
+      _pendingWorldNeedsGeneration = false;
       _currentTabIndex = 0;
       _phase = AppFlowPhase.game;
     });
@@ -220,6 +243,16 @@ class _AppFlowState extends State<AppFlow> {
           onDeleteCharacter: _deleteCharacter,
           onSelectCharacter: _selectCharacter,
           onEnterWorld: _enterWorld,
+        );
+      case AppFlowPhase.worldLoading:
+        final world = _pendingWorld;
+        if (world == null) {
+          return const SizedBox.shrink();
+        }
+        return WorldLoadingScreen(
+          worldName: world.name,
+          isGenerating: _pendingWorldNeedsGeneration,
+          onComplete: _finishEnterWorld,
         );
       case AppFlowPhase.game:
         final activeCharacter = _activeCharacter;

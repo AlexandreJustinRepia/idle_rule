@@ -17,6 +17,52 @@ class WorldGeneratorResult {
 }
 
 class WorldGenerator {
+  static const _countryNames = [
+    'New Avalon',
+    'Iron Meridian',
+    'Saint Veyra',
+    'Blackwater Union',
+    'Red Harbor Republic',
+    'Aster Dominion',
+    'Crownfall State',
+    'Northveil',
+    'Veloria',
+    'Grim Coast',
+    'Duskland',
+    'Sable Nation',
+    'Nova Kairo',
+    'Eclipse Federation',
+    'Ashen Crown',
+    'Solmere',
+    'Rift Republic',
+    'Orchid Union',
+    'Vanta Realm',
+    'Driftland',
+  ];
+
+  static const _regionNames = [
+    'Northern Sector',
+    'Eastern Bloc',
+    'Southern Expanse',
+    'Western Frontier',
+    'Redline District',
+    'Blackridge Zone',
+    'Silver Coast',
+    'Hollow Belt',
+    'Glass Valley',
+    'Deadlight Range',
+    'Iron Flats',
+    'Neon Corridor',
+    'Cinder Basin',
+    'Storm Ward',
+    'Lowland Reach',
+    'Highgate Territory',
+    'Midnight Coast',
+    'Rust Crown',
+    'Violet March',
+    'Outer Ring',
+  ];
+
   static const _provinceNames = [
     'Aethelgard',
     'Boreal',
@@ -26,6 +72,30 @@ class WorldGenerator {
     'Frostford',
     'Glimmer',
     'Hearth',
+    'Ironwake',
+    'Ravenshade',
+    'Stonevein',
+    'Brightfall',
+    'Redspire',
+    'Moonreach',
+    'Daggerfen',
+    'Blackmere',
+    'Fallowgate',
+    'Kingscar',
+    'Gravewind',
+    'Starling',
+    'Cobalt Run',
+    'Mirehaven',
+    'Ashwick',
+    'Violet Crown',
+    'Emberfield',
+    'Nightford',
+    'Goldbarrow',
+    'Wolfsden',
+    'Crownholt',
+    'Hollowmere',
+    'Driftmark',
+    'Slatewall',
   ];
 
   static const _cityNames = [
@@ -45,6 +115,30 @@ class WorldGenerator {
     'Gloomville',
     'Nova Ridge',
     'Silver Peak',
+    'Ravenport',
+    'Blackline',
+    'Dawnmarket',
+    'Saint Rook',
+    'Redhook',
+    'Cinder Bay',
+    'Glassmere',
+    'Velvet Cross',
+    'Deadlock',
+    'Metro Vanta',
+    'Kingside',
+    'Lumen Port',
+    'Night Arcade',
+    'Mercy Row',
+    'Anchorfall',
+    'Bridgewell',
+    'Old Neon',
+    'West Gable',
+    'Crown Harbor',
+    'East Voltage',
+    'South Meridian',
+    'North Signal',
+    'Drift City',
+    'Pike Terminal',
   ];
 
   static const _townNames = [
@@ -60,6 +154,58 @@ class WorldGenerator {
     'Rust Belt',
     'Gritville',
     'Siren Point',
+    'Black Mill',
+    'Dover Cut',
+    'Red Porch',
+    'Ash Lot',
+    'Neon Yard',
+    'Signal Town',
+    'Briar End',
+    'Dockside',
+    'Foundry Hollow',
+    'Switch Yard',
+    'Cobalt Corner',
+    'Tangle Row',
+    'Lantern End',
+    'Broken Mile',
+    'Mercy Flats',
+    'Violet Yard',
+    'Hush Point',
+    'Old Circuit',
+    'Crane Town',
+    'Bitter Cross',
+    'Gravel Run',
+    'Crown Lot',
+    'Low Signal',
+    'East Furnace',
+    'West Lantern',
+    'Harbor Bend',
+    'Rift Yard',
+    'Dusk Row',
+    'Blackstep',
+    'Pale Market',
+    'Iron Corner',
+    'Red Yard',
+    'Last Stop',
+    'Nova Bend',
+    'Hollow Stack',
+    'Grey Terminal',
+    'Sable End',
+    'Warden Flats',
+    'Bright Cut',
+    'Dead Wire',
+    'Crossrail',
+    'Saint Lot',
+    'Outer Yard',
+    'Lowgate',
+    'Moon Pike',
+    'Grindwell',
+    'Razor Flats',
+    'Drift Row',
+    'Anchor Town',
+    'Fifth Stack',
+    'Kings Yard',
+    'Coal Bend',
   ];
 
   static const _streetNames = [
@@ -79,6 +225,91 @@ class WorldGenerator {
     'Shadow Blvd',
     'Echo Lane',
     'Crimson St',
+    'Ashline Road',
+    'Broken Glass Ave',
+    'Redlight Way',
+    'Copper Lane',
+    'Ironhook Street',
+    'Saints Alley',
+    'Noon Cut',
+    'Midnight Mile',
+    'Vanta Blvd',
+    'Crane Road',
+    'Static Lane',
+    'Old Circuit',
+    'Deadwire St',
+    'Siren Walk',
+    'Kingpin Ave',
+    'Lowlight Road',
+    'Drift Street',
+    'Fifth Corner',
+    'Oilcan Lane',
+    'Underpass Way',
+    'Bitter Steps',
+    'Crown Cut',
+    'Gravel Ave',
+    'Blacktop Road',
+    'Metro Lane',
+    'Rust Signal',
+    'Pawnshop Row',
+    'Knife Point',
+    'Last Call Ave',
+    'Velvet Alley',
+    'Pylon Street',
+    'Warden Road',
+    'Smokestack Lane',
+    'Hush Corner',
+    'Red Hook Way',
+    'North Arcade',
+    'South Arcade',
+    'Harbor Steps',
+    'Turbine Road',
+    'Moonlight Cut',
+    'Rail Yard Ave',
+    'Chainlink Lane',
+    'Brightwire Blvd',
+    'Ghost Mile',
+    'Cobalt Street',
+    'Dagger Road',
+    'Old Market Lane',
+    'Signal Tower Way',
+    'Concrete Run',
+    'Black Lantern St',
+    'Violet Steps',
+    'Furnace Row',
+    'Anchor Road',
+    'Crowbar Lane',
+    'Rift Street',
+    'Sable Walk',
+    'Kings Yard Road',
+    'Battery Ave',
+    'Crossrail Way',
+    'Grey Terminal Road',
+    'Lowgate Lane',
+    'Nova Cut',
+    'Pale Market St',
+    'Duskline Road',
+    'Outer Ring Ave',
+    'Bridgewell Lane',
+    'Glass Hill Road',
+    'Apex Street',
+    'Port Mercy Way',
+    'Rookhaven Ave',
+    'Hollow Point Road',
+    'Steelton Lane',
+    'Gloom Walk',
+    'Silver Peak Road',
+    'Black Mill Ave',
+    'Switch Yard Way',
+    'Mercy Flats Road',
+    'Grindwell Street',
+    'Coal Bend Lane',
+    'Last Stop Road',
+    'Wolfsden Way',
+    'Crownholt Ave',
+    'Slatewall Street',
+    'Emberfield Road',
+    'Mirehaven Lane',
   ];
 
   static WorldGeneratorResult generateWorld(int seed) {
@@ -86,6 +317,16 @@ class WorldGenerator {
     final territories = <TurfTerritory>[];
     final streetIds = <String>[];
     final rivalGangs = <Gang>[];
+    final countryName = _nameAt(
+      _shuffledNames(random, _countryNames),
+      0,
+      'Country',
+    );
+    final regionNames = _shuffledNames(random, _regionNames);
+    final provinceNames = _shuffledNames(random, _provinceNames);
+    final cityNames = _shuffledNames(random, _cityNames);
+    final townNames = _shuffledNames(random, _townNames);
+    final streetNames = _shuffledNames(random, _streetNames);
 
     // Generate 2 rival gangs
     for (var i = 0; i < 2; i++) {
@@ -122,7 +363,7 @@ class WorldGenerator {
     territories.add(
       TurfTerritory(
         id: countryId,
-        label: 'New Avalon',
+        label: countryName,
         description: 'The primary country spanning this domain.',
         color: const Color(0xFF455A64),
         defense: 0,
@@ -135,25 +376,25 @@ class WorldGenerator {
     final regions = [
       _RegionSeed(
         'region_north_$seed',
-        'Northern Sector',
+        _nameAt(regionNames, 0, 'Region'),
         const Color(0xFF7E57C2),
         const Rect.fromLTWH(0.06, 0.07, 0.42, 0.40),
       ),
       _RegionSeed(
         'region_east_$seed',
-        'Eastern Bloc',
+        _nameAt(regionNames, 1, 'Region'),
         const Color(0xFF26A69A),
         const Rect.fromLTWH(0.52, 0.07, 0.42, 0.40),
       ),
       _RegionSeed(
         'region_south_$seed',
-        'Southern Expanse',
+        _nameAt(regionNames, 2, 'Region'),
         const Color(0xFFE24B4A),
         const Rect.fromLTWH(0.06, 0.53, 0.42, 0.40),
       ),
       _RegionSeed(
         'region_west_$seed',
-        'Western Frontier',
+        _nameAt(regionNames, 3, 'Region'),
         const Color(0xFFFB8C00),
         const Rect.fromLTWH(0.52, 0.53, 0.42, 0.40),
       ),
@@ -182,8 +423,7 @@ class WorldGenerator {
       final provinceRects = _splitGrid(region.bounds.deflate(0.01), 1, 2);
       for (var pIndex = 0; pIndex < provinceRects.length; pIndex++) {
         final provinceId = '${region.id}_prov_$pIndex';
-        final provinceName =
-            _provinceNames[provinceCount % _provinceNames.length];
+        final provinceName = _nameAt(provinceNames, provinceCount, 'Province');
         provinceCount++;
 
         territories.add(
@@ -206,7 +446,7 @@ class WorldGenerator {
         final cityRects = _splitGrid(provinceRects[pIndex].deflate(0.01), 2, 1);
         for (var cIndex = 0; cIndex < cityRects.length; cIndex++) {
           final cityId = '${provinceId}_city_$cIndex';
-          final cityName = _cityNames[cityCount % _cityNames.length];
+          final cityName = _nameAt(cityNames, cityCount, 'City');
           cityCount++;
 
           final occupyingGang = random.nextDouble() > 0.5
@@ -234,7 +474,7 @@ class WorldGenerator {
           final townRects = _splitGrid(cityRects[cIndex].deflate(0.01), 2, 2);
           for (var tIndex = 0; tIndex < townRects.length; tIndex++) {
             final townId = '${cityId}_town_$tIndex';
-            final townName = _townNames[townCount % _townNames.length];
+            final townName = _nameAt(townNames, townCount, 'Town');
             townCount++;
 
             territories.add(
@@ -262,8 +502,7 @@ class WorldGenerator {
             );
             for (var sIndex = 0; sIndex < streetRects.length; sIndex++) {
               final streetId = '${townId}_street_$sIndex';
-              final streetName =
-                  _streetNames[streetCount % _streetNames.length];
+              final streetName = _nameAt(streetNames, streetCount, 'Street');
               streetCount++;
               streetIds.add(streetId);
 
@@ -357,6 +596,17 @@ class WorldGenerator {
       rivalGangs: rivalGangs,
       interactableNpcs: interactableNpcs,
     );
+  }
+
+  static List<String> _shuffledNames(math.Random random, List<String> names) {
+    return List<String>.from(names)..shuffle(random);
+  }
+
+  static String _nameAt(List<String> names, int index, String fallback) {
+    if (names.isEmpty) return '$fallback ${index + 1}';
+    final cycle = index ~/ names.length;
+    final name = names[index % names.length];
+    return cycle == 0 ? name : '$name ${cycle + 1}';
   }
 
   static List<Rect> _splitGrid(Rect rect, int columns, int rows) {
