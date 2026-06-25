@@ -379,7 +379,9 @@ class _TurfScreenState extends State<TurfScreen> {
                         (npc) => _NpcCard(
                           npc: npc,
                           onTap: () {
-                            final currentStreetId = widget.locationStreetId ?? _mapData.spawnStreetId;
+                            final currentStreetId =
+                                widget.locationStreetId ??
+                                _mapData.spawnStreetId;
                             final isHostileStreet = widget.gameController
                                 .isSoloRaidFailedTerritory(currentStreetId);
                             if (isHostileStreet) {
@@ -750,16 +752,45 @@ class _TerritoryCard extends StatelessWidget {
                       'Occupied by: ',
                       style: TextStyle(color: Colors.white38, fontSize: 11),
                     ),
-                    Text(
-                      occupantGang!.name,
-                      style: TextStyle(
-                        color: occupantGang!.primaryColor,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
+                    Flexible(
+                      child: Text(
+                        occupantGang!.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: occupantGang!.primaryColor,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                        ),
                       ),
                     ),
                   ],
                 ),
+                if (occupantGang!.leaderName.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(Icons.person, color: Colors.white38, size: 12),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Leader: ',
+                        style: TextStyle(color: Colors.white38, fontSize: 10),
+                      ),
+                      Flexible(
+                        child: Text(
+                          occupantGang!.leaderName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 12),
               ] else if (isStreetLevel && !isConquered) ...[
                 Row(

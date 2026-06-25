@@ -6,12 +6,14 @@ class Gang {
   final String emblemId;
   final Color primaryColor;
   final Color accentColor;
+  final String leaderName;
 
   const Gang({
     required this.name,
     required this.emblemId,
     required this.primaryColor,
     required this.accentColor,
+    this.leaderName = '',
   });
 
   IconData get emblem => GangEmblems.byId(emblemId).icon;

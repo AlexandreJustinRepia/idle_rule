@@ -17,6 +17,71 @@ class WorldGeneratorResult {
 }
 
 class WorldGenerator {
+  static const _gangNames = [
+    'Crimson Vultures',
+    'Black Halo Crew',
+    'Iron Saints',
+    'Neon Serpents',
+    'Razor Kings',
+    'Ghost Lanterns',
+    'Copper Jackals',
+    'Midnight Syndicate',
+    'Ash Wolves',
+    'Chrome Reapers',
+    'Red Hook Cartel',
+    'Static Knives',
+    'Crownless Boys',
+    'Velvet Fangs',
+    'Graveyard Union',
+    'Blue Signal Mob',
+    'Southside Phantoms',
+    'Northline Butchers',
+    'Dock Rats',
+    'Glass Crown',
+    'Vanta Blades',
+    'Old Market Kings',
+    'Blacktop Saints',
+    'Rust Choir',
+    'Deadwire Crew',
+    'Silver Teeth',
+    'Furnace Circle',
+    'Lowgate Mob',
+    'Chainlink Family',
+    'Battery Street Boys',
+  ];
+
+  static const _leaderNames = [
+    'Kane Voss',
+    'Mira Knox',
+    'Dante Cruz',
+    'Rina Vale',
+    'Jax Calder',
+    'Vera Riot',
+    'Ari Steel',
+    'Nyx Sol',
+    'Silas Crowe',
+    'Mako Reyes',
+    'Iris Wren',
+    'Tomas Vale',
+    'Nico Graves',
+    'Selene Pike',
+    'Roman Slate',
+    'Kira Ash',
+    'Bishop Kane',
+    'Lena Vex',
+    'Orion Knox',
+    'Cass Nova',
+    'Malik Cross',
+    'Zara Quill',
+    'Enzo Black',
+    'Talia Frost',
+    'Rafe Mercer',
+    'June Riot',
+    'Soren Flint',
+    'Viktor Hale',
+    'Mina Rook',
+    'Cato Wren',
+  ];
   static const _countryNames = [
     'New Avalon',
     'Iron Meridian',
@@ -328,9 +393,10 @@ class WorldGenerator {
     final townNames = _shuffledNames(random, _townNames);
     final streetNames = _shuffledNames(random, _streetNames);
 
-    // Generate 2 rival gangs
-    for (var i = 0; i < 2; i++) {
-      final name = 'Syndicate ${String.fromCharCode(65 + i)}';
+    final gangNames = _shuffledNames(random, _gangNames);
+    final leaderNames = _shuffledNames(random, _leaderNames);
+    final rivalGangCount = 4 + random.nextInt(4);
+    for (var i = 0; i < rivalGangCount; i++) {
       final emblem = GangEmblems.all[random.nextInt(GangEmblems.all.length)];
       final colorPrimary = GangColorPresets
           .primary[random.nextInt(GangColorPresets.primary.length)];
@@ -338,7 +404,8 @@ class WorldGenerator {
           .accent[random.nextInt(GangColorPresets.accent.length)];
       rivalGangs.add(
         Gang(
-          name: name.toUpperCase(),
+          name: _nameAt(gangNames, i, 'Gang').toUpperCase(),
+          leaderName: _nameAt(leaderNames, i, 'Leader'),
           emblemId: emblem.id,
           primaryColor: colorPrimary,
           accentColor: colorAccent,
@@ -449,7 +516,7 @@ class WorldGenerator {
           final cityName = _nameAt(cityNames, cityCount, 'City');
           cityCount++;
 
-          final occupyingGang = random.nextDouble() > 0.5
+          final areaGang = random.nextDouble() < 0.45
               ? rivalGangs[random.nextInt(rivalGangs.length)]
               : null;
 
@@ -467,7 +534,7 @@ class WorldGenerator {
               level: TurfMapLevel.city,
               parentId: provinceId,
               bounds: cityRects[cIndex],
-              occupyingGangId: occupyingGang?.name,
+              occupyingGangId: areaGang?.name,
             ),
           );
 
@@ -491,7 +558,7 @@ class WorldGenerator {
                 level: TurfMapLevel.town,
                 parentId: cityId,
                 bounds: townRects[tIndex],
-                occupyingGangId: occupyingGang?.name,
+                occupyingGangId: areaGang?.name,
               ),
             );
 
@@ -508,6 +575,9 @@ class WorldGenerator {
 
               final streetType =
                   StreetType.values[random.nextInt(StreetType.values.length)];
+              final streetGang = random.nextDouble() < 0.62
+                  ? (areaGang ?? rivalGangs[random.nextInt(rivalGangs.length)])
+                  : null;
 
               territories.add(
                 TurfTerritory(
@@ -523,7 +593,7 @@ class WorldGenerator {
                   level: TurfMapLevel.street,
                   parentId: townId,
                   bounds: streetRects[sIndex],
-                  occupyingGangId: occupyingGang?.name,
+                  occupyingGangId: streetGang?.name,
                   backgroundAsset: streetType.assetPath,
                   streetType: streetType,
                 ),
