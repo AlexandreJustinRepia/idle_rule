@@ -78,10 +78,12 @@ class GameController extends ChangeNotifier {
   final Set<String> _conqueredTerritoryIds = {};
   final Set<String> _failedSoloRaidTerritoryIds = {};
   final Map<String, DateTime> _gangTurfAttackCooldowns = {};
+  final Set<String> _ownedSafeHouseStreetIds = {};
+  final Map<String, int> _foodInventory = {};
+  final Set<String> _ownedWeaponIds = {};
 
   InteractableNpc? get activeNpcChallenge => _activeNpcChallenge;
-  PendingTurfConquest? get pendingTurfConquest =>
-      _pendingTurfConquest;
+  PendingTurfConquest? get pendingTurfConquest => _pendingTurfConquest;
   Set<String> get conqueredTerritoryIds =>
       Set.unmodifiable(_conqueredTerritoryIds);
   Set<String> get failedSoloRaidTerritoryIds =>
@@ -90,6 +92,10 @@ class GameController extends ChangeNotifier {
       _conqueredTerritoryIds.contains(territoryId);
   bool isSoloRaidFailedTerritory(String territoryId) =>
       _failedSoloRaidTerritoryIds.contains(territoryId);
+  bool hasSafeHouseAt(String streetId) =>
+      _ownedSafeHouseStreetIds.contains(streetId);
+  bool ownsWeapon(String weaponId) => _ownedWeaponIds.contains(weaponId);
+  int foodCount(String foodId) => _foodInventory[foodId] ?? 0;
 
   Duration gangTurfCooldownRemaining(String territoryId) {
     final expiresAt = _gangTurfAttackCooldowns[territoryId];
@@ -129,6 +135,10 @@ class GameController extends ChangeNotifier {
   double get playerStamina => _playerStamina;
   double get playerHunger => _playerHunger;
   int get money => _money;
+  Set<String> get ownedSafeHouseStreetIds =>
+      Set.unmodifiable(_ownedSafeHouseStreetIds);
+  Map<String, int> get foodInventory => Map.unmodifiable(_foodInventory);
+  Set<String> get ownedWeaponIds => Set.unmodifiable(_ownedWeaponIds);
   Boss? get activeBoss => _activeBoss;
   int get bossIndex => _bossIndex;
   String get playerName => _playerName;
@@ -876,6 +886,41 @@ class GameController extends ChangeNotifier {
     _playerStamina = (_playerStamina + stamina).clamp(0, _stats.maxStamina);
     _playerHunger = (_playerHunger + hunger).clamp(0, _stats.maxHunger);
     _playerHealth = (_playerHealth + health).clamp(0, _stats.maxHealth);
+    notifyListeners();
+    return true;
+  }
+
+  bool buyFoodSupply({
+    required String foodId,
+    required int cost,
+    double stamina = 0,
+    double hunger = 0,
+    int health = 0,
+  }) {
+    if (_money < cost) return false;
+    _money -= cost;
+    _foodInventory[foodId] = (_foodInventory[foodId] ?? 0) + 1;
+    _playerStamina = (_playerStamina + stamina).clamp(0, _stats.maxStamina);
+    _playerHunger = (_playerHunger + hunger).clamp(0, _stats.maxHunger);
+    _playerHealth = (_playerHealth + health).clamp(0, _stats.maxHealth);
+    notifyListeners();
+    return true;
+  }
+
+  bool buySafeHouse({required String streetId, required int cost}) {
+    if (_ownedSafeHouseStreetIds.contains(streetId)) return false;
+    if (_money < cost) return false;
+    _money -= cost;
+    _ownedSafeHouseStreetIds.add(streetId);
+    notifyListeners();
+    return true;
+  }
+
+  bool buyWeapon({required String weaponId, required int cost}) {
+    if (_ownedWeaponIds.contains(weaponId)) return false;
+    if (_money < cost) return false;
+    _money -= cost;
+    _ownedWeaponIds.add(weaponId);
     notifyListeners();
     return true;
   }

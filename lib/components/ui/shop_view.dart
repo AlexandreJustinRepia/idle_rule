@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../controllers/game_controller.dart';
+import '../environments/turf/turf_map.dart';
 
 class ShopItem {
+  final String id;
   final String name;
   final String description;
   final IconData icon;
@@ -10,8 +12,13 @@ class ShopItem {
   final double staminaRestore;
   final double hungerRestore;
   final int healthRestore;
+  final bool isFood;
+  final bool isSafeHouse;
+  final bool isWeapon;
+  final List<StreetType> streetTypes;
 
   const ShopItem({
+    required this.id,
     required this.name,
     required this.description,
     required this.icon,
@@ -20,32 +27,48 @@ class ShopItem {
     this.staminaRestore = 0,
     this.hungerRestore = 0,
     this.healthRestore = 0,
+    this.isFood = false,
+    this.isSafeHouse = false,
+    this.isWeapon = false,
+    this.streetTypes = const [],
   });
 }
 
 class ShopView extends StatelessWidget {
   final GameController gameController;
+  final TurfTerritory currentStreet;
+  final String spawnStreetId;
 
-  const ShopView({super.key, required this.gameController});
+  const ShopView({
+    super.key,
+    required this.gameController,
+    required this.currentStreet,
+    required this.spawnStreetId,
+  });
 
   static const List<ShopItem> _items = [
     ShopItem(
+      id: 'energy_soda',
       name: 'Energy Soda',
       description: 'Quick carbonated pick-me-up. Restores stamina.',
       icon: Icons.local_drink,
       accentColor: Colors.cyanAccent,
       cost: 15,
       staminaRestore: 30,
+      isFood: true,
     ),
     ShopItem(
+      id: 'double_burger',
       name: 'Double Burger',
       description: 'Greasy double cheeseburger. Highly filling.',
       icon: Icons.fastfood,
       accentColor: Colors.orangeAccent,
       cost: 25,
       hungerRestore: 50,
+      isFood: true,
     ),
     ShopItem(
+      id: 'first_aid_kit',
       name: 'First Aid Kit',
       description: 'Sterile bandages and gauze to treat street wounds.',
       icon: Icons.healing,
@@ -54,6 +77,7 @@ class ShopView extends StatelessWidget {
       healthRestore: 40,
     ),
     ShopItem(
+      id: 'vip_power_drink',
       name: 'VIP Power Drink',
       description: 'Premium formulation restoring all vital signs.',
       icon: Icons.bolt,
@@ -64,9 +88,58 @@ class ShopView extends StatelessWidget {
       healthRestore: 50,
     ),
   ];
+  static const ShopItem _safeHouseItem = ShopItem(
+    id: 'safe_house',
+    name: 'Safe House Lease',
+    description: 'Claim a rest spot on this street for healing and recovery.',
+    icon: Icons.home_work_rounded,
+    accentColor: Colors.lightBlueAccent,
+    cost: 450,
+    isSafeHouse: true,
+  );
+
+  static const List<ShopItem> _weaponItems = [
+    ShopItem(
+      id: 'rust_pipe',
+      name: 'Rust Pipe',
+      description: 'Basic street weapon. Stored for a future combat update.',
+      icon: Icons.hardware,
+      accentColor: Colors.blueGrey,
+      cost: 120,
+      isWeapon: true,
+      streetTypes: [StreetType.ghetto, StreetType.industrial],
+    ),
+    ShopItem(
+      id: 'dock_cleaver',
+      name: 'Dock Cleaver',
+      description: 'Harbor-side blade. Stored for a future combat update.',
+      icon: Icons.content_cut,
+      accentColor: Colors.tealAccent,
+      cost: 220,
+      isWeapon: true,
+      streetTypes: [StreetType.harbor, StreetType.chinatown],
+    ),
+    ShopItem(
+      id: 'security_baton',
+      name: 'Security Baton',
+      description: 'Downtown weapon. Stored for future loadouts.',
+      icon: Icons.sports_martial_arts,
+      accentColor: Colors.amberAccent,
+      cost: 260,
+      isWeapon: true,
+      streetTypes: [StreetType.downtown, StreetType.entertainment],
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final streetType = currentStreet.streetType;
+    final weaponItems = streetType == null
+        ? <ShopItem>[]
+        : _weaponItems
+              .where((item) => item.streetTypes.contains(streetType))
+              .toList();
+    final allItems = [..._items, _safeHouseItem, ...weaponItems];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 112, 16, 0),
       child: Column(
@@ -123,14 +196,32 @@ class ShopView extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Foods are stocked separately. Weapons are collected now for future combat.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 16),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.only(bottom: 24),
-              itemCount: _items.length,
+              itemCount: allItems.length,
               itemBuilder: (context, index) {
-                final item = _items[index];
-                final bool canAfford = gameController.money >= item.cost;
+                final item = allItems[index];
+                final ownsSafeHouse =
+                    currentStreet.id == spawnStreetId ||
+                    gameController.hasSafeHouseAt(currentStreet.id);
+                final owned = item.isSafeHouse
+                    ? ownsSafeHouse
+                    : item.isWeapon
+                    ? gameController.ownsWeapon(item.id)
+                    : false;
+                final bool canAfford =
+                    gameController.money >= item.cost && !owned;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -204,6 +295,24 @@ class ShopView extends StatelessWidget {
                                     Colors.orangeAccent,
                                     '+${item.hungerRestore.toInt()} Food',
                                   ),
+                                if (item.isFood)
+                                  _buildStatBadge(
+                                    Icons.inventory_2,
+                                    item.accentColor,
+                                    'Stock x${gameController.foodCount(item.id)}',
+                                  ),
+                                if (item.isSafeHouse)
+                                  _buildStatBadge(
+                                    Icons.home,
+                                    item.accentColor,
+                                    'Street property',
+                                  ),
+                                if (item.isWeapon)
+                                  _buildStatBadge(
+                                    Icons.lock_clock,
+                                    item.accentColor,
+                                    'Future use',
+                                  ),
                               ],
                             ),
                           ],
@@ -214,9 +323,11 @@ class ShopView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '\$${item.cost}',
+                            owned ? 'OWNED' : '\$${item.cost}',
                             style: TextStyle(
-                              color: canAfford
+                              color: owned
+                                  ? item.accentColor
+                                  : canAfford
                                   ? Colors.amberAccent
                                   : Colors.redAccent,
                               fontWeight: FontWeight.bold,
@@ -240,12 +351,7 @@ class ShopView extends StatelessWidget {
                             ),
                             onPressed: canAfford
                                 ? () {
-                                    final success = gameController.buyItem(
-                                      cost: item.cost,
-                                      stamina: item.staminaRestore,
-                                      hunger: item.hungerRestore,
-                                      health: item.healthRestore,
-                                    );
+                                    final success = _buyShopItem(item);
                                     if (success) {
                                       ScaffoldMessenger.of(
                                         context,
@@ -264,9 +370,13 @@ class ShopView extends StatelessWidget {
                                     }
                                   }
                                 : null,
-                            child: const Text(
-                              'BUY',
-                              style: TextStyle(
+                            child: Text(
+                              owned
+                                  ? 'OWNED'
+                                  : item.isSafeHouse
+                                  ? 'LEASE'
+                                  : 'BUY',
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 11,
                               ),
@@ -282,6 +392,33 @@ class ShopView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  bool _buyShopItem(ShopItem item) {
+    if (item.isSafeHouse) {
+      return gameController.buySafeHouse(
+        streetId: currentStreet.id,
+        cost: item.cost,
+      );
+    }
+    if (item.isWeapon) {
+      return gameController.buyWeapon(weaponId: item.id, cost: item.cost);
+    }
+    if (item.isFood) {
+      return gameController.buyFoodSupply(
+        foodId: item.id,
+        cost: item.cost,
+        stamina: item.staminaRestore,
+        hunger: item.hungerRestore,
+        health: item.healthRestore,
+      );
+    }
+    return gameController.buyItem(
+      cost: item.cost,
+      stamina: item.staminaRestore,
+      hunger: item.hungerRestore,
+      health: item.healthRestore,
     );
   }
 

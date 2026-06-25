@@ -257,8 +257,14 @@ class _AppFlowState extends State<AppFlow> {
           },
           onPlayerDefeated: () {
             final spawnStreetId = activeWorld.mapData!.spawnStreetId;
+            final defeatedStreetId =
+                activeCharacter.locationStreetId ?? spawnStreetId;
+            final recoveryStreetId =
+                activeCharacter.controller.hasSafeHouseAt(defeatedStreetId)
+                ? defeatedStreetId
+                : spawnStreetId;
             setState(() {
-              activeCharacter.locationStreetId = spawnStreetId;
+              activeCharacter.locationStreetId = recoveryStreetId;
             });
             activeCharacter.controller.recoverFromDefeat();
           },
@@ -364,10 +370,16 @@ class _GameScreen extends StatelessWidget {
                         onSoloTurfConquestFailed: onSoloTurfConquestFailed,
                         hasSafeHouse:
                             character.locationStreetId ==
-                                world.mapData!.spawnStreetId,
-                        isHostileStreet: gameController.isSoloRaidFailedTerritory(
-                          character.locationStreetId ?? world.mapData!.spawnStreetId,
-                        ),
+                                world.mapData!.spawnStreetId ||
+                            gameController.hasSafeHouseAt(
+                              character.locationStreetId ??
+                                  world.mapData!.spawnStreetId,
+                            ),
+                        isHostileStreet: gameController
+                            .isSoloRaidFailedTerritory(
+                              character.locationStreetId ??
+                                  world.mapData!.spawnStreetId,
+                            ),
                       ),
                       GymEnvironment(
                         stats: gameController.stats,
@@ -377,7 +389,11 @@ class _GameScreen extends StatelessWidget {
                         onStaminaSpent: gameController.spendStamina,
                         onNeedsRecovered: gameController.recoverNeeds,
                       ),
-                      ShopView(gameController: gameController),
+                      ShopView(
+                        gameController: gameController,
+                        currentStreet: location,
+                        spawnStreetId: world.mapData!.spawnStreetId,
+                      ),
                       TurfScreen(
                         gameController: gameController,
                         mapData: world.mapData!,

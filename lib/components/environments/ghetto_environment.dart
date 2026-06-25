@@ -427,12 +427,13 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
                     color: Colors.redAccent,
                   ),
                 ] else ...[
-                  ActionCard(
-                    icon: Icons.home,
-                    label: "ENTER HOUSE",
-                    onTap: _enterHouse,
-                    color: Colors.blueGrey,
-                  ),
+                  if (widget.hasSafeHouse)
+                    ActionCard(
+                      icon: Icons.home,
+                      label: "ENTER HOUSE",
+                      onTap: _enterHouse,
+                      color: Colors.blueGrey,
+                    ),
                   ActionCard(
                     icon: Icons.search,
                     label: "EXPLORE",
