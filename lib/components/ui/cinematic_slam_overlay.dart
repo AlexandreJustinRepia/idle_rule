@@ -38,7 +38,7 @@ class CinematicSlamOverlay extends StatelessWidget {
             slam = 0;
             opacity = 1.0;
           } else {
-            opacity = 1.0 - (progress - 0.7) / 0.3;
+            opacity = (1.0 - (progress - 0.7) / 0.3).clamp(0.0, 1.0);
           }
 
           final scale = 1.0 + (slam * 5.0);

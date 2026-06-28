@@ -322,7 +322,17 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       for (int i = 0; i < _enemies.length; i++) {
         _enemyOriginalIndices[_enemies[i]] = i;
       }
-      mainName = '${conquest.territoryName} Crew';
+      // Show the names of the NPC gang members occupying the territory
+      if (_enemies.isEmpty) {
+        mainName = '${conquest.territoryName} Crew';
+      } else if (_enemies.length == 1) {
+        mainName = _enemies[0].name;
+      } else if (_enemies.length == 2) {
+        mainName = '${_enemies[0].name} & ${_enemies[1].name}';
+      } else {
+        final extra = _enemies.length - 2;
+        mainName = '${_enemies[0].name}, ${_enemies[1].name} & $extra more';
+      }
     } else {
       int minEnemies = 1 + (widget.stats.reputation / 30).floor();
       int maxEnemies = 3 + (widget.stats.reputation / 15).floor();

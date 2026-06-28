@@ -749,7 +749,7 @@ class _TerritoryCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      'Occupied by: ',
+                      'Ruled by: ',
                       style: TextStyle(color: Colors.white38, fontSize: 11),
                     ),
                     Flexible(

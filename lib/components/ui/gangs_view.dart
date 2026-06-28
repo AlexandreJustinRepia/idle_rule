@@ -1104,48 +1104,226 @@ class GangProfilePanel extends StatelessWidget {
 
   Widget _buildFormationCard() {
     final formationSize = gameController.gangFormationSize;
+    final totalEnemyPower = (memberCapacity * 1.2).round();
 
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF111116),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE24B4A).withValues(alpha: 0.3),
-        ),
+        color: const Color(0xFF0D0F13),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE24B4A).withValues(alpha: 0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE24B4A).withValues(alpha: 0.12),
+            blurRadius: 16,
+            spreadRadius: 1,
+          ),
+        ],
       ),
+      clipBehavior: Clip.hardEdge,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.account_tree,
-                color: Color(0xFFE24B4A),
-                size: 20,
+          // ── Top Banner ──────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF1A0A0A), Color(0xFF2C0C0C), Color(0xFF1A0A0A)],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'FORMATION $formationSize / $memberCapacity',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    letterSpacing: 1.5,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.military_tech, color: Color(0xFFFFD700), size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'TURF WAR FORMATION !!',
+                  style: GoogleFonts.bebasNeue(
+                    color: const Color(0xFFFFD700),
+                    fontSize: 20,
+                    letterSpacing: 2.5,
                   ),
                 ),
-              ),
-              TextButton(
-                onPressed: formationSize > 0
-                    ? gameController.clearFormation
-                    : null,
-                child: const Text('CLEAR'),
-              ),
-            ],
+                const SizedBox(width: 8),
+                const Icon(Icons.military_tech, color: Color(0xFFFFD700), size: 20),
+              ],
+            ),
           ),
+
+          // ── Battlefield Scene ────────────────────────────────────────
+          Container(
+            height: 130,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF1C1408), Color(0xFF0D0F13)],
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // LEFT SIDE — player gang crowd
+                Expanded(
+                  child: _buildCrowdSide(
+                    count: formationSize.clamp(0, memberCapacity),
+                    maxCount: memberCapacity,
+                    facingRight: true,
+                    primaryColor: gang.primaryColor,
+                    label: gang.name,
+                  ),
+                ),
+
+                // CENTER — VS
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE24B4A),
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFE24B4A).withValues(alpha: 0.6),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'VS',
+                          style: GoogleFonts.bebasNeue(
+                            color: Colors.white,
+                            fontSize: 26,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // RIGHT SIDE — rival gang crowd
+                Expanded(
+                  child: _buildCrowdSide(
+                    count: totalEnemyPower.clamp(0, memberCapacity),
+                    maxCount: memberCapacity,
+                    facingRight: false,
+                    primaryColor: const Color(0xFF455A64),
+                    label: 'RIVALS',
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Formation Count Summary ──────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+            child: Row(
+              children: [
+                const Icon(Icons.groups, color: Color(0xFFE24B4A), size: 16),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'FORMATION  $formationSize / $memberCapacity',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: formationSize > 0
+                      ? gameController.clearFormation
+                      : null,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFE24B4A),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'CLEAR',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Tier Rows ────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            child: Column(
+              children: RecruitTiers.all.map(_buildFormationTierRow).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Renders a crowd of character silhouettes for the battlefield scene.
+  Widget _buildCrowdSide({
+    required int count,
+    required int maxCount,
+    required bool facingRight,
+    required Color primaryColor,
+    required String label,
+  }) {
+    const int maxSlots = 12;
+    final int displayCount = maxCount == 0
+        ? 0
+        : (count / maxCount * maxSlots).round().clamp(0, maxSlots);
+
+    // Arrange icons in 2 rows (front + back)
+    final int frontRow = (displayCount / 2).ceil();
+    final int backRow = displayCount - frontRow;
+
+    Widget buildRow(int n, double iconSize, double opacity) {
+      final icons = List.generate(n, (i) {
+        final iconData = (i % 3 == 0)
+            ? Icons.person
+            : (i % 3 == 1)
+                ? Icons.person_2
+                : Icons.person_3;
+        return Transform.scale(
+          scaleX: facingRight ? 1 : -1,
+          child: Icon(iconData, size: iconSize, color: primaryColor.withValues(alpha: opacity)),
+        );
+      });
+      return Row(
+        mainAxisAlignment: facingRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: facingRight ? icons.reversed.toList() : icons,
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment:
+            facingRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            textAlign: facingRight ? TextAlign.right : TextAlign.left,
+            style: TextStyle(
+              color: primaryColor.withValues(alpha: 0.7),
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 2),
+          buildRow(backRow, 18, 0.45),
+          buildRow(frontRow, 24, 0.85),
           const SizedBox(height: 8),
-          ...RecruitTiers.all.map(_buildFormationTierRow),
         ],
       ),
     );
@@ -1159,11 +1337,34 @@ class GangProfilePanel extends StatelessWidget {
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         children: [
+          // Tier badge
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: gang.primaryColor.withValues(alpha: selected > 0 ? 0.2 : 0.07),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: gang.primaryColor.withValues(alpha: selected > 0 ? 0.5 : 0.15),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                'T${tier.tier}',
+                style: TextStyle(
+                  color: selected > 0 ? gang.primaryColor : Colors.white30,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'T${tier.tier} ${tier.name.toUpperCase()}',
-              style: const TextStyle(
-                color: Colors.white54,
+              tier.name.toUpperCase(),
+              style: TextStyle(
+                color: selected > 0 ? Colors.white70 : Colors.white38,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
@@ -1172,8 +1373,8 @@ class GangProfilePanel extends StatelessWidget {
           ),
           Text(
             '$selected / $available',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: selected > 0 ? Colors.white : Colors.white38,
               fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
@@ -1209,10 +1410,13 @@ class GangProfilePanel extends StatelessWidget {
         padding: EdgeInsets.zero,
         icon: Icon(icon, size: 16),
         style: IconButton.styleFrom(
-          backgroundColor: const Color(0xFF16161C),
+          backgroundColor: onPressed != null
+              ? gang.primaryColor.withValues(alpha: 0.18)
+              : Colors.white10,
           disabledBackgroundColor: Colors.white10,
-          foregroundColor: Colors.white,
+          foregroundColor: onPressed != null ? gang.primaryColor : Colors.white24,
           disabledForegroundColor: Colors.white24,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
       ),
     );
