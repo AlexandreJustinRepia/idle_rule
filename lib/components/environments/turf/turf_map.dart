@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
 enum TurfMapLevel {
-  world('World', 0),
-  country('Country', 1),
-  region('Region', 2),
-  province('Province', 3),
-  city('City', 4),
-  town('Town', 5),
-  street('Street', 6);
+  country('Country', 0),
+  region('Region', 1),
+  province('Province', 2),
+  city('City', 3),
+  town('Town', 4),
+  street('Street', 5);
 
   final String label;
   final int depth;

@@ -8,19 +8,6 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
   final territories = <TurfTerritory>[];
   final streetIds = <String>[];
 
-  territories.add(
-    const TurfTerritory(
-      id: 'ironvale',
-      label: 'Ironvale',
-      description:
-          'One country split into provinces, cities, towns, and turf streets.',
-      color: Color(0xFF455A64),
-      defense: 0,
-      level: TurfMapLevel.world,
-      bounds: Rect.fromLTWH(0.04, 0.04, 0.92, 0.92),
-    ),
-  );
-
   final provinces = [
     _RegionSeed(
       'north_yard',
@@ -60,7 +47,7 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
         color: province.color,
         defense: 0,
         level: TurfMapLevel.province,
-        parentId: 'ironvale',
+        parentId: null,
         bounds: province.bounds,
       ),
     );
@@ -154,7 +141,7 @@ TurfMapData createGhettoTurfMap({String title = 'IRONVALE TURF'}) {
 
   return TurfMapData(
     title: title,
-    subtitle: 'Read the chain from country down to the streets you can rule.',
+    subtitle: 'Manage your provinces down to the streets you can rule.',
     territories: territories,
     spawnStreetId: streetIds[random.nextInt(streetIds.length)],
   );

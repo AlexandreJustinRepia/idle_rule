@@ -286,95 +286,20 @@ class WorldGenerator {
     'Signal Way',
     'Hollow Run',
     'East Steps',
-    'Neon Ave',
-    'Shadow Blvd',
-    'Echo Lane',
-    'Crimson St',
-    'Ashline Road',
-    'Broken Glass Ave',
-    'Redlight Way',
-    'Copper Lane',
-    'Ironhook Street',
-    'Saints Alley',
-    'Noon Cut',
-    'Midnight Mile',
-    'Vanta Blvd',
-    'Crane Road',
-    'Static Lane',
-    'Old Circuit',
-    'Deadwire St',
-    'Siren Walk',
-    'Kingpin Ave',
-    'Lowlight Road',
-    'Drift Street',
-    'Fifth Corner',
-    'Oilcan Lane',
-    'Underpass Way',
-    'Bitter Steps',
-    'Crown Cut',
-    'Gravel Ave',
-    'Blacktop Road',
-    'Metro Lane',
-    'Rust Signal',
-    'Pawnshop Row',
-    'Knife Point',
-    'Last Call Ave',
-    'Velvet Alley',
-    'Pylon Street',
-    'Warden Road',
-    'Smokestack Lane',
-    'Hush Corner',
-    'Red Hook Way',
-    'North Arcade',
-    'South Arcade',
-    'Harbor Steps',
-    'Turbine Road',
-    'Moonlight Cut',
-    'Rail Yard Ave',
-    'Chainlink Lane',
-    'Brightwire Blvd',
-    'Ghost Mile',
-    'Cobalt Street',
-    'Dagger Road',
-    'Old Market Lane',
-    'Signal Tower Way',
-    'Concrete Run',
-    'Black Lantern St',
-    'Violet Steps',
-    'Furnace Row',
-    'Anchor Road',
-    'Crowbar Lane',
-    'Rift Street',
-    'Sable Walk',
-    'Kings Yard Road',
-    'Battery Ave',
-    'Crossrail Way',
-    'Grey Terminal Road',
-    'Lowgate Lane',
-    'Nova Cut',
-    'Pale Market St',
-    'Duskline Road',
-    'Outer Ring Ave',
-    'Bridgewell Lane',
-    'Glass Hill Road',
-    'Apex Street',
-    'Port Mercy Way',
-    'Rookhaven Ave',
-    'Hollow Point Road',
-    'Steelton Lane',
-    'Gloom Walk',
-    'Silver Peak Road',
-    'Black Mill Ave',
-    'Switch Yard Way',
-    'Mercy Flats Road',
-    'Grindwell Street',
-    'Coal Bend Lane',
-    'Last Stop Road',
-    'Wolfsden Way',
-    'Crownholt Ave',
-    'Slatewall Street',
-    'Emberfield Road',
-    'Mirehaven Lane',
+    'Neon Boulevard',
+    'Chrome Alley',
+    'Underpass Row',
+    'Pike Street',
+    'Cinder Lane',
+    'Iron Walk',
+    'Grit Avenue',
+    'Siren Street',
+    'Rust Road',
+    'Shadow Alley',
+    'Viper Path',
+    'Dead End',
+    'Mercy Lane',
+    'Broken Boulevard',
   ];
 
   static WorldGeneratorResult generateWorld(int seed) {
@@ -382,11 +307,8 @@ class WorldGenerator {
     final territories = <TurfTerritory>[];
     final streetIds = <String>[];
     final rivalGangs = <Gang>[];
-    final countryName = _nameAt(
-      _shuffledNames(random, _countryNames),
-      0,
-      'Country',
-    );
+    
+    final countryNames = _shuffledNames(random, _countryNames);
     final regionNames = _shuffledNames(random, _regionNames);
     final provinceNames = _shuffledNames(random, _provinceNames);
     final cityNames = _shuffledNames(random, _cityNames);
@@ -413,191 +335,176 @@ class WorldGenerator {
       );
     }
 
-    final worldId = 'world_$seed';
-    territories.add(
-      TurfTerritory(
-        id: worldId,
-        label: 'Universe $seed',
-        description: 'A newly generated world full of danger.',
-        color: const Color(0xFF263238),
-        defense: 0,
-        level: TurfMapLevel.world,
-        bounds: const Rect.fromLTWH(0.02, 0.02, 0.96, 0.96),
-      ),
-    );
-
-    final countryId = 'country_$seed';
-    territories.add(
-      TurfTerritory(
-        id: countryId,
-        label: countryName,
-        description: 'The primary country spanning this domain.',
-        color: const Color(0xFF455A64),
-        defense: 0,
-        level: TurfMapLevel.country,
-        parentId: worldId,
-        bounds: const Rect.fromLTWH(0.04, 0.04, 0.92, 0.92),
-      ),
-    );
-
-    final regions = [
-      _RegionSeed(
-        'region_north_$seed',
-        _nameAt(regionNames, 0, 'Region'),
+    final countrySeeds = [
+      _CountrySeed(
+        'country_west_$seed',
+        _nameAt(countryNames, 0, 'Country'),
         const Color(0xFF7E57C2),
-        const Rect.fromLTWH(0.06, 0.07, 0.42, 0.40),
+        const Rect.fromLTWH(0.04, 0.05, 0.44, 0.90),
       ),
-      _RegionSeed(
-        'region_east_$seed',
-        _nameAt(regionNames, 1, 'Region'),
-        const Color(0xFF26A69A),
-        const Rect.fromLTWH(0.52, 0.07, 0.42, 0.40),
-      ),
-      _RegionSeed(
-        'region_south_$seed',
-        _nameAt(regionNames, 2, 'Region'),
-        const Color(0xFFE24B4A),
-        const Rect.fromLTWH(0.06, 0.53, 0.42, 0.40),
-      ),
-      _RegionSeed(
-        'region_west_$seed',
-        _nameAt(regionNames, 3, 'Region'),
+      _CountrySeed(
+        'country_east_$seed',
+        _nameAt(countryNames, 1, 'Country'),
         const Color(0xFFFB8C00),
-        const Rect.fromLTWH(0.52, 0.53, 0.42, 0.40),
+        const Rect.fromLTWH(0.52, 0.05, 0.44, 0.90),
       ),
     ];
 
+    int regionCount = 0;
     int provinceCount = 0;
     int cityCount = 0;
     int townCount = 0;
     int streetCount = 0;
 
-    for (var r = 0; r < regions.length; r++) {
-      final region = regions[r];
+    for (var c = 0; c < countrySeeds.length; c++) {
+      final countrySeed = countrySeeds[c];
+      final countryId = countrySeed.id;
+      final countryName = countrySeed.name;
+
       territories.add(
         TurfTerritory(
-          id: region.id,
-          label: region.name,
-          description: 'Region of ${region.name}.',
-          color: region.color,
+          id: countryId,
+          label: countryName,
+          description: '$countryName. A sovereign domain.',
+          color: countrySeed.color,
           defense: 0,
-          level: TurfMapLevel.region,
-          parentId: countryId,
-          bounds: region.bounds,
+          level: TurfMapLevel.country,
+          parentId: null,
+          bounds: countrySeed.bounds,
         ),
       );
 
-      final provinceRects = _splitGrid(region.bounds.deflate(0.01), 1, 2);
-      for (var pIndex = 0; pIndex < provinceRects.length; pIndex++) {
-        final provinceId = '${region.id}_prov_$pIndex';
-        final provinceName = _nameAt(provinceNames, provinceCount, 'Province');
-        provinceCount++;
+      final regionRects = _splitGrid(countrySeed.bounds.deflate(0.01), 1, 2);
+      for (var rIndex = 0; rIndex < regionRects.length; rIndex++) {
+        final regionId = '${countryId}_region_$rIndex';
+        final regionName = _nameAt(regionNames, regionCount, 'Region');
+        regionCount++;
 
         territories.add(
           TurfTerritory(
-            id: provinceId,
-            label: provinceName,
-            description: 'Province $provinceName in ${region.name}.',
+            id: regionId,
+            label: regionName,
+            description: 'The $regionName area.',
             color: Color.lerp(
-              region.color,
-              Colors.white,
-              0.05 + pIndex * 0.05,
+              countrySeed.color,
+              Colors.black,
+              0.05 + rIndex * 0.05,
             )!,
             defense: 0,
-            level: TurfMapLevel.province,
-            parentId: region.id,
-            bounds: provinceRects[pIndex],
+            level: TurfMapLevel.region,
+            parentId: countryId,
+            bounds: regionRects[rIndex],
           ),
         );
 
-        final cityRects = _splitGrid(provinceRects[pIndex].deflate(0.01), 2, 1);
-        for (var cIndex = 0; cIndex < cityRects.length; cIndex++) {
-          final cityId = '${provinceId}_city_$cIndex';
-          final cityName = _nameAt(cityNames, cityCount, 'City');
-          cityCount++;
-
-          final areaGang = random.nextDouble() < 0.45
-              ? rivalGangs[random.nextInt(rivalGangs.length)]
-              : null;
+        final provinceRects = _splitGrid(regionRects[rIndex].deflate(0.01), 2, 1);
+        for (var pIndex = 0; pIndex < provinceRects.length; pIndex++) {
+          final provinceId = '${regionId}_prov_$pIndex';
+          final provinceName = _nameAt(provinceNames, provinceCount, 'Province');
+          provinceCount++;
 
           territories.add(
             TurfTerritory(
-              id: cityId,
-              label: cityName,
-              description: '$cityName controls the area.',
+              id: provinceId,
+              label: provinceName,
+              description: 'Province $provinceName in $regionName.',
               color: Color.lerp(
-                region.color,
+                countrySeed.color,
                 Colors.white,
-                0.1 + cIndex * 0.05,
+                0.05 + pIndex * 0.05,
               )!,
               defense: 0,
-              level: TurfMapLevel.city,
-              parentId: provinceId,
-              bounds: cityRects[cIndex],
-              occupyingGangId: areaGang?.name,
+              level: TurfMapLevel.province,
+              parentId: regionId,
+              bounds: provinceRects[pIndex],
             ),
           );
 
-          final townRects = _splitGrid(cityRects[cIndex].deflate(0.01), 2, 2);
-          for (var tIndex = 0; tIndex < townRects.length; tIndex++) {
-            final townId = '${cityId}_town_$tIndex';
-            final townName = _nameAt(townNames, townCount, 'Town');
-            townCount++;
+          final cityRects = _splitGrid(provinceRects[pIndex].deflate(0.01), 1, 2);
+          for (var cIndex = 0; cIndex < cityRects.length; cIndex++) {
+            final cityId = '${provinceId}_city_$cIndex';
+            final cityName = _nameAt(cityNames, cityCount, 'City');
+            cityCount++;
+
+            final areaGang = random.nextDouble() < 0.45
+                ? rivalGangs[random.nextInt(rivalGangs.length)]
+                : null;
 
             territories.add(
               TurfTerritory(
-                id: townId,
-                label: townName,
-                description: 'A town inside $cityName.',
+                id: cityId,
+                label: cityName,
+                description: '$cityName controls the area.',
                 color: Color.lerp(
-                  region.color,
-                  Colors.black,
-                  0.05 + tIndex * 0.05,
+                  countrySeed.color,
+                  Colors.white,
+                  0.1 + cIndex * 0.05,
                 )!,
                 defense: 0,
-                level: TurfMapLevel.town,
-                parentId: cityId,
-                bounds: townRects[tIndex],
+                level: TurfMapLevel.city,
+                parentId: provinceId,
+                bounds: cityRects[cIndex],
                 occupyingGangId: areaGang?.name,
               ),
             );
 
-            final streetRects = _splitGrid(
-              townRects[tIndex].deflate(0.01),
-              2,
-              2,
-            );
-            for (var sIndex = 0; sIndex < streetRects.length; sIndex++) {
-              final streetId = '${townId}_street_$sIndex';
-              final streetName = _nameAt(streetNames, streetCount, 'Street');
-              streetCount++;
-              streetIds.add(streetId);
-
-              final streetType =
-                  StreetType.values[random.nextInt(StreetType.values.length)];
-              final streetGang = random.nextDouble() < 0.62
-                  ? (areaGang ?? rivalGangs[random.nextInt(rivalGangs.length)])
-                  : null;
+            final townRects = _splitGrid(cityRects[cIndex].deflate(0.01), 2, 1);
+            for (var tIndex = 0; tIndex < townRects.length; tIndex++) {
+              final townId = '${cityId}_town_$tIndex';
+              final townName = _nameAt(townNames, townCount, 'Town');
+              townCount++;
 
               territories.add(
                 TurfTerritory(
-                  id: streetId,
-                  label: streetName,
-                  description: 'A street turf.',
+                  id: townId,
+                  label: townName,
+                  description: 'A town inside $cityName.',
                   color: Color.lerp(
-                    region.color,
-                    Colors.white,
-                    0.15 + sIndex * 0.05,
+                    countrySeed.color,
+                    Colors.black,
+                    0.05 + tIndex * 0.05,
                   )!,
-                  defense: 50 + random.nextInt(100),
-                  level: TurfMapLevel.street,
-                  parentId: townId,
-                  bounds: streetRects[sIndex],
-                  occupyingGangId: streetGang?.name,
-                  backgroundAsset: streetType.assetPath,
-                  streetType: streetType,
+                  defense: 0,
+                  level: TurfMapLevel.town,
+                  parentId: cityId,
+                  bounds: townRects[tIndex],
+                  occupyingGangId: areaGang?.name,
                 ),
               );
+
+              final streetRects = _splitGrid(townRects[tIndex].deflate(0.01), 1, 2);
+              for (var sIndex = 0; sIndex < streetRects.length; sIndex++) {
+                final streetId = '${townId}_street_$sIndex';
+                final streetName = _nameAt(streetNames, streetCount, 'Street');
+                streetCount++;
+                streetIds.add(streetId);
+
+                final streetType =
+                    StreetType.values[random.nextInt(StreetType.values.length)];
+                final streetGang = random.nextDouble() < 0.62
+                    ? (areaGang ?? rivalGangs[random.nextInt(rivalGangs.length)])
+                    : null;
+
+                territories.add(
+                  TurfTerritory(
+                    id: streetId,
+                    label: streetName,
+                    description: 'A street turf.',
+                    color: Color.lerp(
+                      countrySeed.color,
+                      Colors.white,
+                      0.15 + sIndex * 0.05,
+                    )!,
+                    defense: 50 + random.nextInt(100),
+                    level: TurfMapLevel.street,
+                    parentId: townId,
+                    bounds: streetRects[sIndex],
+                    occupyingGangId: streetGang?.name,
+                    backgroundAsset: streetType.assetPath,
+                    streetType: streetType,
+                  ),
+                );
+              }
             }
           }
         }
@@ -699,11 +606,12 @@ class WorldGenerator {
   }
 }
 
-class _RegionSeed {
+
+class _CountrySeed {
   final String id;
   final String name;
   final Color color;
   final Rect bounds;
 
-  const _RegionSeed(this.id, this.name, this.color, this.bounds);
+  const _CountrySeed(this.id, this.name, this.color, this.bounds);
 }

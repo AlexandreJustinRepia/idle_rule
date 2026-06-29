@@ -114,7 +114,7 @@ class _AppFlowState extends State<AppFlow> {
     final world = GameWorld(
       id: 'world_$worldNumber',
       name: name.trim().isEmpty ? 'New World $worldNumber' : name.trim(),
-      seed: worldNumber,
+      seed: DateTime.now().microsecondsSinceEpoch,
     );
     _worlds.add(world);
     return world;

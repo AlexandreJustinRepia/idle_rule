@@ -104,6 +104,20 @@ class _TurfScreenState extends State<TurfScreen> {
         .toList();
   }
 
+  void _onRootTap() {
+    final currentStreetId = widget.locationStreetId ?? _mapData.spawnStreetId;
+    try {
+      final currentStreet = _mapData.territoryById(currentStreetId);
+      if (_currentParentId == currentStreet.parentId) {
+        setState(() => _currentParentId = null);
+      } else {
+        setState(() => _currentParentId = currentStreet.parentId);
+      }
+    } catch (_) {
+      setState(() => _currentParentId = null);
+    }
+  }
+
   Gang? _findGang(String? gangId) {
     if (gangId == null) return null;
     if (widget.gameController.gang?.name == gangId) {
@@ -324,7 +338,7 @@ class _TurfScreenState extends State<TurfScreen> {
                 if (_currentParentId != null)
                   IconButton(
                     icon: const Icon(Icons.home, color: Colors.white60),
-                    onPressed: () => setState(() => _currentParentId = null),
+                    onPressed: _onRootTap,
                   ),
               ],
             ),
@@ -413,9 +427,9 @@ class _TurfScreenState extends State<TurfScreen> {
                   scrollDirection: Axis.horizontal,
                   children: [
                     _BreadcrumbNode(
-                      label: 'Root',
+                      label: widget.worldName ?? 'Root',
                       isLast: _currentParentId == null,
-                      onTap: () => setState(() => _currentParentId = null),
+                      onTap: _onRootTap,
                     ),
                     for (int i = 0; i < crumbs.length; i++)
                       _BreadcrumbNode(
@@ -619,7 +633,6 @@ class _TerritoryCard extends StatelessWidget {
 
   IconData _iconForLevel(TurfMapLevel level) {
     return switch (level) {
-      TurfMapLevel.world => Icons.public,
       TurfMapLevel.country => Icons.flag,
       TurfMapLevel.region => Icons.map,
       TurfMapLevel.province => Icons.account_balance,
