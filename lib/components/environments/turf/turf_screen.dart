@@ -6,6 +6,7 @@ import 'travel_animation_overlay.dart';
 import 'turf_map.dart';
 import '../../../models/interactable_npc.dart';
 import '../../ui/npc_interaction_modal.dart';
+import '../../shared/gang_pictorial.dart';
 
 class TurfScreen extends StatefulWidget {
   final GameController gameController;
@@ -129,7 +130,7 @@ class _TurfScreenState extends State<TurfScreen> {
     return null;
   }
 
-  void _leadTerritoryAttack(TurfTerritory territory) {
+  void _leadTerritoryAttack(TurfTerritory territory, {bool isBossChallenge = false}) {
     if (territory.level != TurfMapLevel.street) return;
     if (widget.gameController.isTerritoryConquered(territory.id)) return;
 
@@ -141,6 +142,7 @@ class _TurfScreenState extends State<TurfScreen> {
       territoryDefense: territory.defense,
       occupyingGangName: territory.occupyingGangId,
       usedGang: isUsingGang,
+      isBossChallenge: isBossChallenge,
     );
 
     widget.onSoloTurfConquestStarted?.call(request);
@@ -151,9 +153,11 @@ class _TurfScreenState extends State<TurfScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          isUsingGang
-              ? 'GANG RAID STARTED - TAKING OVER ${territory.label.toUpperCase()}'
-              : 'SOLO RAID STARTED - CLEAR ${territory.label.toUpperCase()} ON THE STREET',
+          isBossChallenge
+              ? 'BOSS CHALLENGE STARTED - DEFEAT ${request.territoryName.toUpperCase()}\'S LEADER!'
+              : (isUsingGang
+                  ? 'GANG RAID STARTED - TAKING OVER ${territory.label.toUpperCase()}'
+                  : 'SOLO RAID STARTED - CLEAR ${territory.label.toUpperCase()} ON THE STREET'),
         ),
         backgroundColor: const Color(0xFFE24B4A),
         duration: const Duration(milliseconds: 2200),
@@ -478,6 +482,7 @@ class _TurfScreenState extends State<TurfScreen> {
                           onTravel: () => _showTravelDialog(child),
                           onSendGang: () => _sendGangToTerritory(child),
                           onLeadAttack: () => _leadTerritoryAttack(child),
+                          onChallengeBoss: () => _leadTerritoryAttack(child, isBossChallenge: true),
                         );
                       },
                     ),
@@ -617,6 +622,7 @@ class _TerritoryCard extends StatelessWidget {
   final VoidCallback onTravel;
   final VoidCallback onSendGang;
   final VoidCallback onLeadAttack;
+  final VoidCallback? onChallengeBoss;
 
   const _TerritoryCard({
     required this.territory,
@@ -629,6 +635,7 @@ class _TerritoryCard extends StatelessWidget {
     required this.onTravel,
     required this.onSendGang,
     required this.onLeadAttack,
+    this.onChallengeBoss,
   });
 
   IconData _iconForLevel(TurfMapLevel level) {
@@ -666,254 +673,351 @@ class _TerritoryCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Row 1: Header (Icon, Level, Title, Status Badges)
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (isStreetLevel)
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
+                ),
+                child: SizedBox(
+                  height: 125,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Image.asset(
+                          territory.backgroundAsset ?? 'assets/background/ghetto.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.8),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Visual front-view Gang Pictorial
+                      Positioned(
+                        bottom: 4,
+                        right: 8,
+                        child: GangPictorial(
+                          gang: occupantGang,
+                          width: 110,
+                          height: 75,
+                        ),
+                      ),
+                      // Small street type label on top-left
+                      if (territory.streetType != null)
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: territory.color.withValues(alpha: 0.4)),
+                            ),
+                            child: Text(
+                              territory.streetType!.label.toUpperCase(),
+                              style: TextStyle(
+                                color: territory.color,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: territory.color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _iconForLevel(territory.level),
-                      color: territory.color,
-                      size: 20,
+                  // Row 1: Header (Icon, Level, Title, Status Badges)
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: territory.color.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _iconForLevel(territory.level),
+                          color: territory.color,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              territory.level.label.toUpperCase(),
+                              style: TextStyle(
+                                color: territory.color.withValues(alpha: 0.85),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              territory.label,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (!isStreetLevel &&
+                                territory.level == TurfMapLevel.street &&
+                                territory.streetType != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                territory.streetType!.label.toUpperCase(),
+                                style: TextStyle(
+                                  color: territory.color.withValues(alpha: 0.65),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (isCurrentLocation)
+                        _Badge(
+                          label: 'YOU ARE HERE',
+                          color: const Color(0xFFFFD166),
+                          textColor: Colors.black,
+                        )
+                      else if (isConquered)
+                        const _Badge(
+                          label: 'SECURED',
+                          color: Color(0xFF2DDA77),
+                          textColor: Colors.white,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Description / Stats Info
+                  Text(
+                    territory.description,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 12,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+
+                  const SizedBox(height: 10),
+
+                  // Occupant Gang badge (if any)
+                  if (occupantGang != null) ...[
+                    Row(
                       children: [
-                        Text(
-                          territory.level.label.toUpperCase(),
-                          style: TextStyle(
-                            color: territory.color.withValues(alpha: 0.85),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
+                        Icon(
+                          occupantGang!.emblem,
+                          color: occupantGang!.primaryColor,
+                          size: 14,
                         ),
+                        const SizedBox(width: 5),
                         Text(
-                          territory.label,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                          ),
+                          'Ruled by: ',
+                          style: TextStyle(color: Colors.white38, fontSize: 11),
                         ),
-                        if (territory.level == TurfMapLevel.street &&
-                            territory.streetType != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            territory.streetType!.label.toUpperCase(),
+                        Flexible(
+                          child: Text(
+                            occupantGang!.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: territory.color.withValues(alpha: 0.65),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
+                              color: occupantGang!.primaryColor,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (occupantGang!.leaderName.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          const Icon(Icons.person, color: Colors.white38, size: 12),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Leader: ',
+                            style: TextStyle(color: Colors.white38, fontSize: 10),
+                          ),
+                          Flexible(
+                            child: Text(
+                              occupantGang!.leaderName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                  ] else if (isStreetLevel && !isConquered) ...[
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.security,
+                          color: Colors.redAccent,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Defense: ',
+                          style: TextStyle(color: Colors.white38, fontSize: 11),
+                        ),
+                        Text(
+                          '${territory.defense}',
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Actions (Drill down arrow or travel/conquer buttons)
+                  if (isStreetLevel) ...[
+                    const Divider(color: Colors.white12, height: 1),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (!isCurrentLocation)
+                          ElevatedButton.icon(
+                            onPressed: onTravel,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.white70,
+                              shadowColor: Colors.transparent,
+                              side: const BorderSide(color: Colors.white24),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            icon: const Icon(Icons.alt_route, size: 16),
+                            label: const Text(
+                              'TRAVEL',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        if (isCurrentLocation && occupantGang != null && !isConquered) ...[
+                          ElevatedButton.icon(
+                            onPressed: onChallengeBoss,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber[800],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            icon: const Icon(Icons.flash_on, size: 16),
+                            label: const Text(
+                              'CHALLENGE BOSS',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (!isCurrentLocation && canAttack) ...[
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: attackUsesGang ? onSendGang : onLeadAttack,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE24B4A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            icon: const Icon(Icons.gavel, size: 16),
+                            label: Text(
+                              attackUsesGang ? 'SEND' : 'SOLO',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                         ],
                       ],
                     ),
-                  ),
-                  if (isCurrentLocation)
-                    _Badge(
-                      label: 'YOU ARE HERE',
-                      color: const Color(0xFFFFD166),
-                      textColor: Colors.black,
-                    )
-                  else if (isConquered)
-                    const _Badge(
-                      label: 'SECURED',
-                      color: Color(0xFF2DDA77),
-                      textColor: Colors.white,
+                  ] else ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          'ENTER',
+                          style: TextStyle(
+                            color: territory.color,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 10,
+                          color: territory.color,
+                        ),
+                      ],
                     ),
+                  ],
                 ],
               ),
-              const SizedBox(height: 10),
-
-              // Description / Stats Info
-              Text(
-                territory.description,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // Occupant Gang badge (if any)
-              if (occupantGang != null) ...[
-                Row(
-                  children: [
-                    Icon(
-                      occupantGang!.emblem,
-                      color: occupantGang!.primaryColor,
-                      size: 14,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Ruled by: ',
-                      style: TextStyle(color: Colors.white38, fontSize: 11),
-                    ),
-                    Flexible(
-                      child: Text(
-                        occupantGang!.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: occupantGang!.primaryColor,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (occupantGang!.leaderName.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      const Icon(Icons.person, color: Colors.white38, size: 12),
-                      const SizedBox(width: 5),
-                      Text(
-                        'Leader: ',
-                        style: TextStyle(color: Colors.white38, fontSize: 10),
-                      ),
-                      Flexible(
-                        child: Text(
-                          occupantGang!.leaderName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 12),
-              ] else if (isStreetLevel && !isConquered) ...[
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.security,
-                      color: Colors.redAccent,
-                      size: 14,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Defense: ',
-                      style: TextStyle(color: Colors.white38, fontSize: 11),
-                    ),
-                    Text(
-                      '${territory.defense}',
-                      style: const TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Actions (Drill down arrow or travel/conquer buttons)
-              if (isStreetLevel) ...[
-                const Divider(color: Colors.white12, height: 1),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (!isCurrentLocation)
-                      ElevatedButton.icon(
-                        onPressed: onTravel,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white70,
-                          shadowColor: Colors.transparent,
-                          side: const BorderSide(color: Colors.white24),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        icon: const Icon(Icons.alt_route, size: 16),
-                        label: const Text(
-                          'TRAVEL',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    if (!isCurrentLocation && canAttack) ...[
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        onPressed: attackUsesGang ? onSendGang : onLeadAttack,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE24B4A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        icon: const Icon(Icons.gavel, size: 16),
-                        label: Text(
-                          attackUsesGang ? 'SEND' : 'SOLO',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ] else ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      'ENTER',
-                      style: TextStyle(
-                        color: territory.color,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 10,
-                      color: territory.color,
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

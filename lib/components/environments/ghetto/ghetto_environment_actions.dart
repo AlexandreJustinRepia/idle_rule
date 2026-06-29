@@ -302,15 +302,55 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       _enemyOriginalIndices[enemy] = 0;
       mainName = enemy.name;
     } else if (conquest != null) {
-      final count = (conquest.territoryDefense / 35).ceil().clamp(2, 8);
-      final levelBase = (conquest.territoryDefense / 18).ceil().clamp(1, 99);
-      for (int i = 0; i < count; i++) {
-        _enemyNumber++;
-        final enemy = GhettoEnemyFactory.generateRandomEnemy(
-          levelBase + i,
-          widget.stats,
+      Gang? occupyingGang;
+      if (conquest.occupyingGangName != null) {
+        try {
+          occupyingGang = widget.rivalGangs.firstWhere(
+            (g) => g.name == conquest.occupyingGangName,
+          );
+        } catch (_) {}
+      }
+
+      if (conquest.isBossChallenge) {
+        final bossName = (occupyingGang?.leaderName.isNotEmpty == true)
+            ? occupyingGang!.leaderName
+            : '${conquest.occupyingGangName} Boss';
+        final boss = Enemy(
+          name: bossName,
+          health: (120 + conquest.territoryDefense * 1.5).round(),
+          damage: (12 + conquest.territoryDefense * 0.15).round(),
+          attackDelay: const Duration(milliseconds: 1600),
+          dodgeChance: 0.15,
+          themeColor: occupyingGang?.primaryColor ?? Colors.redAccent,
+          isBoss: true,
         );
-        _enemies.add(enemy);
+        _enemies.add(boss);
+
+        final guardCount = 2;
+        final levelBase = (conquest.territoryDefense / 18).ceil().clamp(1, 99);
+        for (int i = 0; i < guardCount; i++) {
+          _enemyNumber++;
+          final enemy = GhettoEnemyFactory.generateRandomEnemy(
+            levelBase + i,
+            widget.stats,
+          );
+          _enemies.add(enemy.copyWith(
+            themeColor: occupyingGang?.primaryColor ?? enemy.themeColor,
+          ));
+        }
+      } else {
+        final count = (conquest.territoryDefense / 35).ceil().clamp(2, 8);
+        final levelBase = (conquest.territoryDefense / 18).ceil().clamp(1, 99);
+        for (int i = 0; i < count; i++) {
+          _enemyNumber++;
+          final enemy = GhettoEnemyFactory.generateRandomEnemy(
+            levelBase + i,
+            widget.stats,
+          );
+          _enemies.add(occupyingGang != null
+              ? enemy.copyWith(themeColor: occupyingGang.primaryColor)
+              : enemy);
+        }
       }
 
       _enemies.sort((a, b) {

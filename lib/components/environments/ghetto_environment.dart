@@ -59,6 +59,7 @@ class GhettoEnvironment extends StatefulWidget {
   final TurfAttackResult Function(String territoryId)? onSoloTurfConquestFailed;
   final bool hasSafeHouse;
   final bool isHostileStreet;
+  final List<Gang> rivalGangs;
 
   const GhettoEnvironment({
     super.key,
@@ -90,6 +91,7 @@ class GhettoEnvironment extends StatefulWidget {
     this.onSoloTurfConquestFailed,
     this.hasSafeHouse = false,
     this.isHostileStreet = false,
+    this.rivalGangs = const [],
   });
 
   @override
@@ -366,7 +368,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
                   _enemyChargeControllers[_enemies[i]] ?? _playerHitController,
               idleAnimation: _idleAnimation,
               onTap: _attackEnemy,
-              isBoss: widget.activeBoss != null && i == 0,
+              isBoss: _enemies[i].isBoss,
               targetingColors: [
                 if (_playerTarget == _enemies[i]) Colors.redAccent,
                 ..._allies

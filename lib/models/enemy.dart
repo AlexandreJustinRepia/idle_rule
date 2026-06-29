@@ -71,4 +71,19 @@ class Enemy implements CombatEntity {
       isBoss: isBoss,
     );
   }
+
+  Enemy copyWith({Color? themeColor}) {
+    return Enemy(
+      name: name,
+      type: type,
+      health: health,
+      damage: damage,
+      attackDelay: attackDelay,
+      dodgeChance: dodgeChance,
+      counterChance: counterChance,
+      comboChance: comboChance,
+      themeColor: themeColor ?? this.themeColor,
+      isBoss: isBoss,
+    );
+  }
 }

@@ -413,6 +413,7 @@ class _GameScreen extends StatelessWidget {
                               character.locationStreetId ??
                                   world.mapData!.spawnStreetId,
                             ),
+                        rivalGangs: world.rivalGangs,
                       ),
                       GymEnvironment(
                         stats: gameController.stats,

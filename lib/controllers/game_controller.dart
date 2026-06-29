@@ -43,6 +43,7 @@ class PendingTurfConquest {
   final int territoryDefense;
   final String? occupyingGangName;
   final bool usedGang;
+  final bool isBossChallenge;
 
   const PendingTurfConquest({
     required this.territoryId,
@@ -50,6 +51,7 @@ class PendingTurfConquest {
     required this.territoryDefense,
     this.occupyingGangName,
     this.usedGang = false,
+    this.isBossChallenge = false,
   });
 }
 
@@ -639,6 +641,7 @@ class GameController extends ChangeNotifier {
     required int territoryDefense,
     String? occupyingGangName,
     bool usedGang = false,
+    bool isBossChallenge = false,
   }) {
     final request = PendingTurfConquest(
       territoryId: territoryId,
@@ -646,6 +649,7 @@ class GameController extends ChangeNotifier {
       territoryDefense: territoryDefense,
       occupyingGangName: occupyingGangName,
       usedGang: usedGang,
+      isBossChallenge: isBossChallenge,
     );
     _pendingTurfConquest = request;
     _playerHealth = _stats.maxHealth;
