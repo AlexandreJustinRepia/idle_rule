@@ -51,6 +51,7 @@ class GhettoEnvironment extends StatefulWidget {
   final void Function(int amount)? onMoneyGained;
   final bool hasGang;
   final List<Ally> gangMembers;
+  final bool isPlayerInFormation;
   final bool Function(Ally ally)? onGangMemberRecruited;
   final void Function(Ally ally)? onGangMemberDismissed;
   final PendingTurfConquest? pendingTurfConquest;
@@ -84,6 +85,7 @@ class GhettoEnvironment extends StatefulWidget {
     this.onMoneyGained,
     this.hasGang = false,
     this.gangMembers = const [],
+    this.isPlayerInFormation = true,
     this.onGangMemberRecruited,
     this.onGangMemberDismissed,
     this.pendingTurfConquest,
@@ -330,25 +332,26 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             },
           ),
 
-        GhettoHeroUnit(
-          walkAnimation: _walkController,
-          attackAnimation: _attackController,
-          enemyAttackAnimation: _playerHitController,
-          idleAnimation: _idleAnimation,
-          isFighting: _isFighting,
-          wasHit: _playerWasHit,
-          missed: _playerMissed,
-          isDefeated: widget.playerHealth <= 0 || _playerWasDefeated,
-          isSelected: _selectedCombatant == 'player',
-          onTap: () {
-            if (!_isFighting || widget.playerHealth <= 0) return;
-            setState(() {
-              _selectedCombatant = _selectedCombatant == 'player'
-                  ? null
-                  : 'player';
-            });
-          },
-        ),
+        if (widget.isPlayerInFormation)
+          GhettoHeroUnit(
+            walkAnimation: _walkController,
+            attackAnimation: _attackController,
+            enemyAttackAnimation: _playerHitController,
+            idleAnimation: _idleAnimation,
+            isFighting: _isFighting,
+            wasHit: _playerWasHit,
+            missed: _playerMissed,
+            isDefeated: widget.playerHealth <= 0 || _playerWasDefeated,
+            isSelected: _selectedCombatant == 'player',
+            onTap: () {
+              if (!_isFighting || widget.playerHealth <= 0) return;
+              setState(() {
+                _selectedCombatant = _selectedCombatant == 'player'
+                    ? null
+                    : 'player';
+              });
+            },
+          ),
 
         if (!_isAtHome)
           for (int i = 0; i < _enemies.length; i++)

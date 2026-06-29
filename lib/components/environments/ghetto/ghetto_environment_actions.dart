@@ -548,7 +548,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
   Future<void> _onEnemyAttack(Enemy enemy) async {
     List<dynamic> aliveTargets = [];
-    if (widget.playerHealth > 0) {
+    if (widget.isPlayerInFormation && widget.playerHealth > 0) {
       aliveTargets.add(null);
     }
     for (var ally in _allies) {
@@ -721,7 +721,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
   void _schedulePlayerAttack() {
     _attackTimer?.cancel();
-    if (widget.playerHealth <= 0) return;
+    if (!widget.isPlayerInFormation || widget.playerHealth <= 0) return;
     _attackTimer = Timer(widget.stats.attackDelay, () async {
       if (widget.playerHealth <= 0) return;
       await _autoAttackEnemy();
@@ -732,6 +732,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
   }
 
   Future<void> _attackEnemy(Enemy tappedEnemy) async {
+    if (!widget.isPlayerInFormation) return;
     if (!_isFighting || _enemies.isEmpty) return;
 
     if (_selectedCombatant != null) {

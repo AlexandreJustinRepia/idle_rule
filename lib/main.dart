@@ -395,6 +395,7 @@ class _GameScreen extends StatelessWidget {
                         onMoneyGained: gameController.gainMoney,
                         hasGang: gameController.hasGang,
                         gangMembers: gameController.formationMembers,
+                        isPlayerInFormation: gameController.isPlayerInFormation,
                         onGangMemberRecruited: gameController.recruitGangMember,
                         onGangMemberDismissed: gameController.dismissGangMember,
                         pendingTurfConquest: gameController.pendingTurfConquest,

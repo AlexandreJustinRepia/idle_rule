@@ -75,6 +75,7 @@ class GameController extends ChangeNotifier {
   final Map<int, int> _formationCounts = {
     for (final tier in RecruitTiers.all) tier.tier: 0,
   };
+  bool _isPlayerInFormation = true;
   InteractableNpc? _activeNpcChallenge;
   PendingTurfConquest? _pendingTurfConquest;
   final Set<String> _conqueredTerritoryIds = {};
@@ -170,7 +171,8 @@ class GameController extends ChangeNotifier {
   int get gangAttackPower =>
       _formationMembers.fold(0, (total, member) => total + member.power);
   int get gangFormationSize =>
-      _formationCounts.values.fold(0, (total, count) => total + count);
+      _formationCounts.values.fold(0, (total, count) => total + count) +
+      _gangMembers.where((m) => m.isExclusive && m.isInFormation).length;
   int get gangBuildingStage => _gangBuildingStage;
   int get gangBuildingLevel => _gangBuildingLevel;
   String get gangBuildingName => GangBuildings.stages[_gangBuildingStage].name;
@@ -190,18 +192,36 @@ class GameController extends ChangeNotifier {
   Map<int, int> get gangTierCounts => {
     for (final tier in RecruitTiers.all)
       tier.tier: _gangMembers
-          .where((member) => member.tier == tier.tier)
+          .where((member) => !member.isExclusive && member.tier == tier.tier)
           .length,
   };
 
   Map<int, int> get formationCounts => Map.unmodifiable(_formationCounts);
   List<Ally> get formationMembers => _formationMembers;
 
+  bool get isPlayerInFormation => _isPlayerInFormation;
+
+  void togglePlayerInFormation() {
+    _isPlayerInFormation = !_isPlayerInFormation;
+    notifyListeners();
+  }
+
+  void toggleExclusiveMemberFormation(Ally member) {
+    if (member.isExclusive && _gangMembers.contains(member)) {
+      if (!member.isInFormation && gangFormationSize >= gangMemberCapacity) {
+        return; // limit reached
+      }
+      member.isInFormation = !member.isInFormation;
+      notifyListeners();
+    }
+  }
+
   List<Ally> get _formationMembers {
     final selected = <Ally>[];
+    selected.addAll(_gangMembers.where((m) => m.isExclusive && m.isInFormation));
     for (final entry in _formationCounts.entries) {
       final members =
-          _gangMembers.where((member) => member.tier == entry.key).toList()
+          _gangMembers.where((member) => !member.isExclusive && member.tier == entry.key).toList()
             ..sort((a, b) => b.power.compareTo(a.power));
       selected.addAll(members.take(entry.value));
     }
@@ -769,6 +789,9 @@ class GameController extends ChangeNotifier {
   void clearFormation() {
     for (final tier in RecruitTiers.all) {
       _formationCounts[tier.tier] = 0;
+    }
+    for (final member in _gangMembers) {
+      member.isInFormation = false;
     }
     notifyListeners();
   }

@@ -33,6 +33,7 @@ class Ally implements CombatEntity {
   int tier;
   int trainingLevel;
   int maxTrainingLevel;
+  bool isInFormation;
 
   Ally({
     required this.name,
@@ -48,6 +49,7 @@ class Ally implements CombatEntity {
     this.tier = 1,
     this.trainingLevel = 0,
     this.maxTrainingLevel = 10,
+    this.isInFormation = false,
   });
 
   bool get canTrain => trainingLevel < maxTrainingLevel;
