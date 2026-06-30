@@ -218,10 +218,16 @@ class GameController extends ChangeNotifier {
 
   List<Ally> get _formationMembers {
     final selected = <Ally>[];
-    selected.addAll(_gangMembers.where((m) => m.isExclusive && m.isInFormation));
+    selected.addAll(
+      _gangMembers.where((m) => m.isExclusive && m.isInFormation),
+    );
     for (final entry in _formationCounts.entries) {
       final members =
-          _gangMembers.where((member) => !member.isExclusive && member.tier == entry.key).toList()
+          _gangMembers
+              .where(
+                (member) => !member.isExclusive && member.tier == entry.key,
+              )
+              .toList()
             ..sort((a, b) => b.power.compareTo(a.power));
       selected.addAll(members.take(entry.value));
     }
@@ -257,6 +263,21 @@ class GameController extends ChangeNotifier {
 
   bool isRecruitTierUnlocked(RecruitTier tier) {
     return tier.isUnlocked(_gangBuildingStage, _gangBuildingLevel);
+  }
+
+  bool canStartRecruitTrainingTier(RecruitTier tier) {
+    if (!isRecruitTierUnlocked(tier)) return false;
+    if (tier.tier == 1) return true;
+    final counts = gangTierCounts;
+    return (counts[tier.tier] ?? 0) > 0 || (counts[tier.tier - 1] ?? 0) > 0;
+  }
+
+  String recruitTrainingLockedText(RecruitTier tier) {
+    if (!isRecruitTierUnlocked(tier)) return 'Unlock: ${tier.unlockText}';
+    if (tier.tier > 1 && !canStartRecruitTrainingTier(tier)) {
+      return 'Train or upgrade through T${tier.tier - 1} first';
+    }
+    return '';
   }
 
   bool upgradeGangBuilding() {
@@ -378,7 +399,7 @@ class GameController extends ChangeNotifier {
   bool startRecruitTraining(RecruitTier tier, {int count = 1}) {
     _completeGangTrainingIfReady();
     if (!hasGang || count <= 0 || _gangTrainingJob != null) return false;
-    if (!isRecruitTierUnlocked(tier)) return false;
+    if (!canStartRecruitTrainingTier(tier)) return false;
 
     final cost = tier.cost * count;
     if (_money < cost) return false;
