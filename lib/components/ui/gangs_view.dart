@@ -1204,12 +1204,71 @@ class _LockedTrainingRoomCardState extends State<_LockedTrainingRoomCard>
                       ),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                  const SizedBox(height: 12),
+                  // ── Unlocks Preview ──────────────────────────────────
+                  const Text(
+                    'UNLOCKS',
+                    style: TextStyle(
+                      color: Colors.white24,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _UnlockRow(label: 'Recruit gang members in batches'),
+                  const SizedBox(height: 6),
+                  _UnlockRow(label: 'Train & level up your crew'),
+                  const SizedBox(height: 6),
+                  _UnlockRow(label: 'Promote members to higher tiers'),
+                  const SizedBox(height: 6),
+                  _UnlockRow(label: 'Access Brawler & Enforcer recruits'),
+
                 ],
               ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+// ─── Unlock Row ───────────────────────────────────────────────────────────────
+
+class _UnlockRow extends StatelessWidget {
+  final String label;
+
+  const _UnlockRow({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: const Color(0xFF34C759).withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.check,
+            color: Color(0xFF34C759),
+            size: 10,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white54,
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 }
