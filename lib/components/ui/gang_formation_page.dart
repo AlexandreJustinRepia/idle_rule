@@ -37,19 +37,32 @@ class GangFormationPage extends StatelessWidget {
         builder: (context, child) {
           final memberCapacity = gameController.gangMemberCapacity;
           final formationSize = gameController.gangFormationSize;
-          final exclusiveMembers = gameController.gangMembers.where((m) => m.isExclusive).toList();
+          final formations = gameController.gangFormations;
+          final activeFormationIndex = gameController.activeFormationIndex;
+          final activeFormation = gameController.activeFormation;
+          final exclusiveMembers = gameController.gangMembers
+              .where((m) => m.isExclusive)
+              .toList();
 
           return SafeArea(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               children: [
+                _buildFormationSelector(
+                  gang: gang,
+                  formations: formations,
+                  activeFormationIndex: activeFormationIndex,
+                ),
+                const SizedBox(height: 14),
                 // Summary Panel
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFF111116),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: gang.primaryColor.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: gang.primaryColor.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -58,7 +71,7 @@ class GangFormationPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'SQUAD SIZE',
+                            activeFormation.name.toUpperCase(),
                             style: GoogleFonts.bebasNeue(
                               color: Colors.white54,
                               fontSize: 14,
@@ -77,7 +90,9 @@ class GangFormationPage extends StatelessWidget {
                         ],
                       ),
                       ElevatedButton(
-                        onPressed: formationSize > 0 ? gameController.clearFormation : null,
+                        onPressed: formationSize > 0
+                            ? gameController.clearFormation
+                            : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red[900],
                           foregroundColor: Colors.white,
@@ -103,11 +118,16 @@ class GangFormationPage extends StatelessWidget {
                 const SizedBox(height: 10),
                 Card(
                   color: const Color(0xFF111116),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: SwitchListTile(
                     title: Text(
                       'PLAYER CHARACTER (${gameController.playerName})',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     subtitle: const Text(
                       'Toggle if you want to fight alongside your crew',
@@ -144,18 +164,27 @@ class GangFormationPage extends StatelessWidget {
                   ...exclusiveMembers.map((member) {
                     return Card(
                       color: const Color(0xFF111116),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       margin: const EdgeInsets.only(bottom: 10),
                       child: SwitchListTile(
                         title: Text(
                           member.name.toUpperCase(),
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                         subtitle: Text(
                           'PWR ${member.power} | ATK ${member.atk} | HP ${member.maxHp}',
-                          style: const TextStyle(color: Colors.white54, fontSize: 11),
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 11,
+                          ),
                         ),
-                        value: member.isInFormation,
+                        value: gameController
+                            .isExclusiveMemberInActiveFormation(member),
                         activeTrackColor: member.themeColor,
                         onChanged: (val) {
                           gameController.toggleExclusiveMemberFormation(member);
@@ -176,8 +205,10 @@ class GangFormationPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 ...RecruitTiers.all.map((tier) {
-                  final available = gameController.gangTierCounts[tier.tier] ?? 0;
-                  final selected = gameController.formationCounts[tier.tier] ?? 0;
+                  final available =
+                      gameController.gangTierCounts[tier.tier] ?? 0;
+                  final selected =
+                      gameController.formationCounts[tier.tier] ?? 0;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
@@ -186,7 +217,9 @@ class GangFormationPage extends StatelessWidget {
                       color: const Color(0xFF111116),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: selected > 0 ? gang.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
+                        color: selected > 0
+                            ? gang.primaryColor.withValues(alpha: 0.3)
+                            : Colors.transparent,
                       ),
                     ),
                     child: Row(
@@ -195,14 +228,18 @@ class GangFormationPage extends StatelessWidget {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: gang.primaryColor.withValues(alpha: selected > 0 ? 0.2 : 0.07),
+                            color: gang.primaryColor.withValues(
+                              alpha: selected > 0 ? 0.2 : 0.07,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
                             child: Text(
                               'T${tier.tier}',
                               style: TextStyle(
-                                color: selected > 0 ? gang.primaryColor : Colors.white30,
+                                color: selected > 0
+                                    ? gang.primaryColor
+                                    : Colors.white30,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -223,7 +260,10 @@ class GangFormationPage extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 'Available: $available',
-                                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),
@@ -232,7 +272,10 @@ class GangFormationPage extends StatelessWidget {
                           children: [
                             IconButton(
                               onPressed: selected > 0
-                                  ? () => gameController.setFormationCount(tier.tier, selected - 1)
+                                  ? () => gameController.setFormationCount(
+                                      tier.tier,
+                                      selected - 1,
+                                    )
                                   : null,
                               icon: const Icon(Icons.remove, size: 16),
                               style: IconButton.styleFrom(
@@ -249,8 +292,13 @@ class GangFormationPage extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              onPressed: available > selected && formationSize < memberCapacity
-                                  ? () => gameController.setFormationCount(tier.tier, selected + 1)
+                              onPressed:
+                                  available > selected &&
+                                      formationSize < memberCapacity
+                                  ? () => gameController.setFormationCount(
+                                      tier.tier,
+                                      selected + 1,
+                                    )
                                   : null,
                               icon: const Icon(Icons.add, size: 16),
                               style: IconButton.styleFrom(
@@ -268,6 +316,132 @@ class GangFormationPage extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildFormationSelector({
+    required Gang gang,
+    required List<GangFormation> formations,
+    required int activeFormationIndex,
+  }) {
+    final canAdd = formations.length < GameController.maxGangFormations;
+    final canDelete = formations.length > 1;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111116),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'FORMATIONS',
+                  style: GoogleFonts.bebasNeue(
+                    color: gang.primaryColor,
+                    fontSize: 18,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Add formation',
+                onPressed: canAdd ? gameController.addGangFormation : null,
+                icon: const Icon(Icons.add, size: 18),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white10,
+                  disabledBackgroundColor: Colors.white.withValues(alpha: 0.04),
+                  foregroundColor: Colors.white,
+                  disabledForegroundColor: Colors.white24,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Delete active formation',
+                onPressed: canDelete
+                    ? gameController.deleteActiveGangFormation
+                    : null,
+                icon: const Icon(Icons.delete_outline, size: 18),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white10,
+                  disabledBackgroundColor: Colors.white.withValues(alpha: 0.04),
+                  foregroundColor: Colors.white,
+                  disabledForegroundColor: Colors.white24,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 38,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: formations.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final formation = formations[index];
+                final selected = index == activeFormationIndex;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => gameController.selectGangFormation(index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    width: 116,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? gang.primaryColor.withValues(alpha: 0.22)
+                          : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: selected ? gang.primaryColor : Colors.white12,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          selected ? Icons.radio_button_checked : Icons.groups,
+                          size: 15,
+                          color: selected ? gang.primaryColor : Colors.white38,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            formation.name.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: selected
+                                  ? gang.primaryColor
+                                  : Colors.white54,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

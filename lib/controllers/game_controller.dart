@@ -55,8 +55,27 @@ class PendingTurfConquest {
   });
 }
 
+class GangFormation {
+  final String name;
+  final Map<int, int> counts;
+  final Set<Ally> exclusiveMembers;
+  bool isPlayerIncluded;
+
+  GangFormation({
+    required this.name,
+    Map<int, int>? counts,
+    Set<Ally>? exclusiveMembers,
+    this.isPlayerIncluded = true,
+  }) : counts = counts ?? {for (final tier in RecruitTiers.all) tier.tier: 0},
+       exclusiveMembers = exclusiveMembers ?? <Ally>{};
+
+  int get regularSize => counts.values.fold(0, (total, count) => total + count);
+  int get size => regularSize + exclusiveMembers.length;
+}
+
 class GameController extends ChangeNotifier {
   static final math.Random _random = math.Random();
+  static const int maxGangFormations = 5;
 
   PlayerStats _stats = const PlayerStats();
   int _playerHealth = 30;
@@ -72,10 +91,10 @@ class GameController extends ChangeNotifier {
   int _gangBuildingStage = 0;
   int _gangBuildingLevel = 1;
   GangTrainingJob? _gangTrainingJob;
-  final Map<int, int> _formationCounts = {
-    for (final tier in RecruitTiers.all) tier.tier: 0,
-  };
-  bool _isPlayerInFormation = true;
+  final List<GangFormation> _gangFormations = [
+    GangFormation(name: 'Formation 1'),
+  ];
+  int _activeFormationIndex = 0;
   InteractableNpc? _activeNpcChallenge;
   PendingTurfConquest? _pendingTurfConquest;
   final Set<String> _conqueredTerritoryIds = {};
@@ -170,9 +189,7 @@ class GameController extends ChangeNotifier {
       _gangMembers.fold(0, (total, member) => total + member.power);
   int get gangAttackPower =>
       _formationMembers.fold(0, (total, member) => total + member.power);
-  int get gangFormationSize =>
-      _formationCounts.values.fold(0, (total, count) => total + count) +
-      _gangMembers.where((m) => m.isExclusive && m.isInFormation).length;
+  int get gangFormationSize => _activeFormation.size;
   int get gangBuildingStage => _gangBuildingStage;
   int get gangBuildingLevel => _gangBuildingLevel;
   String get gangBuildingName => GangBuildings.stages[_gangBuildingStage].name;
@@ -196,32 +213,82 @@ class GameController extends ChangeNotifier {
           .length,
   };
 
-  Map<int, int> get formationCounts => Map.unmodifiable(_formationCounts);
+  List<GangFormation> get gangFormations => List.unmodifiable(_gangFormations);
+  int get activeFormationIndex => _activeFormationIndex;
+  GangFormation get activeFormation => _activeFormation;
+  Map<int, int> get formationCounts =>
+      Map.unmodifiable(_activeFormation.counts);
   List<Ally> get formationMembers => _formationMembers;
 
-  bool get isPlayerInFormation => _isPlayerInFormation;
+  bool get isPlayerInFormation => _activeFormation.isPlayerIncluded;
 
   void togglePlayerInFormation() {
-    _isPlayerInFormation = !_isPlayerInFormation;
+    _activeFormation.isPlayerIncluded = !_activeFormation.isPlayerIncluded;
     notifyListeners();
   }
 
   void toggleExclusiveMemberFormation(Ally member) {
     if (member.isExclusive && _gangMembers.contains(member)) {
-      if (!member.isInFormation && gangFormationSize >= gangMemberCapacity) {
+      final formation = _activeFormation;
+      final isSelected = formation.exclusiveMembers.contains(member);
+      if (!isSelected && gangFormationSize >= gangMemberCapacity) {
         return; // limit reached
       }
-      member.isInFormation = !member.isInFormation;
+      if (isSelected) {
+        formation.exclusiveMembers.remove(member);
+      } else {
+        formation.exclusiveMembers.add(member);
+      }
+      _syncActiveFormationFlags();
       notifyListeners();
     }
   }
 
+  bool isExclusiveMemberInActiveFormation(Ally member) =>
+      _activeFormation.exclusiveMembers.contains(member);
+
+  void selectGangFormation(int index) {
+    if (index < 0 || index >= _gangFormations.length) return;
+    _activeFormationIndex = index;
+    _syncActiveFormationFlags();
+    notifyListeners();
+  }
+
+  bool addGangFormation() {
+    if (_gangFormations.length >= maxGangFormations) return false;
+    _gangFormations.add(
+      GangFormation(name: 'Formation ${_gangFormations.length + 1}'),
+    );
+    _activeFormationIndex = _gangFormations.length - 1;
+    _syncActiveFormationFlags();
+    notifyListeners();
+    return true;
+  }
+
+  bool deleteActiveGangFormation() {
+    if (_gangFormations.length <= 1) return false;
+    _gangFormations.removeAt(_activeFormationIndex);
+    _activeFormationIndex = _activeFormationIndex.clamp(
+      0,
+      _gangFormations.length - 1,
+    );
+    _syncActiveFormationFlags();
+    notifyListeners();
+    return true;
+  }
+
+  GangFormation get _activeFormation =>
+      _gangFormations[_activeFormationIndex.clamp(
+        0,
+        _gangFormations.length - 1,
+      )];
+
   List<Ally> get _formationMembers {
     final selected = <Ally>[];
     selected.addAll(
-      _gangMembers.where((m) => m.isExclusive && m.isInFormation),
+      _gangMembers.where((m) => _activeFormation.exclusiveMembers.contains(m)),
     );
-    for (final entry in _formationCounts.entries) {
+    for (final entry in _activeFormation.counts.entries) {
       final members =
           _gangMembers
               .where(
@@ -444,6 +511,10 @@ class GameController extends ChangeNotifier {
 
   void dismissGangMember(Ally ally) {
     if (_gangMembers.remove(ally)) {
+      for (final formation in _gangFormations) {
+        formation.exclusiveMembers.remove(ally);
+      }
+      _clampFormationToRoster();
       notifyListeners();
     }
   }
@@ -793,28 +864,43 @@ class GameController extends ChangeNotifier {
 
   void setFormationCount(int tier, int count) {
     final available = gangTierCounts[tier] ?? 0;
-    final currentOtherCount = gangFormationSize - (_formationCounts[tier] ?? 0);
+    final formation = _activeFormation;
+    final currentOtherCount = gangFormationSize - (formation.counts[tier] ?? 0);
     final openSlots = (gangMemberCapacity - currentOtherCount).clamp(0, 9999);
-    _formationCounts[tier] = count.clamp(0, math.min(available, openSlots));
+    formation.counts[tier] = count.clamp(0, math.min(available, openSlots));
     notifyListeners();
   }
 
   void _clampFormationToRoster() {
     final counts = gangTierCounts;
-    for (final tier in RecruitTiers.all) {
-      final selected = _formationCounts[tier.tier] ?? 0;
-      _formationCounts[tier.tier] = selected.clamp(0, counts[tier.tier] ?? 0);
+    for (final formation in _gangFormations) {
+      formation.exclusiveMembers.removeWhere(
+        (member) => !_gangMembers.contains(member),
+      );
+      for (final tier in RecruitTiers.all) {
+        final selected = formation.counts[tier.tier] ?? 0;
+        formation.counts[tier.tier] = selected.clamp(0, counts[tier.tier] ?? 0);
+      }
     }
+    _syncActiveFormationFlags();
   }
 
   void clearFormation() {
+    final formation = _activeFormation;
     for (final tier in RecruitTiers.all) {
-      _formationCounts[tier.tier] = 0;
+      formation.counts[tier.tier] = 0;
     }
-    for (final member in _gangMembers) {
-      member.isInFormation = false;
-    }
+    formation.exclusiveMembers.clear();
+    _syncActiveFormationFlags();
     notifyListeners();
+  }
+
+  void _syncActiveFormationFlags() {
+    for (final member in _gangMembers) {
+      member.isInFormation =
+          member.isExclusive &&
+          _activeFormation.exclusiveMembers.contains(member);
+    }
   }
 
   void gainStats({

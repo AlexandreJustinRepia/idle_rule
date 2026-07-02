@@ -17,7 +17,11 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
   static const int _maxBatchCount = 20;
   static const Map<int, String> _tierImageAssets = {
     // Add images here later, for example:
-    // 1: 'assets/gang_members/tier_1.png',
+    1: 'assets/gang_members/tier_1.png',
+    2: 'assets/gang_members/tier_2.png',
+    3: 'assets/gang_members/tier_3.png',
+    4: 'assets/gang_members/tier_4.png',
+    5: 'assets/gang_members/tier_5.png',
   };
 
   final PageController _tierPageController = PageController(
@@ -695,6 +699,8 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
 
   Widget _buildMemberThumbnail(Ally member, {bool small = false}) {
     final size = small ? 48.0 : 64.0;
+    final assetPath = member.isExclusive ? null : _tierImageAssets[member.tier];
+
     return Container(
       width: size,
       height: size,
@@ -712,13 +718,48 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
       ),
       child: Stack(
         children: [
-          Center(
-            child: Icon(
-              member.isExclusive ? Icons.workspace_premium : Icons.person,
-              color: Colors.white.withValues(alpha: 0.9),
-              size: small ? 23 : 32,
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(small ? 8 : 12),
+              child: assetPath == null
+                  ? Center(
+                      child: Icon(
+                        member.isExclusive
+                            ? Icons.workspace_premium
+                            : Icons.person,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        size: small ? 23 : 32,
+                      ),
+                    )
+                  : Image.asset(
+                      assetPath,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                      errorBuilder: (context, error, stackTrace) => Center(
+                        child: Icon(
+                          Icons.person,
+                          color: Colors.white.withValues(alpha: 0.9),
+                          size: small ? 23 : 32,
+                        ),
+                      ),
+                    ),
             ),
           ),
+          if (assetPath != null)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.38),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             right: 4,
             bottom: 4,
@@ -789,4 +830,3 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
     return '${duration.inSeconds}s';
   }
 }
-
