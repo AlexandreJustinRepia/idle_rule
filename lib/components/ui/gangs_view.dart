@@ -451,16 +451,21 @@ class _GangCreationPanelState extends State<GangCreationPanel> {
             current: '\$$money',
             required: '\$${GangCreationRequirements.moneyCost}',
             met: moneyMet,
-            progress: (money / GangCreationRequirements.moneyCost).clamp(0.0, 1.0),
+            progress: (money / GangCreationRequirements.moneyCost).clamp(
+              0.0,
+              1.0,
+            ),
           ),
           const SizedBox(height: 8),
           _buildRequirementRow(
             icon: Icons.star,
             label: 'REPUTATION',
             current: reputation.toStringAsFixed(1),
-            required: GangCreationRequirements.reputationRequired.toStringAsFixed(1),
+            required: GangCreationRequirements.reputationRequired
+                .toStringAsFixed(1),
             met: repMet,
-            progress: (reputation / GangCreationRequirements.reputationRequired).clamp(0.0, 1.0),
+            progress: (reputation / GangCreationRequirements.reputationRequired)
+                .clamp(0.0, 1.0),
           ),
         ],
       ),
@@ -640,7 +645,8 @@ class GangProfilePanel extends StatelessWidget {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => GangFormationPage(gameController: gameController),
+                  builder: (_) =>
+                      GangFormationPage(gameController: gameController),
                 ),
               ),
               child: Container(
@@ -653,11 +659,17 @@ class GangProfilePanel extends StatelessWidget {
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: gang.accentColor.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: gang.accentColor.withValues(alpha: 0.4),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.military_tech, color: gang.accentColor, size: 28),
+                    Icon(
+                      Icons.military_tech,
+                      color: gang.accentColor,
+                      size: 28,
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -674,7 +686,10 @@ class GangProfilePanel extends StatelessWidget {
                           const SizedBox(height: 2),
                           const Text(
                             'Configure player presence and active squad layouts',
-                            style: TextStyle(color: Colors.white54, fontSize: 11),
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                            ),
                           ),
                         ],
                       ),
@@ -754,25 +769,34 @@ class GangProfilePanel extends StatelessWidget {
                 ),
               ),
               ElevatedButton(
-                onPressed: canLevelUp ? gameController.upgradeGangBuilding : null,
+                onPressed: canLevelUp
+                    ? gameController.upgradeGangBuilding
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: gang.primaryColor,
                   foregroundColor: gang.accentColor,
                   disabledBackgroundColor: Colors.white12,
                   disabledForegroundColor: Colors.white24,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: Text(
                   '\$${gameController.upgradeGangBuildingCost}',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],
           ),
-          if (gameController.gangBuildingStage < GangBuildings.stages.length - 1) ...[
+          if (gameController.gangBuildingStage <
+              GangBuildings.stages.length - 1) ...[
             const SizedBox(height: 12),
             Row(
               children: [
@@ -791,7 +815,9 @@ class GangProfilePanel extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 OutlinedButton(
-                  onPressed: canAdvance ? gameController.advanceGangBuildingStage : null,
+                  onPressed: canAdvance
+                      ? gameController.advanceGangBuildingStage
+                      : null,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: gang.primaryColor,
                     disabledForegroundColor: Colors.white24,
@@ -1124,7 +1150,10 @@ class _LockedTrainingRoomCardState extends State<_LockedTrainingRoomCard>
                     ],
                   ),
                   const SizedBox(height: 14),
-                  Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                  Container(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
                   const SizedBox(height: 12),
                   // ── Requirement + Progress ───────────────────────────
                   Row(
@@ -1205,7 +1234,10 @@ class _LockedTrainingRoomCardState extends State<_LockedTrainingRoomCard>
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                  Container(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
                   const SizedBox(height: 12),
                   // ── Unlocks Preview ──────────────────────────────────
                   const Text(
@@ -1225,7 +1257,6 @@ class _LockedTrainingRoomCardState extends State<_LockedTrainingRoomCard>
                   _UnlockRow(label: 'Promote members to higher tiers'),
                   const SizedBox(height: 6),
                   _UnlockRow(label: 'Access Brawler & Enforcer recruits'),
-
                 ],
               ),
             ),
@@ -1254,19 +1285,12 @@ class _UnlockRow extends StatelessWidget {
             color: const Color(0xFF34C759).withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.check,
-            color: Color(0xFF34C759),
-            size: 10,
-          ),
+          child: const Icon(Icons.check, color: Color(0xFF34C759), size: 10),
         ),
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white54,
-            fontSize: 11,
-          ),
+          style: const TextStyle(color: Colors.white54, fontSize: 11),
         ),
       ],
     );
@@ -1277,7 +1301,7 @@ class _UnlockRow extends StatelessWidget {
 
 class _ShimmerBorderPainter extends CustomPainter {
   final double progress; // 0.0→1.0, position of spark around perimeter
-  final double breathe;  // 0.0→1.0, breathing phase
+  final double breathe; // 0.0→1.0, breathing phase
   final double borderRadius;
 
   const _ShimmerBorderPainter({
@@ -1342,7 +1366,9 @@ class _ShimmerBorderPainter extends CustomPainter {
       sparkPos,
       2.5 + breathe * 1.0,
       Paint()
-        ..color = const Color(0xFFFFEE88).withValues(alpha: 0.85 + breathe * 0.15)
+        ..color = const Color(
+          0xFFFFEE88,
+        ).withValues(alpha: 0.85 + breathe * 0.15)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
     );
     canvas.drawCircle(
