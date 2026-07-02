@@ -121,7 +121,7 @@ class RecruitTiers {
   static const List<RecruitTier> all = [
     RecruitTier(
       tier: 1,
-      name: 'Rookie',
+      name: 'Street Kid',
       description: 'Just joined the crew.',
       requiredBuildingStage: 0,
       requiredBuildingLevel: 1,
@@ -133,7 +133,7 @@ class RecruitTiers {
     ),
     RecruitTier(
       tier: 2,
-      name: 'Street Punk',
+      name: 'Hoodlum',
       description: 'Always looking for trouble.',
       requiredBuildingStage: 0,
       requiredBuildingLevel: 10,
@@ -145,7 +145,7 @@ class RecruitTiers {
     ),
     RecruitTier(
       tier: 3,
-      name: 'Enforcer',
+      name: 'Brawler',
       description: 'The muscle of the organization.',
       requiredBuildingStage: 1,
       requiredBuildingLevel: 5,
@@ -157,7 +157,7 @@ class RecruitTiers {
     ),
     RecruitTier(
       tier: 4,
-      name: 'Lieutenant',
+      name: 'Enforcer',
       description: 'A leader who earned respect through fights.',
       requiredBuildingStage: 1,
       requiredBuildingLevel: 20,
@@ -169,7 +169,7 @@ class RecruitTiers {
     ),
     RecruitTier(
       tier: 5,
-      name: 'Captain',
+      name: 'Crew Ace',
       description: 'Controls entire blocks for the organization.',
       requiredBuildingStage: 2,
       requiredBuildingLevel: 10,

@@ -630,89 +630,9 @@ class GangProfilePanel extends StatelessWidget {
             const SizedBox(height: 24),
             _buildBuildingCard(),
             const SizedBox(height: 12),
-            _buildInfoCard(
-              icon: Icons.group,
-              title: 'COMMAND SIZE',
-              value: '$memberCapacity',
-              subtitle:
-                  '${gameController.gangMembers.length} total members in roster',
-              accent: gang.primaryColor,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInfoCard(
-                    icon: Icons.bolt,
-                    title: 'ATTACK POWER',
-                    value: gameController.gangAttackPower.toString(),
-                    subtitle: 'Best members used for turf attacks',
-                    accent: const Color(0xFFE24B4A),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildInfoCard(
-                    icon: Icons.military_tech,
-                    title: 'TOTAL POWER',
-                    value: gameController.gangTotalPower.toString(),
-                    subtitle: 'Strength of every recruited member',
-                    accent: gang.accentColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
             _buildRecruitExclusiveCard(context),
             const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => GangTrainingPage(gameController: gameController),
-                ),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      gang.primaryColor.withValues(alpha: 0.15),
-                      const Color(0xFF111116),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: gang.primaryColor.withValues(alpha: 0.4)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.fitness_center, color: gang.primaryColor, size: 28),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'TRAINING ROOM',
-                            style: GoogleFonts.bebasNeue(
-                              fontSize: 18,
-                              color: Colors.white,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Train crew members, purchase batch recruits, promote leaders',
-                            style: TextStyle(color: Colors.white54, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right, color: Colors.white38),
-                  ],
-                ),
-              ),
-            ),
+            _buildTrainingRoomCard(context),
             const SizedBox(height: 12),
             GestureDetector(
               onTap: () => Navigator.push(
@@ -760,49 +680,6 @@ class GangProfilePanel extends StatelessWidget {
                     const Icon(Icons.chevron_right, color: Colors.white38),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildInfoCard(
-              icon: Icons.palette_outlined,
-              title: 'COLORS',
-              value: 'CUSTOM',
-              subtitle: 'Primary & accent emblem colors',
-              accent: gang.accentColor,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _colorDot(gang.primaryColor),
-                  const SizedBox(width: 6),
-                  _colorDot(gang.accentColor),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF16161C),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: gang.primaryColor.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: gang.primaryColor, size: 18),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'Recruit numbers, train them, then send your best command group to take turf.',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 11,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ),
           ],
@@ -951,6 +828,224 @@ class GangProfilePanel extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildTrainingRoomCard(BuildContext context) {
+    final isUnlocked = gameController.gangBuildingStage >= 1;
+    final nextStage = GangBuildings.stages[1]; // Training Center
+
+    if (!isUnlocked) {
+      // Locked state — show progress toward Training Center
+      final currentLevel = gameController.gangBuildingLevel;
+      final requiredLevel = nextStage.minLevel;
+      final progress = (currentLevel / requiredLevel).clamp(0.0, 1.0);
+      final percent = (progress * 100).round();
+
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0E0E13),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header row
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.fitness_center,
+                    color: Colors.white24,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'TRAINING ROOM',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 18,
+                      color: Colors.white38,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.lock_outline, color: Colors.white30, size: 10),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'LOCKED',
+                        style: TextStyle(
+                          color: Colors.white30,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // Divider
+            Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+            const SizedBox(height: 12),
+            // Requirement label + current progress value
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'REQUIREMENT',
+                      style: TextStyle(
+                        color: Colors.white24,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${nextStage.name} Lv.$requiredLevel',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'CURRENT PROGRESS',
+                      style: TextStyle(
+                        color: Colors.white24,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Lv.$currentLevel / Lv.$requiredLevel',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Progress bar
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color.lerp(const Color(0xFFE24B4A), const Color(0xFFFFCC00), progress)!
+                          .withValues(alpha: 0.75),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            // Percent label
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                '$percent%',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Unlocked — navigate to training room
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => GangTrainingPage(gameController: gameController),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              gang.primaryColor.withValues(alpha: 0.15),
+              const Color(0xFF111116),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: gang.primaryColor.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.fitness_center, color: gang.primaryColor, size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TRAINING ROOM',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 18,
+                      color: Colors.white,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Train crew members, purchase batch recruits, promote leaders',
+                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.white38),
+          ],
+        ),
       ),
     );
   }

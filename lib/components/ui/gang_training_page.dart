@@ -789,3 +789,4 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
     return '${duration.inSeconds}s';
   }
 }
+

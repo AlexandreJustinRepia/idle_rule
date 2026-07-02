@@ -448,7 +448,7 @@ class _GameScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (currentTabIndex != 3)
+                if (currentTabIndex != 3 && currentTabIndex != 4)
                   Flexible(
                     flex: 3,
                     child: StatsPanel(stats: gameController.stats),
