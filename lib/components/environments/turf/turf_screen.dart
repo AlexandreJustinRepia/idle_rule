@@ -4,6 +4,7 @@ import '../../../models/gang.dart';
 import 'ghetto_turf_map.dart';
 import 'travel_animation_overlay.dart';
 import 'turf_map.dart';
+import 'turf_common_widgets.dart';
 import '../../../models/interactable_npc.dart';
 import '../../ui/npc_interaction_modal.dart';
 import '../../shared/gang_pictorial.dart';
@@ -130,7 +131,10 @@ class _TurfScreenState extends State<TurfScreen> {
     return null;
   }
 
-  void _leadTerritoryAttack(TurfTerritory territory, {bool isBossChallenge = false}) {
+  void _leadTerritoryAttack(
+    TurfTerritory territory, {
+    bool isBossChallenge = false,
+  }) {
     if (territory.level != TurfMapLevel.street) return;
     if (widget.gameController.isTerritoryConquered(territory.id)) return;
 
@@ -156,8 +160,8 @@ class _TurfScreenState extends State<TurfScreen> {
           isBossChallenge
               ? 'BOSS CHALLENGE STARTED - DEFEAT ${request.territoryName.toUpperCase()}\'S LEADER!'
               : (isUsingGang
-                  ? 'GANG RAID STARTED - TAKING OVER ${territory.label.toUpperCase()}'
-                  : 'SOLO RAID STARTED - CLEAR ${territory.label.toUpperCase()} ON THE STREET'),
+                    ? 'GANG RAID STARTED - TAKING OVER ${territory.label.toUpperCase()}'
+                    : 'SOLO RAID STARTED - CLEAR ${territory.label.toUpperCase()} ON THE STREET'),
         ),
         backgroundColor: const Color(0xFFE24B4A),
         duration: const Duration(milliseconds: 2200),
@@ -233,7 +237,7 @@ class _TurfScreenState extends State<TurfScreen> {
                   ),
                   const SizedBox(height: 20),
                   // Walk Option Card
-                  _TravelOptionCard(
+                  TravelOptionCard(
                     title: 'Walk',
                     subtitle: 'Consumes stamina & energy',
                     icon: Icons.directions_walk,
@@ -257,7 +261,7 @@ class _TurfScreenState extends State<TurfScreen> {
                   ),
                   const SizedBox(height: 12),
                   // Taxi Option Card
-                  _TravelOptionCard(
+                  TravelOptionCard(
                     title: 'Take Taxi',
                     subtitle: 'Fast travel using cash',
                     icon: Icons.local_taxi,
@@ -349,7 +353,7 @@ class _TurfScreenState extends State<TurfScreen> {
             const SizedBox(height: 12),
 
             // Current Location Indicator Banner
-            _LocationIndicatorBanner(
+            LocationIndicatorBanner(
               currentStreet: currentStreet,
               residents: widget.residents,
               characterName: widget.characterName,
@@ -394,7 +398,7 @@ class _TurfScreenState extends State<TurfScreen> {
                             !n.isRecruited,
                       )
                       .map(
-                        (npc) => _NpcCard(
+                        (npc) => TurfNpcCard(
                           npc: npc,
                           onTap: () {
                             final currentStreetId =
@@ -430,13 +434,13 @@ class _TurfScreenState extends State<TurfScreen> {
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
-                    _BreadcrumbNode(
+                    BreadcrumbNode(
                       label: widget.worldName ?? 'Root',
                       isLast: _currentParentId == null,
                       onTap: _onRootTap,
                     ),
                     for (int i = 0; i < crumbs.length; i++)
-                      _BreadcrumbNode(
+                      BreadcrumbNode(
                         label: crumbs[i].label,
                         isLast: i == crumbs.length - 1,
                         onTap: () =>
@@ -482,7 +486,10 @@ class _TurfScreenState extends State<TurfScreen> {
                           onTravel: () => _showTravelDialog(child),
                           onSendGang: () => _sendGangToTerritory(child),
                           onLeadAttack: () => _leadTerritoryAttack(child),
-                          onChallengeBoss: () => _leadTerritoryAttack(child, isBossChallenge: true),
+                          onChallengeBoss: () => _leadTerritoryAttack(
+                            child,
+                            isBossChallenge: true,
+                          ),
                         );
                       },
                     ),
@@ -490,123 +497,6 @@ class _TurfScreenState extends State<TurfScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _LocationIndicatorBanner extends StatelessWidget {
-  final TurfTerritory currentStreet;
-  final List<String> residents;
-  final String? characterName;
-
-  const _LocationIndicatorBanner({
-    required this.currentStreet,
-    required this.residents,
-    this.characterName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final streetTypeLabel = currentStreet.streetType?.label;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF17191C),
-        border: Border.all(
-          color: const Color(0xFFFFD166).withValues(alpha: 0.35),
-        ),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
-        children: [
-          const Icon(Icons.my_location, color: Color(0xFFFFD166), size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'CURRENTLY AT: ${currentStreet.label.toUpperCase()}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                if (streetTypeLabel != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'STREET TYPE: ${streetTypeLabel.toUpperCase()}',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 2),
-                Text(
-                  residents.isEmpty
-                      ? 'You are alone on this street.'
-                      : 'Also here: ${residents.join(', ')}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BreadcrumbNode extends StatelessWidget {
-  final String label;
-  final bool isLast;
-  final VoidCallback onTap;
-
-  const _BreadcrumbNode({
-    required this.label,
-    required this.isLast,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(6),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: isLast ? const Color(0xFF262A30) : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isLast ? Colors.white : Colors.white60,
-                fontSize: 12,
-                fontWeight: isLast ? FontWeight.w800 : FontWeight.normal,
-              ),
-            ),
-          ),
-        ),
-        if (!isLast)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
-            child: Icon(Icons.chevron_right, size: 14, color: Colors.white30),
-          ),
-      ],
     );
   }
 }
@@ -688,7 +578,8 @@ class _TerritoryCard extends StatelessWidget {
                     children: [
                       Positioned.fill(
                         child: Image.asset(
-                          territory.backgroundAsset ?? 'assets/background/ghetto.png',
+                          territory.backgroundAsset ??
+                              'assets/background/ghetto.png',
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -722,11 +613,16 @@ class _TerritoryCard extends StatelessWidget {
                           top: 10,
                           left: 10,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.7),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: territory.color.withValues(alpha: 0.4)),
+                              border: Border.all(
+                                color: territory.color.withValues(alpha: 0.4),
+                              ),
                             ),
                             child: Text(
                               territory.streetType!.label.toUpperCase(),
@@ -792,7 +688,9 @@ class _TerritoryCard extends StatelessWidget {
                               Text(
                                 territory.streetType!.label.toUpperCase(),
                                 style: TextStyle(
-                                  color: territory.color.withValues(alpha: 0.65),
+                                  color: territory.color.withValues(
+                                    alpha: 0.65,
+                                  ),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.5,
@@ -803,13 +701,13 @@ class _TerritoryCard extends StatelessWidget {
                         ),
                       ),
                       if (isCurrentLocation)
-                        _Badge(
+                        TurfStatusBadge(
                           label: 'YOU ARE HERE',
                           color: const Color(0xFFFFD166),
                           textColor: Colors.black,
                         )
                       else if (isConquered)
-                        const _Badge(
+                        const TurfStatusBadge(
                           label: 'SECURED',
                           color: Color(0xFF2DDA77),
                           textColor: Colors.white,
@@ -861,11 +759,18 @@ class _TerritoryCard extends StatelessWidget {
                       const SizedBox(height: 3),
                       Row(
                         children: [
-                          const Icon(Icons.person, color: Colors.white38, size: 12),
+                          const Icon(
+                            Icons.person,
+                            color: Colors.white38,
+                            size: 12,
+                          ),
                           const SizedBox(width: 5),
                           Text(
                             'Leader: ',
-                            style: TextStyle(color: Colors.white38, fontSize: 10),
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 10,
+                            ),
                           ),
                           Flexible(
                             child: Text(
@@ -941,7 +846,9 @@ class _TerritoryCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                        if (isCurrentLocation && occupantGang != null && !isConquered) ...[
+                        if (isCurrentLocation &&
+                            occupantGang != null &&
+                            !isConquered) ...[
                           ElevatedButton.icon(
                             onPressed: onChallengeBoss,
                             style: ElevatedButton.styleFrom(
@@ -968,7 +875,9 @@ class _TerritoryCard extends StatelessWidget {
                         if (!isCurrentLocation && canAttack) ...[
                           const SizedBox(width: 8),
                           ElevatedButton.icon(
-                            onPressed: attackUsesGang ? onSendGang : onLeadAttack,
+                            onPressed: attackUsesGang
+                                ? onSendGang
+                                : onLeadAttack,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFE24B4A),
                               foregroundColor: Colors.white,
@@ -1018,194 +927,6 @@ class _TerritoryCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color textColor;
-
-  const _Badge({
-    required this.label,
-    required this.color,
-    required this.textColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 9,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-}
-
-class _TravelOptionCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final String costText;
-  final bool isEnabled;
-  final VoidCallback onTap;
-
-  const _TravelOptionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.costText,
-    required this.isEnabled,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: isEnabled ? const Color(0xFF202327) : const Color(0xFF1A1A1E),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(
-          color: isEnabled
-              ? Colors.white.withValues(alpha: 0.06)
-              : Colors.transparent,
-        ),
-      ),
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        onTap: isEnabled ? onTap : null,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: isEnabled ? const Color(0xFFFFD166) : Colors.white24,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: isEnabled ? Colors.white : Colors.white30,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: isEnabled ? Colors.white60 : Colors.white24,
-                        fontSize: 11,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Cost: $costText',
-                      style: TextStyle(
-                        color: isEnabled ? Colors.orangeAccent : Colors.white24,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 12,
-                color: isEnabled ? Colors.white38 : Colors.white12,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NpcCard extends StatelessWidget {
-  final InteractableNpc npc;
-  final VoidCallback onTap;
-
-  const _NpcCard({required this.npc, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final tier = npc.relationshipTier;
-
-    return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 12),
-      child: Material(
-        color: const Color(0xFF1E2125),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: tier.color.withValues(alpha: 0.3)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: tier.color.withValues(alpha: 0.2),
-                  child: Icon(Icons.person, size: 20, color: tier.color),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        npc.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        tier.label.toUpperCase(),
-                        style: TextStyle(
-                          color: tier.color,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
