@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/game_controller.dart';
 import '../../game_state.dart';
+import 'gang_training_widgets.dart';
 
 class GangTrainingPage extends StatefulWidget {
   final GameController gameController;
@@ -15,14 +16,6 @@ class GangTrainingPage extends StatefulWidget {
 class _GangTrainingPageState extends State<GangTrainingPage> {
   static const int _minBatchCount = 1;
   static const int _maxBatchCount = 20;
-  static const Map<int, String> _tierImageAssets = {
-    // Add images here later, for example:
-    1: 'assets/gang_members/tier_1.png',
-    2: 'assets/gang_members/tier_2.png',
-    3: 'assets/gang_members/tier_3.png',
-    4: 'assets/gang_members/tier_4.png',
-    5: 'assets/gang_members/tier_5.png',
-  };
 
   final PageController _tierPageController = PageController(
     viewportFraction: 0.9,
@@ -102,7 +95,7 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
                 ),
                 const SizedBox(height: 10),
                 if (job != null) ...[
-                  _buildTrainingJobCard(job, gang),
+                  GangTrainingJobCard(job: job, gang: gang),
                   const SizedBox(height: 10),
                 ],
                 _buildRecruitTierCards(gang),
@@ -132,52 +125,13 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
                 ),
                 const SizedBox(height: 10),
                 if (members.isEmpty)
-                  _buildEmptyMembersCard()
+                  const GangTrainingEmptyMembersCard()
                 else
                   _buildMemberCarousel(members, gang),
               ],
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildTrainingJobCard(GangTrainingJob job, Gang gang) {
-    final remaining = _formatDuration(job.remaining);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF16161C),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF34C759).withValues(alpha: 0.35),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.timer, color: Color(0xFF34C759), size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'TRAINING ${job.count}x ${job.tier.name.toUpperCase()}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ),
-          Text(
-            remaining == '0s' ? 'DONE' : remaining,
-            style: const TextStyle(
-              color: Color(0xFF34C759),
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -279,7 +233,13 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: _buildTierImageSlot(tier, gang, unlocked)),
+          Expanded(
+            child: RecruitTierImageSlot(
+              tier: tier,
+              gang: gang,
+              unlocked: unlocked,
+            ),
+          ),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -301,7 +261,7 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
                     const SizedBox(height: 3),
                     Text(
                       lockedText.isEmpty
-                          ? '${tier.description}  ${_formatDuration(tier.trainingTime)} batch'
+                          ? '${tier.description}  ${formatGangTrainingDuration(tier.trainingTime)} batch'
                           : lockedText,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -319,7 +279,7 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
           const SizedBox(height: 10),
           Row(
             children: [
-              _buildCountButton(
+              GangTrainingCountButton(
                 icon: Icons.remove,
                 enabled: !busy && count > _minBatchCount,
                 onPressed: () => _adjustBatchCount(tier, -1),
@@ -343,7 +303,7 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
                   ),
                 ),
               ),
-              _buildCountButton(
+              GangTrainingCountButton(
                 icon: Icons.add,
                 enabled: !busy && count < _maxBatchCount,
                 onPressed: () => _adjustBatchCount(tier, 1),
@@ -381,112 +341,6 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTierImageSlot(RecruitTier tier, Gang gang, bool unlocked) {
-    final assetPath = _tierImageAssets[tier.tier];
-
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (assetPath == null)
-              _buildTierPlaceholder(tier, gang, unlocked)
-            else
-              Image.asset(
-                assetPath,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    _buildTierPlaceholder(tier, gang, unlocked),
-              ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.62),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 10,
-              bottom: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: unlocked ? gang.primaryColor : Colors.white24,
-                  ),
-                ),
-                child: Text(
-                  'TIER ${tier.tier}',
-                  style: TextStyle(
-                    color: unlocked ? gang.primaryColor : Colors.white38,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTierPlaceholder(RecruitTier tier, Gang gang, bool unlocked) {
-    final color = unlocked ? gang.primaryColor : Colors.white24;
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: unlocked ? 0.42 : 0.12),
-            const Color(0xFF202027),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.groups_2,
-          color: color.withValues(alpha: unlocked ? 0.95 : 0.45),
-          size: 52,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCountButton({
-    required IconData icon,
-    required bool enabled,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: 36,
-      height: 36,
-      child: IconButton.filled(
-        onPressed: enabled ? onPressed : null,
-        icon: Icon(icon, size: 18),
-        style: IconButton.styleFrom(
-          backgroundColor: Colors.white.withValues(alpha: 0.08),
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: Colors.white.withValues(alpha: 0.04),
-          disabledForegroundColor: Colors.white24,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
       ),
     );
   }
@@ -547,7 +401,7 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
                       color: selected ? member.themeColor : Colors.white12,
                     ),
                   ),
-                  child: _buildMemberThumbnail(member, small: true),
+                  child: GangMemberThumbnail(member: member, small: true),
                 ),
               );
             },
@@ -586,7 +440,7 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildMemberThumbnail(member),
+              GangMemberThumbnail(member: member),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -620,9 +474,9 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        _buildStatPill('PWR', member.power),
-                        _buildStatPill('ATK', member.atk),
-                        _buildStatPill('HP', member.maxHp),
+                        GangTrainingStatPill(label: 'PWR', value: member.power),
+                        GangTrainingStatPill(label: 'ATK', value: member.atk),
+                        GangTrainingStatPill(label: 'HP', value: member.maxHp),
                       ],
                     ),
                   ],
@@ -695,138 +549,5 @@ class _GangTrainingPageState extends State<GangTrainingPage> {
         ],
       ),
     );
-  }
-
-  Widget _buildMemberThumbnail(Ally member, {bool small = false}) {
-    final size = small ? 48.0 : 64.0;
-    final assetPath = member.isExclusive ? null : _tierImageAssets[member.tier];
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(small ? 8 : 12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            member.themeColor.withValues(alpha: 0.65),
-            const Color(0xFF232329),
-          ],
-        ),
-        border: Border.all(color: member.themeColor.withValues(alpha: 0.7)),
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(small ? 8 : 12),
-              child: assetPath == null
-                  ? Center(
-                      child: Icon(
-                        member.isExclusive
-                            ? Icons.workspace_premium
-                            : Icons.person,
-                        color: Colors.white.withValues(alpha: 0.9),
-                        size: small ? 23 : 32,
-                      ),
-                    )
-                  : Image.asset(
-                      assetPath,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                      errorBuilder: (context, error, stackTrace) => Center(
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white.withValues(alpha: 0.9),
-                          size: small ? 23 : 32,
-                        ),
-                      ),
-                    ),
-            ),
-          ),
-          if (assetPath != null)
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.38),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          Positioned(
-            right: 4,
-            bottom: 4,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: small ? 4 : 5,
-                vertical: small ? 1 : 2,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                member.isExclusive ? 'EX' : 'T${member.tier}',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: small ? 8 : 9,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatPill(String label, int value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Text(
-        '$label $value',
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyMembersCard() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111116),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: const Text(
-        'No members yet. Recruit a crew, recruit defeated enemies from Street, or buy an exclusive leader.',
-        style: TextStyle(color: Colors.white38, fontSize: 11, height: 1.4),
-      ),
-    );
-  }
-
-  String _formatDuration(Duration duration) {
-    if (duration.inMinutes >= 1) {
-      final minutes = duration.inMinutes;
-      final seconds = duration.inSeconds.remainder(60);
-      return seconds == 0 ? '${minutes}m' : '${minutes}m ${seconds}s';
-    }
-    return '${duration.inSeconds}s';
   }
 }
