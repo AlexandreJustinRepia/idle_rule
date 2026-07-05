@@ -17,21 +17,20 @@ class CharacterCreationScreen extends StatefulWidget {
     required double intelligence,
     required double potential,
     required double reputation,
-  }) onCharacterCreated;
+  })
+  onCharacterCreated;
 
-  const CharacterCreationScreen({
-    super.key,
-    required this.onCharacterCreated,
-  });
+  const CharacterCreationScreen({super.key, required this.onCharacterCreated});
 
   @override
-  State<CharacterCreationScreen> createState() => _CharacterCreationScreenState();
+  State<CharacterCreationScreen> createState() =>
+      _CharacterCreationScreenState();
 }
 
 class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final Random _random = Random();
-  
+
   CreationPhase _phase = CreationPhase.nameInput;
   CharacterClass? _rolledClass;
   PlayerStats? _rolledStats;
@@ -53,7 +52,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
       _showError('Name must be 15 characters or less');
       return;
     }
-    
+
     setState(() {
       _playerName = name.toUpperCase();
       _phase = CreationPhase.rolling;
@@ -79,7 +78,9 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   }
 
   void _createCharacter() {
-    if (_rolledClass == null || _rolledStats == null || _playerName == null) return;
+    if (_rolledClass == null || _rolledStats == null || _playerName == null) {
+      return;
+    }
 
     widget.onCharacterCreated(
       playerName: _playerName!,
@@ -96,7 +97,10 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color(0xFFE24B4A),
         duration: const Duration(seconds: 2),
       ),
@@ -111,52 +115,63 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         child: _phase == CreationPhase.nameInput
             ? _buildNameInputPhase()
             : _phase == CreationPhase.rolling
-                ? Center(
-                    child: ClassGachaView(
-                      onRollComplete: _completeGachaRoll,
-                    ),
-                  )
-                : _buildResultPhase(),
+            ? Center(child: ClassGachaView(onRollComplete: _completeGachaRoll))
+            : _buildResultPhase(),
       ),
     );
   }
 
   Widget _buildNameInputPhase() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildSymbol(),
-            const SizedBox(height: 40),
-            Text(
-              'CREATE YOUR',
-              style: GoogleFonts.bebasNeue(
-                fontSize: 24,
-                color: Colors.white.withValues(alpha: 0.7),
-                letterSpacing: 4,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'CHARACTER',
-              style: GoogleFonts.bebasNeue(
-                fontSize: 56,
-                color: const Color(0xFFE24B4A),
-                fontWeight: FontWeight.bold,
-                letterSpacing: 8,
-              ),
-            ),
-            const SizedBox(height: 50),
-            _buildNameInput(),
-            const SizedBox(height: 24),
-            _buildClassPreview(),
-            const SizedBox(height: 40),
-            _buildStartButton(),
-          ],
+    return _buildCenteredScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      children: [
+        _buildSymbol(),
+        const SizedBox(height: 40),
+        Text(
+          'CREATE YOUR',
+          style: GoogleFonts.bebasNeue(
+            fontSize: 24,
+            color: Colors.white.withValues(alpha: 0.7),
+            letterSpacing: 4,
+          ),
         ),
-      ),
+        const SizedBox(height: 8),
+        Text(
+          'CHARACTER',
+          style: GoogleFonts.bebasNeue(
+            fontSize: 56,
+            color: const Color(0xFFE24B4A),
+            fontWeight: FontWeight.bold,
+            letterSpacing: 8,
+          ),
+        ),
+        const SizedBox(height: 50),
+        _buildNameInput(),
+        const SizedBox(height: 24),
+        _buildClassPreview(),
+        const SizedBox(height: 40),
+        _buildStartButton(),
+      ],
+    );
+  }
+
+  Widget _buildCenteredScrollView({
+    required EdgeInsetsGeometry padding,
+    required List<Widget> children,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: padding,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: children,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -169,11 +184,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         border: Border.all(color: const Color(0xFFE24B4A), width: 2),
         color: const Color(0xFFE24B4A).withValues(alpha: 0.1),
       ),
-      child: const Icon(
-        Icons.person,
-        size: 40,
-        color: Color(0xFFE24B4A),
-      ),
+      child: const Icon(Icons.person, size: 40, color: Color(0xFFE24B4A)),
     );
   }
 
@@ -201,7 +212,10 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             letterSpacing: 4,
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 18,
+          ),
           counterText: '',
         ),
         onSubmitted: (_) => _continueToRoll(),
@@ -231,20 +245,20 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                  color: isHidden 
-                      ? Colors.white.withValues(alpha: 0.1) 
+                  color: isHidden
+                      ? Colors.white.withValues(alpha: 0.1)
                       : charClass.tierColor.withValues(alpha: 0.4),
                 ),
-                color: isHidden 
-                    ? Colors.transparent 
+                color: isHidden
+                    ? Colors.transparent
                     : charClass.tierColor.withValues(alpha: 0.1),
               ),
               child: Text(
                 charClass.emoji,
                 style: TextStyle(
                   fontSize: isHidden ? 10 : 14,
-                  color: isHidden 
-                      ? Colors.white.withValues(alpha: 0.2) 
+                  color: isHidden
+                      ? Colors.white.withValues(alpha: 0.2)
                       : charClass.tierColor,
                 ),
               ),
@@ -290,41 +304,38 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   }
 
   Widget _buildResultPhase() {
-    if (_rolledClass == null || _rolledStats == null) return const SizedBox.shrink();
+    if (_rolledClass == null || _rolledStats == null) {
+      return const SizedBox.shrink();
+    }
     final charClass = _rolledClass!;
     final stats = _rolledStats!;
     final tierLabel = CharacterClasses.getTierLabel(charClass);
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return _buildCenteredScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      children: [
+        _buildResultHeader(charClass, tierLabel),
+        const SizedBox(height: 32),
+        _buildClassEmblem(charClass),
+        const SizedBox(height: 16),
+        _buildClassName(charClass),
+        const SizedBox(height: 8),
+        _buildClassDesc(charClass),
+        const SizedBox(height: 32),
+        _buildStatGrid(stats),
+        const SizedBox(height: 40),
+        Row(
           children: [
-            _buildResultHeader(charClass, tierLabel),
-            const SizedBox(height: 32),
-            _buildClassEmblem(charClass),
-            const SizedBox(height: 16),
-            _buildClassName(charClass),
-            const SizedBox(height: 8),
-            _buildClassDesc(charClass),
-            const SizedBox(height: 32),
-            _buildStatGrid(stats),
-            const SizedBox(height: 40),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionButton(
-                    label: 'BEGIN',
-                    onTap: _createCharacter,
-                    isSecondary: false,
-                  ),
-                ),
-              ],
+            Expanded(
+              child: _buildActionButton(
+                label: 'BEGIN',
+                onTap: _createCharacter,
+                isSecondary: false,
+              ),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 
@@ -376,10 +387,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         ],
       ),
       child: Center(
-        child: Text(
-          charClass.emoji,
-          style: const TextStyle(fontSize: 48),
-        ),
+        child: Text(charClass.emoji, style: const TextStyle(fontSize: 48)),
       ),
     );
   }
@@ -443,9 +451,12 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             final maxVal = label == 'REP'
                 ? 20.0
                 : (label == 'INT' || label == 'POT')
-                    ? 90.0
-                    : 60.0;
-            final percent = ((entry['value'] as double) / maxVal).clamp(0.0, 1.0);
+                ? 90.0
+                : 60.0;
+            final percent = ((entry['value'] as double) / maxVal).clamp(
+              0.0,
+              1.0,
+            );
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -529,9 +540,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
               : const LinearGradient(
                   colors: [Color(0xFFE24B4A), Color(0xFF8B0000)],
                 ),
-          border: isSecondary
-              ? Border.all(color: Colors.white24)
-              : null,
+          border: isSecondary ? Border.all(color: Colors.white24) : null,
           color: isSecondary ? Colors.transparent : null,
           boxShadow: isSecondary
               ? null
