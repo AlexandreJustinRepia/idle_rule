@@ -61,6 +61,7 @@ class GhettoEnvironment extends StatefulWidget {
   final bool hasSafeHouse;
   final bool isHostileStreet;
   final List<Gang> rivalGangs;
+  final bool isActive;
 
   const GhettoEnvironment({
     super.key,
@@ -94,6 +95,7 @@ class GhettoEnvironment extends StatefulWidget {
     this.hasSafeHouse = false,
     this.isHostileStreet = false,
     this.rivalGangs = const [],
+    required this.isActive,
   });
 
   @override

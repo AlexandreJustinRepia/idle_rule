@@ -23,6 +23,7 @@ class StreetEnvironment extends StatelessWidget {
   final VoidCallback? onStartBossFight;
   final int bossIndex;
   final void Function(int amount)? onMoneyGained;
+  final bool isActive;
 
   const StreetEnvironment({
     super.key,
@@ -44,6 +45,7 @@ class StreetEnvironment extends StatelessWidget {
     this.onStartBossFight,
     this.bossIndex = 0,
     this.onMoneyGained,
+    required this.isActive,
   });
 
   @override
@@ -69,6 +71,7 @@ class StreetEnvironment extends StatelessWidget {
       onStartBossFight: onStartBossFight,
       bossIndex: bossIndex,
       onMoneyGained: onMoneyGained,
+      isActive: isActive,
     );
   }
 }

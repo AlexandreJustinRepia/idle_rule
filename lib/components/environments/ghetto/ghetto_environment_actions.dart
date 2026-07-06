@@ -124,6 +124,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
     _trainingTimer?.cancel();
     _trainingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!widget.isActive) return;
       if (_isAtHome && _isResting) {
         double recoveryMult = PlayerNeedsLogic.getRecoveryMultiplier(
           widget.playerHunger,
