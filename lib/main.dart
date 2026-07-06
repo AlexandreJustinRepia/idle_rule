@@ -419,8 +419,10 @@ class _GameScreen extends StatelessWidget {
                       ),
                       GymEnvironment(
                         stats: gameController.stats,
+                        playerHealth: gameController.playerHealth,
                         playerStamina: gameController.playerStamina,
                         playerHunger: gameController.playerHunger,
+                        hasGang: gameController.hasGang,
                         onStatsGained: gameController.gainStats,
                         onStaminaSpent: gameController.spendStamina,
                         onNeedsRecovered: gameController.recoverNeeds,

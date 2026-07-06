@@ -2,13 +2,16 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../game_state.dart';
+import '../ui/player_health_bar.dart';
 
 enum GymActivity { strength, speed, endurance }
 
 class GymEnvironment extends StatefulWidget {
   final PlayerStats stats;
+  final int playerHealth;
   final double playerStamina;
   final double playerHunger;
+  final bool hasGang;
   final void Function({double strength, double speed, double endurance})
   onStatsGained;
   final bool Function(double amount) onStaminaSpent;
@@ -17,8 +20,10 @@ class GymEnvironment extends StatefulWidget {
   const GymEnvironment({
     super.key,
     required this.stats,
+    required this.playerHealth,
     required this.playerStamina,
     required this.playerHunger,
+    required this.hasGang,
     required this.onStatsGained,
     required this.onStaminaSpent,
     required this.onNeedsRecovered,
@@ -60,6 +65,16 @@ class _GymEnvironmentState extends State<GymEnvironment>
   }
 
   void _startTraining() {
+    if (widget.playerHunger <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Too starving to train! Buy food.'),
+          backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
     setState(() => _isTraining = true);
     _animController.repeat(reverse: true);
 
@@ -94,6 +109,17 @@ class _GymEnvironmentState extends State<GymEnvironment>
     _trainingTimer = Timer.periodic(const Duration(milliseconds: 1000), (
       timer,
     ) {
+      if (widget.playerHunger <= 0) {
+        _stopTraining();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Too starving to continue! Buy food.'),
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 1),
+          ),
+        );
+        return;
+      }
       if (!widget.onStaminaSpent(staminaCost)) {
         _stopTraining();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,69 +173,70 @@ class _GymEnvironmentState extends State<GymEnvironment>
 
     return Container(
       decoration: const BoxDecoration(color: Color(0xFF0F0F12)),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 112, 16, 24),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - 136,
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 112, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'GOLDSMITH STREET GYM',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                            letterSpacing: 2,
+                            shadows: [
+                              Shadow(
+                                color: activityColor.withValues(alpha: 0.5),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'No pain, no gain. Train your attributes.',
+                          style: TextStyle(
+                            color: Colors.white70.withValues(alpha: 0.4),
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                PlayerHealthBar(
+                  health: widget.playerHealth,
+                  maxHealth: widget.stats.maxHealth,
+                  stamina: widget.playerStamina,
+                  maxStamina: widget.stats.maxStamina,
+                  hunger: widget.playerHunger,
+                  maxHunger: widget.stats.maxHunger,
+                  reputation: widget.stats.reputation,
+                  wasHit: false,
+                  damage: widget.stats.attackDamage,
+                  dodge: (widget.stats.dodgeChance * 100).toInt(),
+                  gangCapacity: widget.hasGang ? widget.stats.gangCapacity : 0,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // HEADER WITH STATS SUMMARY
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'GOLDSMITH STREET GYM',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 18,
-                              letterSpacing: 2,
-                              shadows: [
-                                Shadow(
-                                  color: activityColor.withValues(alpha: 0.5),
-                                  blurRadius: 10,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'No pain, no gain. Train your attributes.',
-                            style: TextStyle(
-                              color: Colors.white70.withValues(alpha: 0.4),
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Tiny stats preview
-                      Row(
-                        children: [
-                          _buildStatIndicator(
-                            Icons.bolt,
-                            Colors.cyanAccent,
-                            widget.playerStamina.toInt(),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildStatIndicator(
-                            Icons.restaurant,
-                            Colors.orangeAccent,
-                            widget.playerHunger.toInt(),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
                   // SELECTION TABS
                   Row(
                     children: [
@@ -352,32 +379,6 @@ class _GymEnvironmentState extends State<GymEnvironment>
                   ),
                 ],
               ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildStatIndicator(IconData icon, Color color, int value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF16161C),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 12),
-          const SizedBox(width: 4),
-          Text(
-            '$value',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
             ),
           ),
         ],
