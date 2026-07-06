@@ -39,6 +39,18 @@ class GymEnvironment extends StatefulWidget {
 class _GymEnvironmentState extends State<GymEnvironment>
     with TickerProviderStateMixin {
   late AnimationController _animController;
+
+  // --- Strength Minigame ---
+  late AnimationController _powerBarController;
+  int _strengthStreak = 0;
+  static const int _maxStreak = 4;
+  // Sweet spot is the centre 28% of the bar
+  static const double _sweetLow = 0.36;
+  static const double _sweetHigh = 0.64;
+  bool _lastRepPerfect = false;
+  bool _tapFlash = false;
+  // --- End Strength Minigame ---
+
   GymActivity _currentActivity = GymActivity.strength;
   bool _isTraining = false;
   Timer? _trainingTimer;
@@ -50,6 +62,10 @@ class _GymEnvironmentState extends State<GymEnvironment>
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
+    );
+    _powerBarController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
     );
     _startPassiveTimer();
   }
@@ -75,6 +91,7 @@ class _GymEnvironmentState extends State<GymEnvironment>
   @override
   void dispose() {
     _animController.dispose();
+    _powerBarController.dispose();
     _trainingTimer?.cancel();
     _passiveTimer?.cancel();
     super.dispose();
@@ -99,23 +116,27 @@ class _GymEnvironmentState extends State<GymEnvironment>
       );
       return;
     }
-    setState(() => _isTraining = true);
+    setState(() {
+      _isTraining = true;
+      _strengthStreak = 0;
+      _lastRepPerfect = false;
+    });
     _animController.repeat(reverse: true);
 
-    // Choose interval cost & gains based on the active training station
-    double staminaCost = 4.0;
-    double hungerCost = -0.8;
-    double gStrength = 0;
+    // Strength is handled by the tap minigame — no periodic timer for it
+    if (_currentActivity == GymActivity.strength) {
+      // Start the oscillating power bar
+      _powerBarController.repeat(reverse: true);
+      return;
+    }
+
+    // Non-strength activities keep the periodic timer logic
+    double staminaCost = 5.0;
+    double hungerCost = -1.0;
     double gSpeed = 0;
     double gEndurance = 0;
 
     switch (_currentActivity) {
-      case GymActivity.strength:
-        staminaCost = 4.0;
-        hungerCost = -0.8;
-        gStrength = 1.2;
-        gEndurance = 0.1;
-        break;
       case GymActivity.speed:
         staminaCost = 5.0;
         hungerCost = -1.0;
@@ -126,7 +147,8 @@ class _GymEnvironmentState extends State<GymEnvironment>
         staminaCost = 4.0;
         hungerCost = -0.7;
         gEndurance = 1.2;
-        gStrength = 0.2;
+        break;
+      case GymActivity.strength:
         break;
     }
 
@@ -156,7 +178,6 @@ class _GymEnvironmentState extends State<GymEnvironment>
         return;
       }
       widget.onStatsGained(
-        strength: gStrength,
         speed: gSpeed,
         endurance: gEndurance,
       );
@@ -165,9 +186,74 @@ class _GymEnvironmentState extends State<GymEnvironment>
   }
 
   void _stopTraining() {
-    setState(() => _isTraining = false);
+    setState(() {
+      _isTraining = false;
+      _strengthStreak = 0;
+      _lastRepPerfect = false;
+      _tapFlash = false;
+    });
     _animController.stop();
+    _powerBarController.stop();
     _trainingTimer?.cancel();
+  }
+
+  /// Called when player taps LIFT during strength minigame
+  void _onStrengthTap() {
+    if (!_isTraining || _currentActivity != GymActivity.strength) return;
+
+    // Check hunger / stamina first
+    if (widget.playerHunger <= 0) {
+      _stopTraining();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Too starving to continue! Buy food.'),
+          backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+    if (!widget.onStaminaSpent(4.0)) {
+      _stopTraining();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Too exhausted to lift! Rest up.'),
+          backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+
+    // Evaluate indicator position
+    // _powerBarController.value oscillates 0→1→0; mirror it so 0.5 = centre
+    final double raw = _powerBarController.value;
+    final bool isPerfect = raw >= _sweetLow && raw <= _sweetHigh;
+
+    setState(() {
+      _lastRepPerfect = isPerfect;
+      _tapFlash = true;
+      if (isPerfect) {
+        _strengthStreak = (_strengthStreak + 1).clamp(0, _maxStreak);
+      } else {
+        _strengthStreak = 0;
+      }
+    });
+
+    // Remove flash after a short delay
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _tapFlash = false);
+    });
+
+    final int mult = (_strengthStreak == 0 ? 1 : _strengthStreak);
+    final double baseStrength = 1.8;
+    final double baseEndurance = 0.15;
+
+    widget.onStatsGained(
+      strength: baseStrength * mult,
+      endurance: baseEndurance * mult,
+    );
+    widget.onNeedsRecovered(stamina: 0, hunger: -0.8);
   }
 
   void _selectActivity(GymActivity activity) {
@@ -316,13 +402,11 @@ class _GymEnvironmentState extends State<GymEnvironment>
                       borderRadius: BorderRadius.circular(16),
                       child: Stack(
                         children: [
-                          // Grid lines background
                           Positioned.fill(
                             child: CustomPaint(
                               painter: GridBackgroundPainter(),
                             ),
                           ),
-
                           Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -337,8 +421,6 @@ class _GymEnvironmentState extends State<GymEnvironment>
                                   ),
                                 ),
                                 const SizedBox(height: 6),
-
-                                // Load corresponding animated graphic
                                 AnimatedBuilder(
                                   animation: _animController,
                                   builder: (context, child) {
@@ -352,7 +434,6 @@ class _GymEnvironmentState extends State<GymEnvironment>
                                     }
                                   },
                                 ),
-
                                 const SizedBox(height: 6),
                                 Text(
                                   activityDetails,
@@ -371,42 +452,291 @@ class _GymEnvironmentState extends State<GymEnvironment>
                   ),
                   const SizedBox(height: 8),
 
+                  // STRENGTH MINIGAME — only shown when strength is selected
+                  if (_currentActivity == GymActivity.strength)
+                    _buildStrengthMinigame(),
+
                   // TRAINING DETAILS
                   _buildDetailsCard(activityColor),
                   const SizedBox(height: 8),
 
                   // ACTION BUTTON
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isTraining
-                          ? Colors.redAccent
-                          : activityColor,
-                      foregroundColor: Colors.black,
-                      elevation: 6,
-                      shadowColor: _isTraining
-                          ? Colors.redAccent
-                          : activityColor,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  if (_currentActivity != GymActivity.strength ||
+                      !_isTraining)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isTraining
+                            ? Colors.redAccent
+                            : activityColor,
+                        foregroundColor: Colors.black,
+                        elevation: 6,
+                        shadowColor: _isTraining
+                            ? Colors.redAccent
+                            : activityColor,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: _toggleTraining,
+                      child: Text(
+                        _isTraining ? 'STOP TRAINING' : 'START TRAINING',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          letterSpacing: 2,
+                        ),
                       ),
                     ),
-                    onPressed: _toggleTraining,
-                    child: Text(
-                      _isTraining ? 'STOP TRAINING' : 'START TRAINING',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStrengthMinigame() {
+    final int mult = _strengthStreak == 0 ? 1 : _strengthStreak;
+    final Color multColor = mult >= 4
+        ? Colors.purpleAccent
+        : mult == 3
+            ? Colors.orangeAccent
+            : mult == 2
+                ? Colors.yellowAccent
+                : Colors.white70;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Streak display
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (int i = 1; i <= _maxStreak; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 28,
+                height: 28,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: i <= _strengthStreak
+                      ? multColor.withValues(alpha: 0.2)
+                      : Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: i <= _strengthStreak
+                        ? multColor
+                        : Colors.white12,
+                    width: i <= _strengthStreak ? 1.5 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    'x$i',
+                    style: TextStyle(
+                      color: i <= _strengthStreak ? multColor : Colors.white24,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Power bar
+        AnimatedBuilder(
+          animation: _powerBarController,
+          builder: (context, _) {
+            final double pos = _powerBarController.value;
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final double barWidth = constraints.maxWidth;
+                return Container(
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.deepOrangeAccent.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Sweet-spot zone
+                      Positioned(
+                        left: barWidth * _sweetLow,
+                        width: barWidth * (_sweetHigh - _sweetLow),
+                        top: 0,
+                        bottom: 0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.greenAccent.withValues(alpha: 0.18),
+                            border: Border.symmetric(
+                              vertical: BorderSide(
+                                color: Colors.greenAccent.withValues(alpha: 0.5),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Moving indicator
+                      Positioned(
+                        left: (pos * (barWidth - 6)).clamp(
+                            0, barWidth - 6),
+                        top: 4,
+                        bottom: 4,
+                        width: 6,
+                        child: AnimatedContainer(
+                          duration: Duration.zero,
+                          decoration: BoxDecoration(
+                            color: _tapFlash
+                                ? (_lastRepPerfect
+                                    ? Colors.greenAccent
+                                    : Colors.redAccent)
+                                : Colors.deepOrangeAccent,
+                            borderRadius: BorderRadius.circular(3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (_tapFlash && _lastRepPerfect
+                                        ? Colors.greenAccent
+                                        : Colors.deepOrangeAccent)
+                                    .withValues(alpha: 0.6),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // PERFECT label in sweet spot
+                      Center(
+                        child: Text(
+                          'PERFECT',
+                          style: TextStyle(
+                            color:
+                                Colors.greenAccent.withValues(alpha: 0.4),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+
+        // Hint text
+        Text(
+          _isTraining
+              ? (_lastRepPerfect
+                  ? '✓ Perfect rep! x$mult multiplier'
+                  : _strengthStreak == 0
+                      ? 'Tap LIFT when the bar hits the green zone!'
+                      : 'Keep it up! x$mult active')
+              : 'Press START TRAINING then tap LIFT!',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _lastRepPerfect
+                ? Colors.greenAccent
+                : Colors.white38,
+            fontSize: 11,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // LIFT button — only shown while training
+        if (_isTraining)
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: _onStrengthTap,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    decoration: BoxDecoration(
+                      color: _tapFlash && _lastRepPerfect
+                          ? Colors.greenAccent.withValues(alpha: 0.2)
+                          : Colors.deepOrangeAccent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _tapFlash && _lastRepPerfect
+                            ? Colors.greenAccent
+                            : Colors.deepOrangeAccent,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.deepOrangeAccent.withValues(
+                              alpha: _tapFlash ? 0.4 : 0.15),
+                          blurRadius: 12,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'LIFT!',
+                          style: TextStyle(
+                            color: _tapFlash && _lastRepPerfect
+                                ? Colors.greenAccent
+                                : Colors.deepOrangeAccent,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 22,
+                            letterSpacing: 4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        if (mult > 1)
+                          Text(
+                            'x$mult MULTIPLIER',
+                            style: TextStyle(
+                              color: multColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _stopTraining,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 18, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.redAccent),
+                  ),
+                  child: const Text(
+                    'STOP',
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 
