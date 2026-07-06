@@ -423,6 +423,7 @@ class _GameScreen extends StatelessWidget {
                         playerStamina: gameController.playerStamina,
                         playerHunger: gameController.playerHunger,
                         hasGang: gameController.hasGang,
+                        isActive: currentTabIndex == 1,
                         onStatsGained: gameController.gainStats,
                         onStaminaSpent: gameController.spendStamina,
                         onNeedsRecovered: gameController.recoverNeeds,

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../game_state.dart';
 import '../ui/player_health_bar.dart';
+import '../../logic/player_needs_logic.dart';
 
 enum GymActivity { strength, speed, endurance }
 
@@ -12,6 +13,7 @@ class GymEnvironment extends StatefulWidget {
   final double playerStamina;
   final double playerHunger;
   final bool hasGang;
+  final bool isActive;
   final void Function({double strength, double speed, double endurance})
   onStatsGained;
   final bool Function(double amount) onStaminaSpent;
@@ -24,6 +26,7 @@ class GymEnvironment extends StatefulWidget {
     required this.playerStamina,
     required this.playerHunger,
     required this.hasGang,
+    required this.isActive,
     required this.onStatsGained,
     required this.onStaminaSpent,
     required this.onNeedsRecovered,
@@ -39,6 +42,7 @@ class _GymEnvironmentState extends State<GymEnvironment>
   GymActivity _currentActivity = GymActivity.strength;
   bool _isTraining = false;
   Timer? _trainingTimer;
+  Timer? _passiveTimer;
 
   @override
   void initState() {
@@ -47,12 +51,30 @@ class _GymEnvironmentState extends State<GymEnvironment>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+    _startPassiveTimer();
+  }
+
+  void _startPassiveTimer() {
+    _passiveTimer?.cancel();
+    _passiveTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (widget.isActive && !_isTraining) {
+        double recoveryMult = PlayerNeedsLogic.getRecoveryMultiplier(
+          widget.playerHunger,
+          widget.stats.maxHunger,
+        );
+        widget.onNeedsRecovered(
+          stamina: widget.stats.staminaRecovery * 4.0 * recoveryMult,
+          hunger: -0.05,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _animController.dispose();
     _trainingTimer?.cancel();
+    _passiveTimer?.cancel();
     super.dispose();
   }
 
