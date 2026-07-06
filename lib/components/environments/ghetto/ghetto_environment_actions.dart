@@ -130,9 +130,11 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
           widget.playerHunger,
           widget.playerMaxHunger,
         );
+        bool isRecovering = widget.playerStamina < widget.playerMaxStamina;
+        double hungerDrain = isRecovering ? -0.15 : -0.05;
         widget.onNeedsRecovered(
           stamina: widget.stats.staminaRecovery * 4.0 * recoveryMult,
-          hunger: -0.05,
+          hunger: hungerDrain,
         );
 
         if (widget.playerHealth < widget.playerMaxHealth) {

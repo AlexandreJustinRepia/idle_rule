@@ -62,9 +62,11 @@ class _GymEnvironmentState extends State<GymEnvironment>
           widget.playerHunger,
           widget.stats.maxHunger,
         );
+        bool isRecovering = widget.playerStamina < widget.stats.maxStamina;
+        double hungerDrain = isRecovering ? -0.15 : -0.05;
         widget.onNeedsRecovered(
           stamina: widget.stats.staminaRecovery * 4.0 * recoveryMult,
-          hunger: -0.05,
+          hunger: hungerDrain,
         );
       }
     });
