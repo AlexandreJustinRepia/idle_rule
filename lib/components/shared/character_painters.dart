@@ -349,8 +349,8 @@ class HeroPainter extends CustomPainter {
             accentColor, darker, lighter);
         break;
       case OutfitStyle.tankTop:
-        _drawTankTop(
-            canvas, cx, left, right, top, bottom, midY, accentColor, skin);
+        _drawTankTop(canvas, cx, left, right, top, bottom, midY, accentColor,
+            skin, outfitColor);
         break;
       case OutfitStyle.hoodie:
         _drawHoodie(canvas, cx, left, right, top, bottom, midY, accentColor,
@@ -378,7 +378,7 @@ class HeroPainter extends CustomPainter {
     );
   }
 
-  // ── Jacket: open bomber over an inner shirt ─────────────
+  // ── Jacket: side profile (front = right), open front + collar ──
   void _drawJacket(
     Canvas canvas,
     double cx,
@@ -392,52 +392,52 @@ class HeroPainter extends CustomPainter {
     Color darker,
     Color lighter,
   ) {
-    // Inner shirt panel showing through the open jacket
-    final shirt = Path()
-      ..moveTo(cx - 6, top + 1)
-      ..lineTo(cx + 6, top + 1)
-      ..lineTo(cx + 4, bottom - 2)
-      ..lineTo(cx - 4, bottom - 2)
-      ..close();
-    canvas.drawPath(shirt, Paint()..color = darker);
+    // Front placket band (the jacket's front closure, down the front edge)
+    canvas.drawRect(
+      Rect.fromLTRB(right - 6, top + 1, right - 1, bottom - 2),
+      Paint()..color = darker,
+    );
 
-    // Collar (two folded flaps)
-    final collarPaint = Paint()..color = lighter;
-    final collarL = Path()
-      ..moveTo(cx - 8, top)
-      ..lineTo(cx - 1, top + 9)
-      ..lineTo(cx - 1, top)
-      ..close();
-    final collarR = Path()
-      ..moveTo(cx + 8, top)
-      ..lineTo(cx + 1, top + 9)
-      ..lineTo(cx + 1, top)
-      ..close();
-    canvas.drawPath(collarL, collarPaint);
-    canvas.drawPath(collarR, collarPaint);
-
-    // Zipper
+    // Zipper + pull along the placket
     canvas.drawLine(
-      Offset(cx, top + 8),
-      Offset(cx, bottom - 5),
+      Offset(right - 4, top + 7),
+      Offset(right - 4, bottom - 5),
       Paint()
-        ..color = accentColor.withValues(alpha: 0.85)
+        ..color = accentColor.withValues(alpha: 0.9)
         ..strokeWidth = 1.6,
     );
-    // Zipper pull
     canvas.drawCircle(
-      Offset(cx, top + 9),
+      Offset(right - 4, top + 8),
       1.6,
       Paint()..color = accentColor,
     );
 
-    // Front placket trim (both sides of the opening)
-    final trim = Paint()
-      ..color = accentColor.withValues(alpha: 0.5)
-      ..strokeWidth = 1.4
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(cx - 6, top + 2), Offset(cx - 4, bottom - 3), trim);
-    canvas.drawLine(Offset(cx + 6, top + 2), Offset(cx + 4, bottom - 3), trim);
+    // Collar flap at the front of the neck
+    final collar = Path()
+      ..moveTo(right - 9, top)
+      ..lineTo(right, top + 1)
+      ..lineTo(right - 3, top + 8)
+      ..close();
+    canvas.drawPath(collar, Paint()..color = lighter);
+
+    // Shoulder seam across the top
+    canvas.drawLine(
+      Offset(left + 3, top + 2),
+      Offset(right - 6, top + 2),
+      Paint()
+        ..color = darker
+        ..strokeWidth = 1.2,
+    );
+
+    // Slanted chest pocket welt on the front
+    canvas.drawLine(
+      Offset(right - 3, midY + 3),
+      Offset(right - 10, midY + 6),
+      Paint()
+        ..color = darker
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round,
+    );
 
     // Ribbed waistband
     canvas.drawRect(
@@ -445,14 +445,14 @@ class HeroPainter extends CustomPainter {
       Paint()..color = darker,
     );
     final rib = Paint()
-      ..color = accentColor.withValues(alpha: 0.35)
+      ..color = accentColor.withValues(alpha: 0.3)
       ..strokeWidth = 1;
     for (double x = left + 2; x < right - 1; x += 3) {
       canvas.drawLine(Offset(x, bottom - 5), Offset(x, bottom), rib);
     }
   }
 
-  // ── Tank top: exposed shoulders, deep neckline ──────────
+  // ── Tank top: side profile, shoulder strap + exposed armhole ──
   void _drawTankTop(
     Canvas canvas,
     double cx,
@@ -463,48 +463,41 @@ class HeroPainter extends CustomPainter {
     double midY,
     Color accentColor,
     Color skin,
+    Color outfitColor,
   ) {
     final skinPaint = Paint()..color = skin;
 
-    // Exposed shoulders (skin at the top corners)
-    final shoulderL = Path()
-      ..moveTo(left, top)
-      ..lineTo(left + 6, top)
-      ..quadraticBezierTo(left + 2, top + 6, left, top + 9)
+    // Armhole exposing skin on the front-upper side
+    final armhole = Path()
+      ..moveTo(cx, top)
+      ..quadraticBezierTo(cx + 1, top + 13, right - 1, top + 13)
+      ..lineTo(right, top)
       ..close();
-    final shoulderR = Path()
-      ..moveTo(right, top)
-      ..lineTo(right - 6, top)
-      ..quadraticBezierTo(right - 2, top + 6, right, top + 9)
-      ..close();
-    canvas.drawPath(shoulderL, skinPaint);
-    canvas.drawPath(shoulderR, skinPaint);
+    canvas.drawPath(armhole, skinPaint);
 
-    // Deep U neckline revealing chest
-    final neck = Path()
-      ..moveTo(cx - 6, top)
-      ..quadraticBezierTo(cx, top + 14, cx + 6, top)
-      ..close();
-    canvas.drawPath(neck, skinPaint);
-
-    // Pec / muscle hint
-    canvas.drawLine(
-      Offset(cx, top + 10),
-      Offset(cx, top + 15),
-      Paint()
-        ..color = Color.lerp(skin, Colors.black, 0.25)!
-        ..strokeWidth = 1
-        ..strokeCap = StrokeCap.round,
+    // Shoulder strap running over the top
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        cx - 3,
+        top - 1,
+        cx + 3,
+        top + 8,
+        const Radius.circular(2),
+      ),
+      Paint()..color = outfitColor,
     );
 
-    // Side seam accent
-    canvas.drawLine(
-      Offset(right - 2, top + 12),
-      Offset(right - 2, bottom - 3),
+    // Armhole seam
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx + 3, top + 1)
+        ..quadraticBezierTo(cx + 3, top + 12, right - 1, top + 12),
       Paint()
         ..color = accentColor.withValues(alpha: 0.4)
-        ..strokeWidth = 1.4,
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
     );
+
     // Hem line
     canvas.drawLine(
       Offset(left + 2, bottom - 4),
@@ -515,7 +508,7 @@ class HeroPainter extends CustomPainter {
     );
   }
 
-  // ── Hoodie: hood collar, drawstrings, pocket ────────────
+  // ── Hoodie: side profile, hood at back + front pocket ──
   void _drawHoodie(
     Canvas canvas,
     double cx,
@@ -528,11 +521,11 @@ class HeroPainter extends CustomPainter {
     Color darker,
     Color deeper,
   ) {
-    // Hood bunched around the neck
+    // Hood bunched at the BACK of the neck (left side)
     final hood = Path()
-      ..moveTo(cx - 9, top + 1)
-      ..quadraticBezierTo(cx, top + 11, cx + 9, top + 1)
-      ..quadraticBezierTo(cx, top + 6, cx - 9, top + 1)
+      ..moveTo(cx - 2, top + 1)
+      ..quadraticBezierTo(left - 1, top + 2, left + 1, top + 12)
+      ..quadraticBezierTo(cx - 6, top + 9, cx - 2, top + 1)
       ..close();
     canvas.drawPath(hood, Paint()..color = deeper);
     canvas.drawPath(
@@ -543,30 +536,34 @@ class HeroPainter extends CustomPainter {
         ..strokeWidth = 1.2,
     );
 
-    // Drawstrings
-    final string = Paint()
-      ..color = accentColor.withValues(alpha: 0.85)
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(cx - 2, top + 6), Offset(cx - 3, midY - 2), string);
-    canvas.drawLine(Offset(cx + 2, top + 6), Offset(cx + 3, midY - 2), string);
-    canvas.drawCircle(Offset(cx - 3, midY - 2), 1.4, Paint()..color = accentColor);
-    canvas.drawCircle(Offset(cx + 3, midY - 2), 1.4, Paint()..color = accentColor);
-
-    // Kangaroo pocket
-    final pocket = RRect.fromLTRBR(
-      cx - 8,
-      midY + 4,
-      cx + 8,
-      bottom - 6,
-      const Radius.circular(3),
+    // Drawstring down the front
+    canvas.drawLine(
+      Offset(right - 6, top + 6),
+      Offset(right - 6, midY - 1),
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.9)
+        ..strokeWidth = 1.6
+        ..strokeCap = StrokeCap.round,
     );
-    canvas.drawRRect(pocket, Paint()..color = darker);
-    canvas.drawRRect(
-      pocket,
+    canvas.drawCircle(
+      Offset(right - 6, midY - 1),
+      1.5,
+      Paint()..color = accentColor,
+    );
+
+    // Front kangaroo pocket (slanted opening toward the front)
+    final pocket = Path()
+      ..moveTo(right - 2, midY + 3)
+      ..lineTo(cx - 4, midY + 6)
+      ..lineTo(cx - 4, bottom - 6)
+      ..lineTo(right - 2, bottom - 6)
+      ..close();
+    canvas.drawPath(pocket, Paint()..color = darker);
+    canvas.drawLine(
+      Offset(right - 2, midY + 3),
+      Offset(cx - 4, midY + 6),
       Paint()
         ..color = accentColor.withValues(alpha: 0.35)
-        ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
 
@@ -577,7 +574,7 @@ class HeroPainter extends CustomPainter {
     );
   }
 
-  // ── Suit: dress shirt, lapels, tie ──────────────────────
+  // ── Suit: side profile, front lapel + tie ──
   void _drawSuit(
     Canvas canvas,
     double cx,
@@ -590,58 +587,50 @@ class HeroPainter extends CustomPainter {
     Color darker,
     Color deeper,
   ) {
-    // Dress shirt (light V)
+    // Dress shirt strip running down the front
     final shirtColor = Color.lerp(Colors.white, accentColor, 0.08)!;
-    final shirt = Path()
-      ..moveTo(cx - 7, top)
-      ..lineTo(cx, top + 16)
-      ..lineTo(cx + 7, top)
-      ..close();
-    canvas.drawPath(shirt, Paint()..color = shirtColor);
-
-    // Lapels (darker, over the shirt edges)
-    final lapelPaint = Paint()..color = deeper;
-    final lapelL = Path()
-      ..moveTo(cx - 8, top)
-      ..lineTo(cx - 1, top + 13)
-      ..lineTo(cx - 2, top)
-      ..close();
-    final lapelR = Path()
-      ..moveTo(cx + 8, top)
-      ..lineTo(cx + 1, top + 13)
-      ..lineTo(cx + 2, top)
-      ..close();
-    canvas.drawPath(lapelL, lapelPaint);
-    canvas.drawPath(lapelR, lapelPaint);
-
-    // Tie
-    final tie = Path()
-      ..moveTo(cx - 2, top + 4)
-      ..lineTo(cx + 2, top + 4)
-      ..lineTo(cx + 3, midY + 2)
-      ..lineTo(cx, midY + 6)
-      ..lineTo(cx - 3, midY + 2)
-      ..close();
-    canvas.drawPath(tie, Paint()..color = accentColor);
-    // Tie knot
     canvas.drawRect(
-      Rect.fromLTWH(cx - 2, top + 3, 4, 3),
-      Paint()..color = Color.lerp(accentColor, Colors.black, 0.3)!,
+      Rect.fromLTRB(right - 7, top + 2, right - 3, midY + 4),
+      Paint()..color = shirtColor,
     );
 
-    // Buttons
-    final btn = Paint()..color = accentColor.withValues(alpha: 0.6);
-    canvas.drawCircle(Offset(cx, midY + 8), 1, btn);
-    canvas.drawCircle(Offset(cx, midY + 13), 1, btn);
+    // Lapel notch along the front edge
+    final lapel = Path()
+      ..moveTo(right, top)
+      ..lineTo(right - 8, top + 3)
+      ..lineTo(right - 4, top + 13)
+      ..lineTo(right, top + 10)
+      ..close();
+    canvas.drawPath(lapel, Paint()..color = deeper);
 
-    // Pocket square
-    canvas.drawRect(
-      Rect.fromLTWH(left + 3, midY - 4, 4, 2),
-      Paint()..color = accentColor.withValues(alpha: 0.8),
+    // Tie down the front
+    final tie = Path()
+      ..moveTo(right - 6, top + 6)
+      ..lineTo(right - 3, top + 6)
+      ..lineTo(right - 3, midY + 3)
+      ..lineTo(right - 4.5, midY + 6)
+      ..lineTo(right - 6, midY + 3)
+      ..close();
+    canvas.drawPath(tie, Paint()..color = accentColor);
+
+    // Button on the front
+    canvas.drawCircle(
+      Offset(right - 4.5, midY + 9),
+      1,
+      Paint()..color = accentColor.withValues(alpha: 0.7),
+    );
+
+    // Shoulder seam
+    canvas.drawLine(
+      Offset(left + 3, top + 2),
+      Offset(right - 6, top + 2),
+      Paint()
+        ..color = deeper
+        ..strokeWidth = 1.2,
     );
   }
 
-  // ── Casual: crew-neck tee with a chest graphic ──────────
+  // ── Casual: side profile crew-neck tee with front graphic ──
   void _drawCasual(
     Canvas canvas,
     double cx,
@@ -653,11 +642,11 @@ class HeroPainter extends CustomPainter {
     Color accentColor,
     Color darker,
   ) {
-    // Crew neckline
+    // Crew neckline at the front of the neck
     canvas.drawArc(
-      Rect.fromLTRB(cx - 7, top - 3, cx + 7, top + 8),
-      0.15,
-      3.14 - 0.3,
+      Rect.fromLTRB(right - 11, top - 2, right - 1, top + 7),
+      -1.2,
+      2.2,
       false,
       Paint()
         ..color = darker
@@ -666,27 +655,28 @@ class HeroPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
 
-    // Sleeve seams at the shoulders
-    final seam = Paint()
-      ..color = darker
-      ..strokeWidth = 1.4
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(left + 1, top + 3), Offset(left + 5, top + 9), seam);
+    // Shoulder / sleeve seam at the back shoulder
     canvas.drawLine(
-        Offset(right - 1, top + 3), Offset(right - 5, top + 9), seam);
+      Offset(left + 2, top + 3),
+      Offset(left + 6, top + 8),
+      Paint()
+        ..color = darker
+        ..strokeWidth = 1.4
+        ..strokeCap = StrokeCap.round,
+    );
 
-    // Chest graphic
+    // Chest graphic on the front
     canvas.drawCircle(
-      Offset(cx, midY),
-      4.5,
+      Offset(right - 6, midY - 2),
+      3.6,
       Paint()
         ..color = accentColor.withValues(alpha: 0.7)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6,
+        ..strokeWidth = 1.5,
     );
     canvas.drawCircle(
-      Offset(cx, midY),
-      1.8,
+      Offset(right - 6, midY - 2),
+      1.4,
       Paint()..color = accentColor.withValues(alpha: 0.85),
     );
 
