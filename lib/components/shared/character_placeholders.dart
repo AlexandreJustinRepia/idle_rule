@@ -9,11 +9,14 @@ class HeroCharacterPlaceholder extends StatelessWidget {
   final double walkProgress;
   final double idleProgress;
   final double punchProgress;
+  final CharacterCustomization? customization;
+
   const HeroCharacterPlaceholder({
     super.key,
     this.walkProgress = 0.0,
     this.idleProgress = 0.0,
     this.punchProgress = 0.0,
+    this.customization,
   });
 
   @override
@@ -21,10 +24,11 @@ class HeroCharacterPlaceholder extends StatelessWidget {
     return CustomPaint(
       size: const Size(52, 112),
       painter: HeroPainter(
-        accentColor: Colors.blueAccent,
+        accentColor: customization?.outfitAccentColor ?? Colors.blueAccent,
         walkProgress: walkProgress,
         idleProgress: idleProgress,
         punchProgress: punchProgress,
+        customization: customization,
       ),
     );
   }

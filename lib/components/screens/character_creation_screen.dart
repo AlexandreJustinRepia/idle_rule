@@ -2,10 +2,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../screens/class_gacha_view.dart';
+import '../ui/character_customize_editor.dart';
 import '../../models/character_class.dart';
+import '../../models/character_customization.dart';
 import '../../models/player_stats.dart';
 
-enum CreationPhase { nameInput, rolling, result }
+enum CreationPhase { nameInput, rolling, result, customize }
 
 class CharacterCreationScreen extends StatefulWidget {
   final void Function({
@@ -17,6 +19,7 @@ class CharacterCreationScreen extends StatefulWidget {
     required double intelligence,
     required double potential,
     required double reputation,
+    required CharacterCustomization customization,
   })
   onCharacterCreated;
 
@@ -35,6 +38,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   CharacterClass? _rolledClass;
   PlayerStats? _rolledStats;
   String? _playerName;
+  CharacterCustomization _customization = const CharacterCustomization();
 
   @override
   void dispose() {
@@ -81,6 +85,13 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     if (_rolledClass == null || _rolledStats == null || _playerName == null) {
       return;
     }
+    setState(() => _phase = CreationPhase.customize);
+  }
+
+  void _confirmCharacter() {
+    if (_rolledClass == null || _rolledStats == null || _playerName == null) {
+      return;
+    }
 
     widget.onCharacterCreated(
       playerName: _playerName!,
@@ -91,6 +102,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
       intelligence: _rolledStats!.intelligence,
       potential: _rolledStats!.potential,
       reputation: _rolledStats!.reputation,
+      customization: _customization,
     );
   }
 
@@ -116,6 +128,8 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             ? _buildNameInputPhase()
             : _phase == CreationPhase.rolling
             ? Center(child: ClassGachaView(onRollComplete: _completeGachaRoll))
+            : _phase == CreationPhase.customize
+            ? _buildCustomizePhase()
             : _buildResultPhase(),
       ),
     );
@@ -328,12 +342,76 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
           children: [
             Expanded(
               child: _buildActionButton(
-                label: 'BEGIN',
+                label: 'CUSTOMIZE',
                 onTap: _createCharacter,
                 isSecondary: false,
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCustomizePhase() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          child: Column(
+            children: [
+              Text(
+                'CUSTOMIZE YOUR',
+                style: GoogleFonts.bebasNeue(
+                  fontSize: 18,
+                  color: Colors.white.withValues(alpha: 0.7),
+                  letterSpacing: 4,
+                ),
+              ),
+              Text(
+                'APPEARANCE',
+                style: GoogleFonts.bebasNeue(
+                  fontSize: 40,
+                  color: const Color(0xFFE24B4A),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 6,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+            child: CharacterCustomizeEditor(
+              custom: _customization,
+              onChanged: (updated) => setState(() => _customization = updated),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: _buildActionButton(
+                  label: 'BACK',
+                  onTap: () => setState(() => _phase = CreationPhase.result),
+                  isSecondary: true,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: _buildActionButton(
+                  label: 'BEGIN',
+                  onTap: _confirmCharacter,
+                  isSecondary: false,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../models/character_customization.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HERO PAINTER  (canvas: 90 × 140)
@@ -8,32 +9,36 @@ class HeroPainter extends CustomPainter {
   final double walkProgress;
   final double idleProgress;
   final double punchProgress; // 0..1: boxing guard -> jab -> retract
+  final CharacterCustomization? customization;
 
   const HeroPainter({
     this.accentColor = Colors.blueAccent,
     this.walkProgress = 0.0,
     this.idleProgress = 0.0,
     this.punchProgress = 0.0,
+    this.customization,
   });
+
+  CharacterCustomization get _c =>
+      customization ?? const CharacterCustomization();
 
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
 
     // ── Swing / idle calculation ──────────────────────────
-    // idleProgress is a 0..1 sine-wave for breathing when still
     final isWalking = walkProgress != 0.5 && walkProgress != 0.0;
     final swing = isWalking ? (walkProgress - 0.5) * 1.2 : 0.0;
-    // Idle breath: arms swing gently, body bobs
     final idleSway = isWalking ? 0.0 : (idleProgress - 0.5) * 0.18;
     final idleBob = isWalking ? 0.0 : (idleProgress - 0.5) * 2.0;
-
-    // Apply idle bob to canvas so entire character breathes
     if (!isWalking) canvas.translate(0, idleBob);
 
-    // Colors
-    final skinColor = const Color(0xFFE8D5C0);
-    final skinColorDark = const Color(0xFFD4C0B0);
+    final skinColor = _c.skinColor;
+    final skinColorDark = _c.skinColorDark;
+    final hairColor = _c.hairColor;
+    final outfitColor = _c.outfitColor;
+    final outfitAccent = _c.outfitAccentColor;
+    final outfitSecondary = _c.outfitSecondaryColor;
 
     // Common measurements
     final shoulder = Offset(cx, 47);
@@ -45,9 +50,15 @@ class HeroPainter extends CustomPainter {
     final isPunching = punchProgress > 0.01;
 
     // ── Back Arm (Left) ───────────────────────────────────
-    final backArmPaint = Paint()..color = const Color(0xFF162D4A)..strokeWidth = 10..strokeCap = StrokeCap.round;
-    final backForearmPaint = Paint()..color = const Color(0xFF0F2035)..strokeWidth = 8..strokeCap = StrokeCap.round;
-    
+    final backArmPaint = Paint()
+      ..color = outfitSecondary
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+    final backForearmPaint = Paint()
+      ..color = outfitSecondary.withValues(alpha: 0.7)
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round;
+
     if (isPunching) {
       double guardT = 0.0;
       if (punchProgress < 0.25) {
@@ -75,72 +86,126 @@ class HeroPainter extends CustomPainter {
       canvas.rotate(isWalking ? -swing : idleSway);
       canvas.translate(-shoulder.dx, -shoulder.dy);
       canvas.drawLine(shoulder, Offset(cx, 47 + 18), backArmPaint);
-      canvas.drawLine(Offset(cx, 47 + 18), Offset(cx, 47 + 34), backForearmPaint);
-      canvas.drawCircle(Offset(cx, 47 + 34), 5.5, Paint()..color = skinColorDark);
+      canvas.drawLine(
+        Offset(cx, 47 + 18),
+        Offset(cx, 47 + 34),
+        backForearmPaint,
+      );
+      canvas.drawCircle(
+        Offset(cx, 47 + 34),
+        5.5,
+        Paint()..color = skinColorDark,
+      );
       canvas.restore();
     }
 
     // ── Back Leg (Left) ───────────────────────────────────
-    final backLegPaint = Paint()..color = const Color(0xFF0D162A)..strokeWidth = 12..strokeCap = StrokeCap.round;
-    final backShinPaint = Paint()..color = const Color(0xFF070D1A)..strokeWidth = 10..strokeCap = StrokeCap.round;
-    
+    final backLegPaint = Paint()
+      ..color = outfitSecondary.withValues(alpha: 0.7)
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round;
+    final backShinPaint = Paint()
+      ..color = outfitSecondary.withValues(alpha: 0.5)
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+
     canvas.save();
     canvas.translate(hip.dx, hip.dy);
     canvas.rotate(swing);
     canvas.translate(-hip.dx, -hip.dy);
     canvas.drawLine(hip, Offset(cx, 81 + 22), backLegPaint);
     canvas.drawLine(Offset(cx, 81 + 22), Offset(cx, 81 + 40), backShinPaint);
-    canvas.drawRRect(RRect.fromLTRBR(cx - 8, 81 + 36, cx + 10, 81 + 44, const Radius.circular(4)), Paint()..color = Colors.black);
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        cx - 8,
+        81 + 36,
+        cx + 10,
+        81 + 44,
+        const Radius.circular(4),
+      ),
+      Paint()..color = Colors.black,
+    );
     canvas.restore();
 
-    // ── Body ──────────────────────────────────────────────
+    // ── Body (Outfit) ─────────────────────────────────────
     final bodyLeft = cx - bodyW / 2;
-    final bodyRect = RRect.fromLTRBR(bodyLeft, bodyTop, bodyLeft + bodyW, bodyTop + bodyH, const Radius.circular(8));
-    
-    canvas.drawRRect(bodyRect, Paint()..color = const Color(0xFF1E3A5F));
-    canvas.drawRRect(bodyRect, Paint()..color = accentColor.withValues(alpha: 0.6)..style = PaintingStyle.stroke..strokeWidth = 2);
+    final bodyRect = RRect.fromLTRBR(
+      bodyLeft,
+      bodyTop,
+      bodyLeft + bodyW,
+      bodyTop + bodyH,
+      const Radius.circular(8),
+    );
 
-    // Chest stripe (shifted right for side profile)
-    canvas.drawLine(Offset(cx + 6, bodyTop + 6), Offset(cx + 6, bodyTop + bodyH - 6),
-        Paint()..color = accentColor.withValues(alpha: 0.3)..strokeWidth = 4..strokeCap = StrokeCap.round);
+    _drawOutfit(
+      canvas,
+      bodyRect,
+      cx,
+      outfitColor,
+      outfitAccent,
+      bodyTop,
+      bodyH,
+      bodyW,
+    );
 
     // ── Neck ──────────────────────────────────────────────
     const neckTop = 30.0;
-    canvas.drawRRect(RRect.fromLTRBR(cx - 3, neckTop, cx + 3, neckTop + 7, const Radius.circular(3)), Paint()..color = skinColorDark);
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        cx - 3,
+        neckTop,
+        cx + 3,
+        neckTop + 7,
+        const Radius.circular(3),
+      ),
+      Paint()..color = skinColorDark,
+    );
 
     // ── Head ──────────────────────────────────────────────
     final headR = 14.0;
     final headCY = 16.0;
 
-    canvas.drawCircle(Offset(cx, headCY), headR + 8,
-        Paint()..color = accentColor.withValues(alpha: 0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+    canvas.drawCircle(
+      Offset(cx, headCY),
+      headR + 8,
+      Paint()
+        ..color = outfitAccent.withValues(alpha: 0.3)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+    );
 
     canvas.drawCircle(Offset(cx, headCY), headR, Paint()..color = skinColor);
 
-    // Hair
-    final hairPaint = Paint()..color = accentColor;
-    final hairPath = Path();
-    hairPath.moveTo(cx + 8, headCY - 8);
-    hairPath.quadraticBezierTo(cx - 2, headCY - 22, cx - 8, headCY - 24);
-    hairPath.lineTo(cx - 5, headCY - 16);
-    hairPath.lineTo(cx - 15, headCY - 20);
-    hairPath.lineTo(cx - 8, headCY - 12);
-    hairPath.lineTo(cx - 20, headCY - 8);
-    hairPath.lineTo(cx - 12, headCY - 2);
-    hairPath.quadraticBezierTo(cx - 5, headCY - 10, cx + 8, headCY - 8);
-    hairPath.close();
-    canvas.drawPath(hairPath, hairPaint);
+    // Hair based on style
+    _drawHair(canvas, cx, headCY, hairColor, _c.hairStyle);
+
+    // Accessories
+    _drawAccessory(canvas, cx, headCY, headR, skinColor, outfitAccent);
 
     // Highlight
-    canvas.drawCircle(Offset(cx - 2, headCY - 5), 4,
-        Paint()..color = Colors.white.withValues(alpha: 0.4)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+    canvas.drawCircle(
+      Offset(cx - 2, headCY - 5),
+      4,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.4)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
 
     // Eye (side profile, only one eye visible)
-    canvas.drawCircle(Offset(cx + 6, headCY + 1), 2.5, Paint()..color = Colors.black87);
+    canvas.drawCircle(
+      Offset(cx + 6, headCY + 1),
+      2.5,
+      Paint()..color = Colors.black87,
+    );
 
     // ── Front Leg (Right) ─────────────────────────────────
-    final frontLegPaint = Paint()..color = const Color(0xFF14213D)..strokeWidth = 12..strokeCap = StrokeCap.round;
-    final frontShinPaint = Paint()..color = const Color(0xFF0D1B2A)..strokeWidth = 10..strokeCap = StrokeCap.round;
+    final frontLegPaint = Paint()
+      ..color = outfitColor
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round;
+    final frontShinPaint = Paint()
+      ..color = outfitColor.withValues(alpha: 0.8)
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
 
     canvas.save();
     canvas.translate(hip.dx, hip.dy);
@@ -148,12 +213,27 @@ class HeroPainter extends CustomPainter {
     canvas.translate(-hip.dx, -hip.dy);
     canvas.drawLine(hip, Offset(cx, 81 + 22), frontLegPaint);
     canvas.drawLine(Offset(cx, 81 + 22), Offset(cx, 81 + 40), frontShinPaint);
-    canvas.drawRRect(RRect.fromLTRBR(cx - 8, 81 + 36, cx + 10, 81 + 44, const Radius.circular(4)), Paint()..color = Colors.black);
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        cx - 8,
+        81 + 36,
+        cx + 10,
+        81 + 44,
+        const Radius.circular(4),
+      ),
+      Paint()..color = Colors.black,
+    );
     canvas.restore();
 
     // ── Front Arm (Right) ─────────────────────────────────
-    final frontArmPaint = Paint()..color = const Color(0xFF1E3A5F)..strokeWidth = 10..strokeCap = StrokeCap.round;
-    final frontForearmPaint = Paint()..color = const Color(0xFF16305A)..strokeWidth = 8..strokeCap = StrokeCap.round;
+    final frontArmPaint = Paint()
+      ..color = outfitColor
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+    final frontForearmPaint = Paint()
+      ..color = outfitColor.withValues(alpha: 0.85)
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round;
 
     if (isPunching) {
       double guardT = 0.0;
@@ -183,24 +263,719 @@ class HeroPainter extends CustomPainter {
       final frontElbowExtended = Offset(cx + 24, 45);
       final frontFistExtended = Offset(cx + 46, 45);
 
-      final guardElbow = Offset.lerp(frontElbowNormal, frontElbowGuard, guardT)!;
+      final guardElbow = Offset.lerp(
+        frontElbowNormal,
+        frontElbowGuard,
+        guardT,
+      )!;
       final guardFist = Offset.lerp(frontFistNormal, frontFistGuard, guardT)!;
 
-      final finalElbow = Offset.lerp(guardElbow, frontElbowExtended, extendFactor)!;
-      final finalFist = Offset.lerp(guardFist, frontFistExtended, extendFactor)!;
+      final finalElbow = Offset.lerp(
+        guardElbow,
+        frontElbowExtended,
+        extendFactor,
+      )!;
+      final finalFist = Offset.lerp(
+        guardFist,
+        frontFistExtended,
+        extendFactor,
+      )!;
 
       canvas.drawLine(shoulder, finalElbow, frontArmPaint);
       canvas.drawLine(finalElbow, finalFist, frontForearmPaint);
-      canvas.drawCircle(finalFist, 5.5 + 1.5 * extendFactor, Paint()..color = skinColor);
+      canvas.drawCircle(
+        finalFist,
+        5.5 + 1.5 * extendFactor,
+        Paint()..color = skinColor,
+      );
     } else {
       canvas.save();
       canvas.translate(shoulder.dx, shoulder.dy);
       canvas.rotate(isWalking ? swing : -idleSway);
       canvas.translate(-shoulder.dx, -shoulder.dy);
       canvas.drawLine(shoulder, Offset(cx, 47 + 18), frontArmPaint);
-      canvas.drawLine(Offset(cx, 47 + 18), Offset(cx, 47 + 34), frontForearmPaint);
+      canvas.drawLine(
+        Offset(cx, 47 + 18),
+        Offset(cx, 47 + 34),
+        frontForearmPaint,
+      );
       canvas.drawCircle(Offset(cx, 47 + 34), 5.5, Paint()..color = skinColor);
       canvas.restore();
+    }
+  }
+
+  void _drawOutfit(
+    Canvas canvas,
+    RRect bodyRect,
+    double cx,
+    Color outfitColor,
+    Color accentColor,
+    double bodyTop,
+    double bodyH,
+    double bodyW,
+  ) {
+    final left = cx - bodyW / 2;
+    final right = cx + bodyW / 2;
+    final top = bodyTop;
+    final bottom = bodyTop + bodyH;
+    final midY = bodyTop + bodyH / 2;
+
+    final skin = _c.skinColor;
+    final darker = Color.lerp(outfitColor, Colors.black, 0.4)!;
+    final deeper = Color.lerp(outfitColor, Colors.black, 0.6)!;
+    final lighter = Color.lerp(outfitColor, Colors.white, 0.18)!;
+
+    // ── Base fill ─────────────────────────────────────────
+    canvas.drawRRect(bodyRect, Paint()..color = outfitColor);
+
+    // Soft shading for volume (clipped to torso)
+    canvas.save();
+    canvas.clipRRect(bodyRect);
+
+    // left-side shadow
+    canvas.drawRect(
+      Rect.fromLTRB(left, top, left + bodyW * 0.42, bottom),
+      Paint()..color = Colors.black.withValues(alpha: 0.14),
+    );
+    // right-side highlight
+    canvas.drawRect(
+      Rect.fromLTRB(right - bodyW * 0.32, top, right, bottom),
+      Paint()..color = Colors.white.withValues(alpha: 0.06),
+    );
+
+    switch (_c.outfitStyle) {
+      case OutfitStyle.jacket:
+        _drawJacket(canvas, cx, left, right, top, bottom, midY, outfitColor,
+            accentColor, darker, lighter);
+        break;
+      case OutfitStyle.tankTop:
+        _drawTankTop(
+            canvas, cx, left, right, top, bottom, midY, accentColor, skin);
+        break;
+      case OutfitStyle.hoodie:
+        _drawHoodie(canvas, cx, left, right, top, bottom, midY, accentColor,
+            darker, deeper);
+        break;
+      case OutfitStyle.suit:
+        _drawSuit(canvas, cx, left, right, top, bottom, midY, accentColor,
+            darker, deeper);
+        break;
+      case OutfitStyle.casual:
+        _drawCasual(canvas, cx, left, right, top, bottom, midY, accentColor,
+            darker);
+        break;
+    }
+
+    canvas.restore();
+
+    // ── Outline (drawn last, over everything) ─────────────
+    canvas.drawRRect(
+      bodyRect,
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+  }
+
+  // ── Jacket: open bomber over an inner shirt ─────────────
+  void _drawJacket(
+    Canvas canvas,
+    double cx,
+    double left,
+    double right,
+    double top,
+    double bottom,
+    double midY,
+    Color outfitColor,
+    Color accentColor,
+    Color darker,
+    Color lighter,
+  ) {
+    // Inner shirt panel showing through the open jacket
+    final shirt = Path()
+      ..moveTo(cx - 6, top + 1)
+      ..lineTo(cx + 6, top + 1)
+      ..lineTo(cx + 4, bottom - 2)
+      ..lineTo(cx - 4, bottom - 2)
+      ..close();
+    canvas.drawPath(shirt, Paint()..color = darker);
+
+    // Collar (two folded flaps)
+    final collarPaint = Paint()..color = lighter;
+    final collarL = Path()
+      ..moveTo(cx - 8, top)
+      ..lineTo(cx - 1, top + 9)
+      ..lineTo(cx - 1, top)
+      ..close();
+    final collarR = Path()
+      ..moveTo(cx + 8, top)
+      ..lineTo(cx + 1, top + 9)
+      ..lineTo(cx + 1, top)
+      ..close();
+    canvas.drawPath(collarL, collarPaint);
+    canvas.drawPath(collarR, collarPaint);
+
+    // Zipper
+    canvas.drawLine(
+      Offset(cx, top + 8),
+      Offset(cx, bottom - 5),
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.85)
+        ..strokeWidth = 1.6,
+    );
+    // Zipper pull
+    canvas.drawCircle(
+      Offset(cx, top + 9),
+      1.6,
+      Paint()..color = accentColor,
+    );
+
+    // Front placket trim (both sides of the opening)
+    final trim = Paint()
+      ..color = accentColor.withValues(alpha: 0.5)
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(cx - 6, top + 2), Offset(cx - 4, bottom - 3), trim);
+    canvas.drawLine(Offset(cx + 6, top + 2), Offset(cx + 4, bottom - 3), trim);
+
+    // Ribbed waistband
+    canvas.drawRect(
+      Rect.fromLTRB(left, bottom - 5, right, bottom),
+      Paint()..color = darker,
+    );
+    final rib = Paint()
+      ..color = accentColor.withValues(alpha: 0.35)
+      ..strokeWidth = 1;
+    for (double x = left + 2; x < right - 1; x += 3) {
+      canvas.drawLine(Offset(x, bottom - 5), Offset(x, bottom), rib);
+    }
+  }
+
+  // ── Tank top: exposed shoulders, deep neckline ──────────
+  void _drawTankTop(
+    Canvas canvas,
+    double cx,
+    double left,
+    double right,
+    double top,
+    double bottom,
+    double midY,
+    Color accentColor,
+    Color skin,
+  ) {
+    final skinPaint = Paint()..color = skin;
+
+    // Exposed shoulders (skin at the top corners)
+    final shoulderL = Path()
+      ..moveTo(left, top)
+      ..lineTo(left + 6, top)
+      ..quadraticBezierTo(left + 2, top + 6, left, top + 9)
+      ..close();
+    final shoulderR = Path()
+      ..moveTo(right, top)
+      ..lineTo(right - 6, top)
+      ..quadraticBezierTo(right - 2, top + 6, right, top + 9)
+      ..close();
+    canvas.drawPath(shoulderL, skinPaint);
+    canvas.drawPath(shoulderR, skinPaint);
+
+    // Deep U neckline revealing chest
+    final neck = Path()
+      ..moveTo(cx - 6, top)
+      ..quadraticBezierTo(cx, top + 14, cx + 6, top)
+      ..close();
+    canvas.drawPath(neck, skinPaint);
+
+    // Pec / muscle hint
+    canvas.drawLine(
+      Offset(cx, top + 10),
+      Offset(cx, top + 15),
+      Paint()
+        ..color = Color.lerp(skin, Colors.black, 0.25)!
+        ..strokeWidth = 1
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Side seam accent
+    canvas.drawLine(
+      Offset(right - 2, top + 12),
+      Offset(right - 2, bottom - 3),
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.4)
+        ..strokeWidth = 1.4,
+    );
+    // Hem line
+    canvas.drawLine(
+      Offset(left + 2, bottom - 4),
+      Offset(right - 2, bottom - 4),
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.4)
+        ..strokeWidth = 1.4,
+    );
+  }
+
+  // ── Hoodie: hood collar, drawstrings, pocket ────────────
+  void _drawHoodie(
+    Canvas canvas,
+    double cx,
+    double left,
+    double right,
+    double top,
+    double bottom,
+    double midY,
+    Color accentColor,
+    Color darker,
+    Color deeper,
+  ) {
+    // Hood bunched around the neck
+    final hood = Path()
+      ..moveTo(cx - 9, top + 1)
+      ..quadraticBezierTo(cx, top + 11, cx + 9, top + 1)
+      ..quadraticBezierTo(cx, top + 6, cx - 9, top + 1)
+      ..close();
+    canvas.drawPath(hood, Paint()..color = deeper);
+    canvas.drawPath(
+      hood,
+      Paint()
+        ..color = darker
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+
+    // Drawstrings
+    final string = Paint()
+      ..color = accentColor.withValues(alpha: 0.85)
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(cx - 2, top + 6), Offset(cx - 3, midY - 2), string);
+    canvas.drawLine(Offset(cx + 2, top + 6), Offset(cx + 3, midY - 2), string);
+    canvas.drawCircle(Offset(cx - 3, midY - 2), 1.4, Paint()..color = accentColor);
+    canvas.drawCircle(Offset(cx + 3, midY - 2), 1.4, Paint()..color = accentColor);
+
+    // Kangaroo pocket
+    final pocket = RRect.fromLTRBR(
+      cx - 8,
+      midY + 4,
+      cx + 8,
+      bottom - 6,
+      const Radius.circular(3),
+    );
+    canvas.drawRRect(pocket, Paint()..color = darker);
+    canvas.drawRRect(
+      pocket,
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+
+    // Ribbed hem
+    canvas.drawRect(
+      Rect.fromLTRB(left, bottom - 4, right, bottom),
+      Paint()..color = darker,
+    );
+  }
+
+  // ── Suit: dress shirt, lapels, tie ──────────────────────
+  void _drawSuit(
+    Canvas canvas,
+    double cx,
+    double left,
+    double right,
+    double top,
+    double bottom,
+    double midY,
+    Color accentColor,
+    Color darker,
+    Color deeper,
+  ) {
+    // Dress shirt (light V)
+    final shirtColor = Color.lerp(Colors.white, accentColor, 0.08)!;
+    final shirt = Path()
+      ..moveTo(cx - 7, top)
+      ..lineTo(cx, top + 16)
+      ..lineTo(cx + 7, top)
+      ..close();
+    canvas.drawPath(shirt, Paint()..color = shirtColor);
+
+    // Lapels (darker, over the shirt edges)
+    final lapelPaint = Paint()..color = deeper;
+    final lapelL = Path()
+      ..moveTo(cx - 8, top)
+      ..lineTo(cx - 1, top + 13)
+      ..lineTo(cx - 2, top)
+      ..close();
+    final lapelR = Path()
+      ..moveTo(cx + 8, top)
+      ..lineTo(cx + 1, top + 13)
+      ..lineTo(cx + 2, top)
+      ..close();
+    canvas.drawPath(lapelL, lapelPaint);
+    canvas.drawPath(lapelR, lapelPaint);
+
+    // Tie
+    final tie = Path()
+      ..moveTo(cx - 2, top + 4)
+      ..lineTo(cx + 2, top + 4)
+      ..lineTo(cx + 3, midY + 2)
+      ..lineTo(cx, midY + 6)
+      ..lineTo(cx - 3, midY + 2)
+      ..close();
+    canvas.drawPath(tie, Paint()..color = accentColor);
+    // Tie knot
+    canvas.drawRect(
+      Rect.fromLTWH(cx - 2, top + 3, 4, 3),
+      Paint()..color = Color.lerp(accentColor, Colors.black, 0.3)!,
+    );
+
+    // Buttons
+    final btn = Paint()..color = accentColor.withValues(alpha: 0.6);
+    canvas.drawCircle(Offset(cx, midY + 8), 1, btn);
+    canvas.drawCircle(Offset(cx, midY + 13), 1, btn);
+
+    // Pocket square
+    canvas.drawRect(
+      Rect.fromLTWH(left + 3, midY - 4, 4, 2),
+      Paint()..color = accentColor.withValues(alpha: 0.8),
+    );
+  }
+
+  // ── Casual: crew-neck tee with a chest graphic ──────────
+  void _drawCasual(
+    Canvas canvas,
+    double cx,
+    double left,
+    double right,
+    double top,
+    double bottom,
+    double midY,
+    Color accentColor,
+    Color darker,
+  ) {
+    // Crew neckline
+    canvas.drawArc(
+      Rect.fromLTRB(cx - 7, top - 3, cx + 7, top + 8),
+      0.15,
+      3.14 - 0.3,
+      false,
+      Paint()
+        ..color = darker
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Sleeve seams at the shoulders
+    final seam = Paint()
+      ..color = darker
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(left + 1, top + 3), Offset(left + 5, top + 9), seam);
+    canvas.drawLine(
+        Offset(right - 1, top + 3), Offset(right - 5, top + 9), seam);
+
+    // Chest graphic
+    canvas.drawCircle(
+      Offset(cx, midY),
+      4.5,
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.7)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
+    );
+    canvas.drawCircle(
+      Offset(cx, midY),
+      1.8,
+      Paint()..color = accentColor.withValues(alpha: 0.85),
+    );
+
+    // Hem line
+    canvas.drawLine(
+      Offset(left + 2, bottom - 3),
+      Offset(right - 2, bottom - 3),
+      Paint()
+        ..color = darker
+        ..strokeWidth = 1.4,
+    );
+  }
+
+  void _drawHair(
+    Canvas canvas,
+    double cx,
+    double headCY,
+    Color hairColor,
+    HairStyle style,
+  ) {
+    final hairPaint = Paint()..color = hairColor;
+
+    switch (style) {
+      case HairStyle.spiky:
+        final hairPath = Path();
+        hairPath.moveTo(cx + 8, headCY - 8);
+        hairPath.quadraticBezierTo(cx - 2, headCY - 22, cx - 8, headCY - 24);
+        hairPath.lineTo(cx - 5, headCY - 16);
+        hairPath.lineTo(cx - 15, headCY - 20);
+        hairPath.lineTo(cx - 8, headCY - 12);
+        hairPath.lineTo(cx - 20, headCY - 8);
+        hairPath.lineTo(cx - 12, headCY - 2);
+        hairPath.quadraticBezierTo(cx - 5, headCY - 10, cx + 8, headCY - 8);
+        hairPath.close();
+        canvas.drawPath(hairPath, hairPaint);
+
+        // Extra spike highlight
+        canvas.drawCircle(
+          Offset(cx - 3, headCY - 14),
+          3,
+          Paint()..color = hairColor.withValues(alpha: 0.6),
+        );
+        break;
+
+      case HairStyle.flat:
+        // Flat hair combed forward
+        final hairPath = Path();
+        hairPath.moveTo(cx + 8, headCY - 8);
+        hairPath.quadraticBezierTo(cx, headCY - 18, cx - 10, headCY - 14);
+        hairPath.lineTo(cx - 12, headCY - 8);
+        hairPath.lineTo(cx - 14, headCY - 3);
+        hairPath.lineTo(cx - 8, headCY);
+        hairPath.quadraticBezierTo(cx - 2, headCY - 8, cx + 8, headCY - 8);
+        hairPath.close();
+        canvas.drawPath(hairPath, hairPaint);
+
+        // Flat top line
+        canvas.drawLine(
+          Offset(cx - 4, headCY - 15),
+          Offset(cx + 4, headCY - 15),
+          Paint()
+            ..color = hairColor.withValues(alpha: 0.8)
+            ..strokeWidth = 3
+            ..strokeCap = StrokeCap.round,
+        );
+        break;
+
+      case HairStyle.long:
+        // Long flowing hair
+        final hairPath = Path();
+        hairPath.moveTo(cx + 8, headCY - 6);
+        hairPath.quadraticBezierTo(cx, headCY - 18, cx - 8, headCY - 16);
+        hairPath.lineTo(cx - 10, headCY - 6);
+        hairPath.quadraticBezierTo(cx - 14, headCY + 4, cx - 12, headCY + 14);
+        hairPath.lineTo(cx - 8, headCY + 10);
+        hairPath.lineTo(cx - 4, headCY + 16);
+        hairPath.lineTo(cx, headCY + 10);
+        hairPath.lineTo(cx + 4, headCY + 14);
+        hairPath.lineTo(cx + 6, headCY + 8);
+        hairPath.quadraticBezierTo(cx + 3, headCY - 4, cx + 8, headCY - 6);
+        hairPath.close();
+        canvas.drawPath(hairPath, hairPaint);
+
+        // Hair strands
+        final strandPaint = Paint()
+          ..color = hairColor.withValues(alpha: 0.4)
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round;
+        canvas.drawLine(
+          Offset(cx - 6, headCY + 2),
+          Offset(cx - 7, headCY + 12),
+          strandPaint,
+        );
+        break;
+
+      case HairStyle.mohawk:
+        // Mohawk
+        final hairPath = Path();
+        hairPath.moveTo(cx + 6, headCY - 6);
+        hairPath.lineTo(cx - 2, headCY - 22);
+        hairPath.lineTo(cx - 6, headCY - 20);
+        hairPath.lineTo(cx - 4, headCY - 6);
+        hairPath.lineTo(cx - 12, headCY - 4);
+        hairPath.lineTo(cx - 6, headCY);
+        hairPath.quadraticBezierTo(cx - 1, headCY - 6, cx + 6, headCY - 6);
+        hairPath.close();
+        canvas.drawPath(hairPath, hairPaint);
+
+        // Shaved sides highlight
+        canvas.drawCircle(
+          Offset(cx - 2, headCY + 2),
+          3,
+          Paint()..color = Colors.white.withValues(alpha: 0.15),
+        );
+        break;
+
+      case HairStyle.afro:
+        // Afro (round puffy)
+        canvas.drawCircle(
+          Offset(cx - 2, headCY - 6),
+          12,
+          Paint()
+            ..color = hairColor
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        );
+        canvas.drawCircle(Offset(cx - 2, headCY - 6), 12, hairPaint);
+        // Texture dots
+        for (var i = 0; i < 5; i++) {
+          final angle = i * 1.256;
+          final dx = cx - 2 + (8 * 0.8) * (angle > 0 ? 1 : -1);
+          final dy = headCY - 6 + (8 * 0.5) * (angle > 0 ? 1 : -1);
+          canvas.drawCircle(
+            Offset(dx, dy),
+            2,
+            Paint()..color = hairColor.withValues(alpha: 0.6),
+          );
+        }
+        break;
+
+      case HairStyle.slicked:
+        // Slicked back
+        final hairPath = Path();
+        hairPath.moveTo(cx + 8, headCY - 6);
+        hairPath.quadraticBezierTo(cx + 4, headCY - 20, cx - 10, headCY - 18);
+        hairPath.lineTo(cx - 14, headCY - 10);
+        hairPath.lineTo(cx - 10, headCY - 4);
+        hairPath.lineTo(cx - 16, headCY - 2);
+        hairPath.lineTo(cx - 8, headCY + 1);
+        hairPath.quadraticBezierTo(cx - 3, headCY - 8, cx + 8, headCY - 6);
+        hairPath.close();
+        canvas.drawPath(hairPath, hairPaint);
+
+        // Slick shine line
+        canvas.drawLine(
+          Offset(cx + 2, headCY - 10),
+          Offset(cx - 8, headCY - 12),
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.25)
+            ..strokeWidth = 2
+            ..strokeCap = StrokeCap.round,
+        );
+        break;
+    }
+  }
+
+  void _drawAccessory(
+    Canvas canvas,
+    double cx,
+    double headCY,
+    double headR,
+    Color skinColor,
+    Color accentColor,
+  ) {
+    switch (_c.accessory) {
+      case Accessory.none:
+        break;
+
+      case Accessory.glasses:
+        // Glasses frame
+        canvas.drawCircle(
+          Offset(cx + 6, headCY + 1),
+          5,
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.7)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5,
+        );
+        // Arm
+        canvas.drawLine(
+          Offset(cx + 2, headCY - 2),
+          Offset(cx - 4, headCY - 4),
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.5)
+            ..strokeWidth = 1.5
+            ..strokeCap = StrokeCap.round,
+        );
+        break;
+
+      case Accessory.bandana:
+        // Bandana wrap around head
+        canvas.drawArc(
+          Rect.fromCircle(center: Offset(cx, headCY), radius: headR + 2),
+          -3.14,
+          3.14,
+          false,
+          Paint()
+            ..color = accentColor.withValues(alpha: 0.7)
+            ..strokeWidth = 5
+            ..style = PaintingStyle.stroke
+            ..strokeCap = StrokeCap.round,
+        );
+        // Knot at back
+        canvas.drawCircle(
+          Offset(cx - headR - 2, headCY - 2),
+          2,
+          Paint()..color = accentColor,
+        );
+        break;
+
+      case Accessory.chain:
+        // Chain hanging from neck
+        canvas.drawLine(
+          Offset(cx, 35),
+          Offset(cx + 4, 50),
+          Paint()
+            ..color = Colors.amberAccent.withValues(alpha: 0.8)
+            ..strokeWidth = 2
+            ..strokeCap = StrokeCap.round,
+        );
+        canvas.drawLine(
+          Offset(cx, 35),
+          Offset(cx - 4, 50),
+          Paint()
+            ..color = Colors.amberAccent.withValues(alpha: 0.8)
+            ..strokeWidth = 2
+            ..strokeCap = StrokeCap.round,
+        );
+        // Charm
+        canvas.drawCircle(
+          Offset(cx, 52),
+          3,
+          Paint()
+            ..color = Colors.amberAccent
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5,
+        );
+        break;
+
+      case Accessory.hat:
+        // Cap
+        canvas.drawArc(
+          Rect.fromCircle(center: Offset(cx, headCY - 6), radius: 13),
+          -3.14,
+          2.8,
+          false,
+          Paint()
+            ..color = accentColor
+            ..strokeWidth = 5
+            ..style = PaintingStyle.stroke
+            ..strokeCap = StrokeCap.round,
+        );
+        // Brim
+        canvas.drawLine(
+          Offset(cx + 10, headCY - 6),
+          Offset(cx - 14, headCY - 4),
+          Paint()
+            ..color = accentColor.withValues(alpha: 0.9)
+            ..strokeWidth = 3
+            ..strokeCap = StrokeCap.round,
+        );
+        break;
+
+      case Accessory.eyepatch:
+        // Eyepatch over the visible eye
+        canvas.drawCircle(
+          Offset(cx + 6, headCY + 1),
+          5,
+          Paint()..color = Colors.black87,
+        );
+        // String
+        canvas.drawLine(
+          Offset(cx + 6, headCY - 4),
+          Offset(cx - 10, headCY - 8),
+          Paint()
+            ..color = Colors.black54
+            ..strokeWidth = 1.5
+            ..strokeCap = StrokeCap.round,
+        );
+        break;
     }
   }
 
@@ -209,7 +984,8 @@ class HeroPainter extends CustomPainter {
       old.accentColor != accentColor ||
       old.walkProgress != walkProgress ||
       old.idleProgress != idleProgress ||
-      old.punchProgress != punchProgress;
+      old.punchProgress != punchProgress ||
+      old.customization != customization;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -251,8 +1027,14 @@ class AllyPainter extends CustomPainter {
     final isPunching = punchProgress > 0.01;
 
     // ── Back Arm (Left) ───────────────────────────────────
-    final backArmPaint = Paint()..color = const Color(0xFF1A1A2A)..strokeWidth = 10..strokeCap = StrokeCap.round;
-    final backForearmPaint = Paint()..color = const Color(0xFF1A1A2A)..strokeWidth = 8..strokeCap = StrokeCap.round;
+    final backArmPaint = Paint()
+      ..color = const Color(0xFF1A1A2A)
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+    final backForearmPaint = Paint()
+      ..color = const Color(0xFF1A1A2A)
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round;
 
     if (isPunching) {
       double guardT = 0.0;
@@ -274,46 +1056,101 @@ class AllyPainter extends CustomPainter {
 
       canvas.drawLine(shoulder, backElbow, backArmPaint);
       canvas.drawLine(backElbow, backFist, backForearmPaint);
-      canvas.drawCircle(backFist, 5.5, Paint()..color = const Color(0xFFB49872));
+      canvas.drawCircle(
+        backFist,
+        5.5,
+        Paint()..color = const Color(0xFFB49872),
+      );
     } else {
       canvas.save();
       canvas.translate(shoulder.dx, shoulder.dy);
       canvas.rotate(isWalking ? -swing : idleSway);
       canvas.translate(-shoulder.dx, -shoulder.dy);
       canvas.drawLine(shoulder, Offset(cx, 47 + 18), backArmPaint);
-      canvas.drawLine(Offset(cx, 47 + 18), Offset(cx, 47 + 34), backForearmPaint);
-      canvas.drawCircle(Offset(cx, 47 + 34), 5.5, Paint()..color = const Color(0xFFB49872));
+      canvas.drawLine(
+        Offset(cx, 47 + 18),
+        Offset(cx, 47 + 34),
+        backForearmPaint,
+      );
+      canvas.drawCircle(
+        Offset(cx, 47 + 34),
+        5.5,
+        Paint()..color = const Color(0xFFB49872),
+      );
       canvas.restore();
     }
 
     // ── Back Leg (Left) ───────────────────────────────────
-    final backLegPaint = Paint()..color = const Color(0xFF0A0A0A)..strokeWidth = 12..strokeCap = StrokeCap.round;
-    
+    final backLegPaint = Paint()
+      ..color = const Color(0xFF0A0A0A)
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round;
+
     canvas.save();
     canvas.translate(hip.dx, hip.dy);
     canvas.rotate(swing);
     canvas.translate(-hip.dx, -hip.dy);
     canvas.drawLine(hip, Offset(cx, 81 + 22), backLegPaint);
-    canvas.drawLine(Offset(cx, 81 + 22), Offset(cx, 81 + 40), Paint()..color = const Color(0xFF050505)..strokeWidth = 10..strokeCap = StrokeCap.round);
-    canvas.drawRRect(RRect.fromLTRBR(cx - 8, 81 + 36, cx + 10, 81 + 44, const Radius.circular(4)), Paint()..color = Colors.black);
+    canvas.drawLine(
+      Offset(cx, 81 + 22),
+      Offset(cx, 81 + 40),
+      Paint()
+        ..color = const Color(0xFF050505)
+        ..strokeWidth = 10
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        cx - 8,
+        81 + 36,
+        cx + 10,
+        81 + 44,
+        const Radius.circular(4),
+      ),
+      Paint()..color = Colors.black,
+    );
     canvas.restore();
 
     // ── Body ──────────────────────────────────────────────
     final bodyLeft = cx - bodyW / 2;
-    final bodyRect = RRect.fromLTRBR(bodyLeft, bodyTop, bodyLeft + bodyW, bodyTop + bodyH, const Radius.circular(8));
-    
+    final bodyRect = RRect.fromLTRBR(
+      bodyLeft,
+      bodyTop,
+      bodyLeft + bodyW,
+      bodyTop + bodyH,
+      const Radius.circular(8),
+    );
+
     canvas.drawRRect(bodyRect, Paint()..color = const Color(0xFF2A2A3A));
-    canvas.drawRRect(bodyRect, Paint()..color = accentColor.withValues(alpha: 0.55)..style = PaintingStyle.stroke..strokeWidth = 2);
+    canvas.drawRRect(
+      bodyRect,
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.55)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
 
     // Neck
-    canvas.drawRRect(RRect.fromLTRBR(cx - 3, 30, cx + 3, 37, const Radius.circular(3)), Paint()..color = const Color(0xFFC4A882));
+    canvas.drawRRect(
+      RRect.fromLTRBR(cx - 3, 30, cx + 3, 37, const Radius.circular(3)),
+      Paint()..color = const Color(0xFFC4A882),
+    );
 
     // Glow
-    canvas.drawCircle(Offset(cx, headCY), headR + 8,
-        Paint()..color = accentColor.withValues(alpha: 0.35)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+    canvas.drawCircle(
+      Offset(cx, headCY),
+      headR + 8,
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+    );
 
     // Head
-    canvas.drawCircle(Offset(cx, headCY), headR, Paint()..color = const Color(0xFFD4B896));
+    canvas.drawCircle(
+      Offset(cx, headCY),
+      headR,
+      Paint()..color = const Color(0xFFD4B896),
+    );
 
     // Hair
     final hairPaint = Paint()..color = accentColor;
@@ -330,22 +1167,51 @@ class AllyPainter extends CustomPainter {
     canvas.drawPath(hairPath, hairPaint);
 
     // Eye
-    canvas.drawCircle(Offset(cx + 6, headCY + 1), 2.5, Paint()..color = Colors.black87);
+    canvas.drawCircle(
+      Offset(cx + 6, headCY + 1),
+      2.5,
+      Paint()..color = Colors.black87,
+    );
 
     // ── Front Leg (Right) ─────────────────────────────────
-    final frontLegPaint = Paint()..color = const Color(0xFF1A1A1A)..strokeWidth = 12..strokeCap = StrokeCap.round;
+    final frontLegPaint = Paint()
+      ..color = const Color(0xFF1A1A1A)
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round;
     canvas.save();
     canvas.translate(hip.dx, hip.dy);
     canvas.rotate(-swing);
     canvas.translate(-hip.dx, -hip.dy);
     canvas.drawLine(hip, Offset(cx, 81 + 22), frontLegPaint);
-    canvas.drawLine(Offset(cx, 81 + 22), Offset(cx, 81 + 40), Paint()..color = const Color(0xFF111111)..strokeWidth = 10..strokeCap = StrokeCap.round);
-    canvas.drawRRect(RRect.fromLTRBR(cx - 8, 81 + 36, cx + 10, 81 + 44, const Radius.circular(4)), Paint()..color = Colors.black);
+    canvas.drawLine(
+      Offset(cx, 81 + 22),
+      Offset(cx, 81 + 40),
+      Paint()
+        ..color = const Color(0xFF111111)
+        ..strokeWidth = 10
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        cx - 8,
+        81 + 36,
+        cx + 10,
+        81 + 44,
+        const Radius.circular(4),
+      ),
+      Paint()..color = Colors.black,
+    );
     canvas.restore();
 
     // ── Front Arm (Right) ─────────────────────────────────
-    final frontArmPaint = Paint()..color = const Color(0xFF2A2A3A)..strokeWidth = 10..strokeCap = StrokeCap.round;
-    final frontForearmPaint = Paint()..color = const Color(0xFF2A2A3A)..strokeWidth = 8..strokeCap = StrokeCap.round;
+    final frontArmPaint = Paint()
+      ..color = const Color(0xFF2A2A3A)
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+    final frontForearmPaint = Paint()
+      ..color = const Color(0xFF2A2A3A)
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round;
 
     if (isPunching) {
       double guardT = 0.0;
@@ -375,28 +1241,58 @@ class AllyPainter extends CustomPainter {
       final frontElbowExtended = Offset(cx + 24, 45);
       final frontFistExtended = Offset(cx + 46, 45);
 
-      final guardElbow = Offset.lerp(frontElbowNormal, frontElbowGuard, guardT)!;
+      final guardElbow = Offset.lerp(
+        frontElbowNormal,
+        frontElbowGuard,
+        guardT,
+      )!;
       final guardFist = Offset.lerp(frontFistNormal, frontFistGuard, guardT)!;
 
-      final finalElbow = Offset.lerp(guardElbow, frontElbowExtended, extendFactor)!;
-      final finalFist = Offset.lerp(guardFist, frontFistExtended, extendFactor)!;
+      final finalElbow = Offset.lerp(
+        guardElbow,
+        frontElbowExtended,
+        extendFactor,
+      )!;
+      final finalFist = Offset.lerp(
+        guardFist,
+        frontFistExtended,
+        extendFactor,
+      )!;
 
       canvas.drawLine(shoulder, finalElbow, frontArmPaint);
       canvas.drawLine(finalElbow, finalFist, frontForearmPaint);
-      canvas.drawCircle(finalFist, 5.5 + 1.5 * extendFactor, Paint()..color = const Color(0xFFC4A882));
+      canvas.drawCircle(
+        finalFist,
+        5.5 + 1.5 * extendFactor,
+        Paint()..color = const Color(0xFFC4A882),
+      );
     } else {
       canvas.save();
       canvas.translate(shoulder.dx, shoulder.dy);
       canvas.rotate(isWalking ? swing : -idleSway);
       canvas.translate(-shoulder.dx, -shoulder.dy);
       canvas.drawLine(shoulder, Offset(cx, 47 + 18), frontArmPaint);
-      canvas.drawLine(Offset(cx, 47 + 18), Offset(cx, 47 + 34), frontForearmPaint);
-      canvas.drawCircle(Offset(cx, 47 + 34), 5.5, Paint()..color = const Color(0xFFC4A882));
+      canvas.drawLine(
+        Offset(cx, 47 + 18),
+        Offset(cx, 47 + 34),
+        frontForearmPaint,
+      );
+      canvas.drawCircle(
+        Offset(cx, 47 + 34),
+        5.5,
+        Paint()..color = const Color(0xFFC4A882),
+      );
       canvas.restore();
     }
 
     // Label
-    _drawLabel(canvas, label.length > 5 ? label.substring(0, 5) : label, Offset(cx, bodyTop + bodyH / 2), accentColor, fontSize: 7);
+    _drawLabel(
+      canvas,
+      label.length > 5 ? label.substring(0, 5) : label,
+      Offset(cx, bodyTop + bodyH / 2),
+      accentColor,
+      fontSize: 7,
+    );
   }
 
   @override
@@ -457,8 +1353,12 @@ class EnemyPainter extends CustomPainter {
     final forearmW = isBoss ? 11.0 : 8.0;
     final armReach = isBoss ? 20.0 : 18.0;
 
-    final bodyColor = isBoss ? const Color(0xFF1A0000) : const Color(0xFF3D0000);
-    final bodyColorDark = isBoss ? const Color(0xFF0D0000) : const Color(0xFF2D0000);
+    final bodyColor = isBoss
+        ? const Color(0xFF1A0000)
+        : const Color(0xFF3D0000);
+    final bodyColorDark = isBoss
+        ? const Color(0xFF0D0000)
+        : const Color(0xFF2D0000);
 
     final shoulder = Offset(cx, bodyTop + 10);
     final hip = Offset(cx, legTop);
@@ -484,56 +1384,149 @@ class EnemyPainter extends CustomPainter {
       final backElbow = Offset.lerp(backElbowNormal, backElbowGuard, guardT)!;
       final backFist = Offset.lerp(backFistNormal, backFistGuard, guardT)!;
 
-      canvas.drawLine(shoulder, backElbow, Paint()..color = bodyColorDark..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
-      canvas.drawLine(backElbow, backFist, Paint()..color = bodyColorDark..strokeWidth = forearmW..strokeCap = StrokeCap.round);
-      canvas.drawCircle(backFist, isBoss ? 7 : 5.5, Paint()..color = skinColorDark);
+      canvas.drawLine(
+        shoulder,
+        backElbow,
+        Paint()
+          ..color = bodyColorDark
+          ..strokeWidth = upperArmW
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawLine(
+        backElbow,
+        backFist,
+        Paint()
+          ..color = bodyColorDark
+          ..strokeWidth = forearmW
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(
+        backFist,
+        isBoss ? 7 : 5.5,
+        Paint()..color = skinColorDark,
+      );
     } else {
       canvas.save();
       canvas.translate(shoulder.dx, shoulder.dy);
       canvas.rotate(isWalking ? -swing : idleSway);
       canvas.translate(-shoulder.dx, -shoulder.dy);
-      canvas.drawLine(shoulder, Offset(cx, bodyTop + 10 + armReach),
-          Paint()..color = bodyColorDark..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
-      canvas.drawLine(Offset(cx, bodyTop + 10 + armReach), Offset(cx, bodyTop + 10 + armReach + 16),
-          Paint()..color = bodyColorDark..strokeWidth = forearmW..strokeCap = StrokeCap.round);
-      canvas.drawCircle(Offset(cx, bodyTop + 10 + armReach + 16), isBoss ? 7 : 5.5, Paint()..color = skinColorDark);
+      canvas.drawLine(
+        shoulder,
+        Offset(cx, bodyTop + 10 + armReach),
+        Paint()
+          ..color = bodyColorDark
+          ..strokeWidth = upperArmW
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawLine(
+        Offset(cx, bodyTop + 10 + armReach),
+        Offset(cx, bodyTop + 10 + armReach + 16),
+        Paint()
+          ..color = bodyColorDark
+          ..strokeWidth = forearmW
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(
+        Offset(cx, bodyTop + 10 + armReach + 16),
+        isBoss ? 7 : 5.5,
+        Paint()..color = skinColorDark,
+      );
       canvas.restore();
     }
 
     // ── Back Leg (Left) ───────────────────────────────────
     final legW = isBoss ? 14.0 : 12.0;
     final shinW = isBoss ? 12.0 : 10.0;
-    
+
     canvas.save();
     canvas.translate(hip.dx, hip.dy);
     canvas.rotate(swing);
     canvas.translate(-hip.dx, -hip.dy);
-    canvas.drawLine(hip, Offset(cx, legTop + 22), Paint()..color = const Color(0xFF1A0000)..strokeWidth = legW..strokeCap = StrokeCap.round);
-    canvas.drawLine(Offset(cx, legTop + 22), Offset(cx, legTop + 40), Paint()..color = const Color(0xFF0A0000)..strokeWidth = shinW..strokeCap = StrokeCap.round);
-    canvas.drawRRect(RRect.fromLTRBR(cx - 8, legTop + 36, cx + 12, legTop + 44, const Radius.circular(4)), Paint()..color = Colors.black);
+    canvas.drawLine(
+      hip,
+      Offset(cx, legTop + 22),
+      Paint()
+        ..color = const Color(0xFF1A0000)
+        ..strokeWidth = legW
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawLine(
+      Offset(cx, legTop + 22),
+      Offset(cx, legTop + 40),
+      Paint()
+        ..color = const Color(0xFF0A0000)
+        ..strokeWidth = shinW
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        cx - 8,
+        legTop + 36,
+        cx + 12,
+        legTop + 44,
+        const Radius.circular(4),
+      ),
+      Paint()..color = Colors.black,
+    );
     canvas.restore();
 
     // ── Body ──────────────────────────────────────────────
     final bodyW = isBoss ? 32.0 : 24.0;
     final bodyLeft = cx - bodyW / 2;
-    final bodyRect = RRect.fromLTRBR(bodyLeft, bodyTop, bodyLeft + bodyW, bodyTop + bodyH, const Radius.circular(8));
+    final bodyRect = RRect.fromLTRBR(
+      bodyLeft,
+      bodyTop,
+      bodyLeft + bodyW,
+      bodyTop + bodyH,
+      const Radius.circular(8),
+    );
 
-    canvas.drawRRect(bodyRect, Paint()..color = wasHit ? Colors.white24 : bodyColor);
-    canvas.drawRRect(bodyRect, Paint()..color = accentColor.withValues(alpha: wasHit ? 1.0 : 0.7)..style = PaintingStyle.stroke..strokeWidth = isBoss ? 2.5 : 2.0);
+    canvas.drawRRect(
+      bodyRect,
+      Paint()..color = wasHit ? Colors.white24 : bodyColor,
+    );
+    canvas.drawRRect(
+      bodyRect,
+      Paint()
+        ..color = accentColor.withValues(alpha: wasHit ? 1.0 : 0.7)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isBoss ? 2.5 : 2.0,
+    );
 
     // Charge bar (shifted right)
     if (chargeValue > 0) {
       canvas.drawRRect(
-          RRect.fromLTRBR(cx + 2, bodyTop + bodyH - 7, cx + 2 + (bodyW/2 - 4) * chargeValue, bodyTop + bodyH - 3, const Radius.circular(2)),
-          Paint()..color = Colors.orangeAccent.withValues(alpha: 0.8));
+        RRect.fromLTRBR(
+          cx + 2,
+          bodyTop + bodyH - 7,
+          cx + 2 + (bodyW / 2 - 4) * chargeValue,
+          bodyTop + bodyH - 3,
+          const Radius.circular(2),
+        ),
+        Paint()..color = Colors.orangeAccent.withValues(alpha: 0.8),
+      );
     }
 
     // Neck
-    canvas.drawRRect(RRect.fromLTRBR(cx - 4, headCY + headR, cx + 4, bodyTop, const Radius.circular(3)), Paint()..color = skinColorDark);
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        cx - 4,
+        headCY + headR,
+        cx + 4,
+        bodyTop,
+        const Radius.circular(3),
+      ),
+      Paint()..color = skinColorDark,
+    );
 
     // Glow
-    canvas.drawCircle(Offset(cx, headCY), headR + 10,
-        Paint()..color = accentColor.withValues(alpha: wasHit ? 0.8 : 0.45)..maskFilter = MaskFilter.blur(BlurStyle.normal, isBoss ? 16 : 10));
+    canvas.drawCircle(
+      Offset(cx, headCY),
+      headR + 10,
+      Paint()
+        ..color = accentColor.withValues(alpha: wasHit ? 0.8 : 0.45)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, isBoss ? 16 : 10),
+    );
 
     // Head
     canvas.drawCircle(Offset(cx, headCY), headR, Paint()..color = skinColor);
@@ -556,7 +1549,11 @@ class EnemyPainter extends CustomPainter {
 
     // Boss crown
     if (isBoss) {
-      final crownPaint = Paint()..color = Colors.amberAccent..style = PaintingStyle.stroke..strokeWidth = 2.5..strokeJoin = StrokeJoin.miter;
+      final crownPaint = Paint()
+        ..color = Colors.amberAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeJoin = StrokeJoin.miter;
       final path = Path();
       path.moveTo(cx - 10, headCY - headR + 2);
       path.lineTo(cx - 10, headCY - headR - 9);
@@ -569,20 +1566,54 @@ class EnemyPainter extends CustomPainter {
     }
 
     // Angry brow (one side)
-    final browPaint = Paint()..color = Colors.black87..strokeWidth = isBoss ? 2.8 : 2.0..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(cx, headCY - headR * 0.22), Offset(cx + headR * 0.5, headCY - headR * 0.4), browPaint);
+    final browPaint = Paint()
+      ..color = Colors.black87
+      ..strokeWidth = isBoss ? 2.8 : 2.0
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(cx, headCY - headR * 0.22),
+      Offset(cx + headR * 0.5, headCY - headR * 0.4),
+      browPaint,
+    );
 
     // Glowing eye (one side)
-    canvas.drawCircle(Offset(cx + headR * 0.3, headCY), headR * 0.18, Paint()..color = accentColor);
+    canvas.drawCircle(
+      Offset(cx + headR * 0.3, headCY),
+      headR * 0.18,
+      Paint()..color = accentColor,
+    );
 
     // ── Front Leg (Right) ─────────────────────────────────
     canvas.save();
     canvas.translate(hip.dx, hip.dy);
     canvas.rotate(-swing);
     canvas.translate(-hip.dx, -hip.dy);
-    canvas.drawLine(hip, Offset(cx, legTop + 22), Paint()..color = const Color(0xFF2A0000)..strokeWidth = legW..strokeCap = StrokeCap.round);
-    canvas.drawLine(Offset(cx, legTop + 22), Offset(cx, legTop + 40), Paint()..color = const Color(0xFF1A0000)..strokeWidth = shinW..strokeCap = StrokeCap.round);
-    canvas.drawRRect(RRect.fromLTRBR(cx - 8, legTop + 36, cx + 12, legTop + 44, const Radius.circular(4)), Paint()..color = Colors.black);
+    canvas.drawLine(
+      hip,
+      Offset(cx, legTop + 22),
+      Paint()
+        ..color = const Color(0xFF2A0000)
+        ..strokeWidth = legW
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawLine(
+      Offset(cx, legTop + 22),
+      Offset(cx, legTop + 40),
+      Paint()
+        ..color = const Color(0xFF1A0000)
+        ..strokeWidth = shinW
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        cx - 8,
+        legTop + 36,
+        cx + 12,
+        legTop + 44,
+        const Radius.circular(4),
+      ),
+      Paint()..color = Colors.black,
+    );
     canvas.restore();
 
     // ── Front Arm (Right) ─────────────────────────────────
@@ -614,25 +1645,71 @@ class EnemyPainter extends CustomPainter {
       final frontElbowExtended = Offset(cx + armReach * 1.3, bodyTop + 8);
       final frontFistExtended = Offset(cx + armReach * 2.4, bodyTop + 8);
 
-      final guardElbow = Offset.lerp(frontElbowNormal, frontElbowGuard, guardT)!;
+      final guardElbow = Offset.lerp(
+        frontElbowNormal,
+        frontElbowGuard,
+        guardT,
+      )!;
       final guardFist = Offset.lerp(frontFistNormal, frontFistGuard, guardT)!;
 
-      final finalElbow = Offset.lerp(guardElbow, frontElbowExtended, extendFactor)!;
-      final finalFist = Offset.lerp(guardFist, frontFistExtended, extendFactor)!;
+      final finalElbow = Offset.lerp(
+        guardElbow,
+        frontElbowExtended,
+        extendFactor,
+      )!;
+      final finalFist = Offset.lerp(
+        guardFist,
+        frontFistExtended,
+        extendFactor,
+      )!;
 
-      canvas.drawLine(shoulder, finalElbow, Paint()..color = bodyColor..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
-      canvas.drawLine(finalElbow, finalFist, Paint()..color = bodyColor..strokeWidth = forearmW..strokeCap = StrokeCap.round);
-      canvas.drawCircle(finalFist, (isBoss ? 7 : 5.5) + 2 * extendFactor, Paint()..color = skinColor);
+      canvas.drawLine(
+        shoulder,
+        finalElbow,
+        Paint()
+          ..color = bodyColor
+          ..strokeWidth = upperArmW
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawLine(
+        finalElbow,
+        finalFist,
+        Paint()
+          ..color = bodyColor
+          ..strokeWidth = forearmW
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(
+        finalFist,
+        (isBoss ? 7 : 5.5) + 2 * extendFactor,
+        Paint()..color = skinColor,
+      );
     } else {
       canvas.save();
       canvas.translate(shoulder.dx, shoulder.dy);
       canvas.rotate(isWalking ? swing : -idleSway);
       canvas.translate(-shoulder.dx, -shoulder.dy);
-      canvas.drawLine(shoulder, Offset(cx, bodyTop + 10 + armReach),
-          Paint()..color = bodyColor..strokeWidth = upperArmW..strokeCap = StrokeCap.round);
-      canvas.drawLine(Offset(cx, bodyTop + 10 + armReach), Offset(cx, bodyTop + 10 + armReach + 16),
-          Paint()..color = bodyColor..strokeWidth = forearmW..strokeCap = StrokeCap.round);
-      canvas.drawCircle(Offset(cx, bodyTop + 10 + armReach + 16), isBoss ? 7 : 5.5, Paint()..color = skinColor);
+      canvas.drawLine(
+        shoulder,
+        Offset(cx, bodyTop + 10 + armReach),
+        Paint()
+          ..color = bodyColor
+          ..strokeWidth = upperArmW
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawLine(
+        Offset(cx, bodyTop + 10 + armReach),
+        Offset(cx, bodyTop + 10 + armReach + 16),
+        Paint()
+          ..color = bodyColor
+          ..strokeWidth = forearmW
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(
+        Offset(cx, bodyTop + 10 + armReach + 16),
+        (isBoss ? 7 : 5.5),
+        Paint()..color = skinColor,
+      );
       canvas.restore();
     }
 
@@ -653,7 +1730,13 @@ class EnemyPainter extends CustomPainter {
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared helpers
 // ─────────────────────────────────────────────────────────────────────────────
-void _drawLabel(Canvas canvas, String text, Offset center, Color color, {double fontSize = 8.5}) {
+void _drawLabel(
+  Canvas canvas,
+  String text,
+  Offset center,
+  Color color, {
+  double fontSize = 8.5,
+}) {
   final tp = TextPainter(
     text: TextSpan(
       text: text,

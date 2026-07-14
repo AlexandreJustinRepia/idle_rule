@@ -12,6 +12,7 @@ import 'components/environments/turf/turf_screen.dart';
 import 'components/screens/loading_screen.dart';
 import 'components/screens/world_loading_screen.dart';
 import 'components/screens/character_creation_screen.dart';
+import 'components/ui/character_customize_screen.dart';
 import 'controllers/game_controller.dart';
 import 'game_state.dart';
 import 'models/world_session.dart';
@@ -84,23 +85,26 @@ class _AppFlowState extends State<AppFlow> {
     required double intelligence,
     required double potential,
     required double reputation,
+    required CharacterCustomization customization,
   }) {
     if (!mounted) return;
     setState(() {
+      final controller = GameController(
+        playerName: playerName,
+        characterClass: characterClass,
+        initialStats: PlayerStats(
+          strength: strength,
+          speed: speed,
+          endurance: endurance,
+          intelligence: intelligence,
+          potential: potential,
+          reputation: reputation,
+        ),
+      );
+      controller.updateCustomization(customization);
       final character = GameCharacterSession(
         id: 'character_${_nextCharacterId++}',
-        controller: GameController(
-          playerName: playerName,
-          characterClass: characterClass,
-          initialStats: PlayerStats(
-            strength: strength,
-            speed: speed,
-            endurance: endurance,
-            intelligence: intelligence,
-            potential: potential,
-            reputation: reputation,
-          ),
-        ),
+        controller: controller,
       );
       _characters.add(character);
       _activeCharacter = character;
@@ -416,6 +420,7 @@ class _GameScreen extends StatelessWidget {
                             ),
                         rivalGangs: world.rivalGangs,
                         isActive: currentTabIndex == 0,
+                        customization: gameController.customization,
                       ),
                       GymEnvironment(
                         stats: gameController.stats,
@@ -799,6 +804,21 @@ class _GameMenuSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => CharacterCustomizeScreen(
+                      gameController: gameController,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.face),
+              label: const Text('CUSTOMIZE CHARACTER'),
+            ),
+            const SizedBox(height: 8),
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(context);

@@ -86,6 +86,7 @@ class GameController extends ChangeNotifier {
   int _bossIndex = 0;
   String _playerName = '';
   CharacterClass _characterClass = CharacterClasses.allClasses.first;
+  CharacterCustomization _customization = const CharacterCustomization();
   Gang? _gang;
   final List<Ally> _gangMembers = [];
   int _gangBuildingStage = 0;
@@ -165,6 +166,13 @@ class GameController extends ChangeNotifier {
   int get bossIndex => _bossIndex;
   String get playerName => _playerName;
   CharacterClass get characterClass => _characterClass;
+  CharacterCustomization get customization => _customization;
+
+  void updateCustomization(CharacterCustomization customization) {
+    _customization = customization;
+    notifyListeners();
+  }
+
   Gang? get gang => _gang;
   bool get hasGang => _gang != null;
   List<Ally> get gangMembers => List.unmodifiable(_gangMembers);

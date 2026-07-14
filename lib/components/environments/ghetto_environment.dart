@@ -62,6 +62,7 @@ class GhettoEnvironment extends StatefulWidget {
   final bool isHostileStreet;
   final List<Gang> rivalGangs;
   final bool isActive;
+  final CharacterCustomization? customization;
 
   const GhettoEnvironment({
     super.key,
@@ -96,6 +97,7 @@ class GhettoEnvironment extends StatefulWidget {
     this.isHostileStreet = false,
     this.rivalGangs = const [],
     required this.isActive,
+    this.customization,
   });
 
   @override
@@ -353,6 +355,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
                     : 'player';
               });
             },
+            customization: widget.customization,
           ),
 
         if (!_isAtHome)
