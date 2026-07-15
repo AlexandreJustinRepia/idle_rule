@@ -999,12 +999,15 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
       _isFighting = false;
       _isEnemyDying = false;
+      _isEncounterChoice = false;
       _playerWasDefeated = true;
+      _isDefeatAnimating = true;
     });
 
     await _defeatController.forward(from: 0);
 
     if (mounted) {
+      setState(() => _isDefeatAnimating = false);
       _startHomeLogic();
     }
   }

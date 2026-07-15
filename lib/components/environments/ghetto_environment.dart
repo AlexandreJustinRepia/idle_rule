@@ -127,6 +127,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _enemyWasHit = false;
   bool _playerWasHit = false;
   bool _playerWasDefeated = false;
+  bool _isDefeatAnimating = false;
   bool _playerMissed = false;
   bool _isResting = true;
   bool _isAtHome = true;
@@ -531,7 +532,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             onFinishRecruitment: _finishRecruitment,
           ),
 
-        if (_playerWasDefeated)
+        if (_isDefeatAnimating)
           CinematicSlamOverlay(
             animation: _defeatController,
             title: "Washed Out",

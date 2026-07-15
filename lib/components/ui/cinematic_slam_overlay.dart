@@ -18,6 +18,11 @@ class CinematicSlamOverlay extends StatelessWidget {
     this.isDark = true,
   });
 
+  static final Paint _strokePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 8
+    ..color = Colors.black;
+
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
@@ -71,19 +76,20 @@ class CinematicSlamOverlay extends StatelessWidget {
                           Text(
                             title.toUpperCase(),
                             textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 72,
                               fontWeight: FontWeight.w900,
                               fontStyle: FontStyle.italic,
-                              foreground: Paint()
-                                ..style = PaintingStyle.stroke
-                                ..strokeWidth = 8
-                                ..color = Colors.black,
+                              foreground: _strokePaint,
                             ),
                           ),
                           Text(
                             title.toUpperCase(),
                             textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: titleColor,
                               fontSize: 72,

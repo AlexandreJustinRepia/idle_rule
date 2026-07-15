@@ -39,9 +39,11 @@ class EncounterChoiceOverlay extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                 Text(
                   npcName,
                   textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -53,16 +55,21 @@ class EncounterChoiceOverlay extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildButton(
-                      label: 'FIGHT',
-                      onTap: onFight,
-                      isPrimary: true,
+                    Expanded(
+                      child: _buildButton(
+                        label: 'FIGHT',
+                        onTap: onFight,
+                        isPrimary: true,
+                      ),
                     ),
-                    _buildButton(
-                      label: 'TALK',
-                      onTap: onTalk,
-                      isPrimary: false,
-                      isDisabled: onTalk == null,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildButton(
+                        label: 'TALK',
+                        onTap: onTalk,
+                        isPrimary: false,
+                        isDisabled: onTalk == null,
+                      ),
                     ),
                   ],
                 ),
@@ -111,6 +118,8 @@ class EncounterChoiceOverlay extends StatelessWidget {
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: isPrimary
                 ? Colors.white

@@ -141,7 +141,7 @@ class _CustomNavbarState extends State<CustomNavbar> {
                       color: Color(0xFFE24B4A),
                     ),
                     const SizedBox(width: 4),
-                    Text(
+                     Text(
                       widget.money.toString().replaceAllMapped(
                         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                         (Match m) => '${m[1]},',
@@ -152,6 +152,7 @@ class _CustomNavbarState extends State<CustomNavbar> {
                         color: Colors.white,
                         letterSpacing: 1.0,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

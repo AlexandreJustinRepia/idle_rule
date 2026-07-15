@@ -32,6 +32,8 @@ class EncounterTalkOverlay extends StatelessWidget {
                 Text(
                   infoText,
                   textAlign: TextAlign.center,
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
