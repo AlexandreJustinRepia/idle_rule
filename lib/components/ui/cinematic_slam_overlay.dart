@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class CinematicSlamOverlay extends StatelessWidget {
+class CinematicSlamOverlay extends StatefulWidget {
   final Animation<double> animation;
   final String title;
   final String subtitle;
@@ -18,7 +18,12 @@ class CinematicSlamOverlay extends StatelessWidget {
     this.isDark = true,
   });
 
-  static final Paint _strokePaint = Paint()
+  @override
+  State<CinematicSlamOverlay> createState() => _CinematicSlamOverlayState();
+}
+
+class _CinematicSlamOverlayState extends State<CinematicSlamOverlay> {
+  final Paint _strokePaint = Paint()
     ..style = PaintingStyle.stroke
     ..strokeWidth = 8
     ..color = Colors.black;
@@ -27,9 +32,9 @@ class CinematicSlamOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: AnimatedBuilder(
-        animation: animation,
+        animation: widget.animation,
         builder: (context, child) {
-          final progress = animation.value;
+          final progress = widget.animation.value;
           
           double slam = 0;
           double opacity = 0;
@@ -50,7 +55,7 @@ class CinematicSlamOverlay extends StatelessWidget {
           final blur = slam * 20.0;
 
           return Container(
-            color: Colors.black.withValues(alpha: opacity * (isDark ? 0.8 : 0.4)),
+            color: Colors.black.withValues(alpha: opacity * (widget.isDark ? 0.8 : 0.4)),
             child: Center(
               child: Transform.scale(
                 scale: scale,
@@ -59,11 +64,11 @@ class CinematicSlamOverlay extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (subtitle.isNotEmpty)
+                      if (widget.subtitle.isNotEmpty)
                         Text(
-                          subtitle.toUpperCase(),
+                          widget.subtitle.toUpperCase(),
                           style: TextStyle(
-                            color: titleColor.withValues(alpha: 0.5),
+                            color: widget.titleColor.withValues(alpha: 0.5),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 6,
@@ -74,7 +79,7 @@ class CinematicSlamOverlay extends StatelessWidget {
                       Stack(
                         children: [
                           Text(
-                            title.toUpperCase(),
+                            widget.title.toUpperCase(),
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -86,12 +91,12 @@ class CinematicSlamOverlay extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            title.toUpperCase(),
+                            widget.title.toUpperCase(),
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: titleColor,
+                              color: widget.titleColor,
                               fontSize: 72,
                               fontWeight: FontWeight.w900,
                               fontStyle: FontStyle.italic,
@@ -107,7 +112,7 @@ class CinematicSlamOverlay extends StatelessWidget {
                           gradient: LinearGradient(
                             colors: [
                               Colors.transparent, 
-                              accentColor.withValues(alpha: opacity), 
+                              widget.accentColor.withValues(alpha: opacity), 
                               Colors.transparent
                             ],
                           ),
