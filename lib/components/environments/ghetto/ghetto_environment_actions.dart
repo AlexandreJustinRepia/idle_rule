@@ -533,6 +533,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
     setState(() {
       _isEncounterChoice = false;
+      _isTalking = false;
       _isIntroAnimating = true;
     });
 
