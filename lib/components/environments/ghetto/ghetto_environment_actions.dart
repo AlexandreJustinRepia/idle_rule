@@ -512,7 +512,8 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
   }
 
   Future<void> _onChooseFight() async {
-    if (_enemies.isNotEmpty &&
+    if (!_isTalking &&
+        _enemies.isNotEmpty &&
         _enemies.first.npcType == NpcType.civilian &&
         math.Random().nextDouble() < 0.5) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -527,6 +528,17 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
         _enemies.clear();
         _scrollController.repeat();
         _walkController.repeat(reverse: true);
+      });
+      Future.delayed(const Duration(milliseconds: 2000), () {
+        if (mounted &&
+            !_isFighting &&
+            !_isRecruiting &&
+            !_isAtHome &&
+            !_isResting &&
+            !_isEncounterChoice &&
+            !_isTalking) {
+          _startEncounter();
+        }
       });
       return;
     }
