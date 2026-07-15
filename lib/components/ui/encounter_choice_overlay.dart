@@ -89,33 +89,29 @@ class EncounterChoiceOverlay extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        typeLabel,
+                      const Text(
+                        'ENCOUNTERED:',
                         style: TextStyle(
-                          color: typeColor,
+                          color: Colors.white54,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2.5,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(typeIcon, color: typeColor, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              npcName.toUpperCase(),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
-                              ),
+                          Icon(typeIcon, color: typeColor, size: 24),
+                          const SizedBox(width: 10),
+                          Text(
+                            typeLabel,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
                             ),
                           ),
                         ],

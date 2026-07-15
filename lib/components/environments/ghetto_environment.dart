@@ -517,7 +517,10 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
         if (_isTalking)
           EncounterTalkOverlay(
-            npcName: _enemies.isNotEmpty ? _enemies.first.name : "Stranger",
+            npcType: _enemies.isNotEmpty ? _enemies.first.npcType : NpcType.civilian,
+            gangName: _enemies.isNotEmpty && _enemies.first.npcType == NpcType.gangMember 
+                ? (_isConquestEncounter ? "Rival Gang" : widget.streetControllingGangName) 
+                : null,
             infoText: _currentDialogue,
             talkState: _talkState,
             onProvoke: () {

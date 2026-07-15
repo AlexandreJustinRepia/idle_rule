@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../models/enemy.dart';
 
 class EncounterTalkOverlay extends StatelessWidget {
-  final String npcName;
+  final NpcType npcType;
+  final String? gangName;
   final String infoText;
   final String talkState; // "choices", "provoked", "complimented", "recruited", "recruitFailed"
   final VoidCallback onProvoke;
@@ -13,7 +15,8 @@ class EncounterTalkOverlay extends StatelessWidget {
 
   const EncounterTalkOverlay({
     super.key,
-    required this.npcName,
+    required this.npcType,
+    this.gangName,
     required this.infoText,
     required this.talkState,
     required this.onProvoke,
@@ -25,6 +28,32 @@ class EncounterTalkOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String typeLabel = "UNKNOWN";
+    Color typeColor = Colors.white70;
+
+    switch (npcType) {
+      case NpcType.civilian:
+        typeLabel = "CIVILIAN";
+        typeColor = Colors.grey[400]!;
+        break;
+      case NpcType.thug:
+        typeLabel = "THUG";
+        typeColor = const Color(0xFFE24B4A);
+        break;
+      case NpcType.merchant:
+        typeLabel = "MERCHANT / HUSTLER";
+        typeColor = Colors.greenAccent;
+        break;
+      case NpcType.cop:
+        typeLabel = "POLICE OFFICER";
+        typeColor = Colors.blueAccent;
+        break;
+      case NpcType.gangMember:
+        typeLabel = gangName != null ? "${gangName!.toUpperCase()} MEMBER" : "GANG MEMBER";
+        typeColor = Colors.purpleAccent;
+        break;
+    }
+
     return Positioned.fill(
       child: Container(
         color: Colors.black.withValues(alpha: 0.75),
@@ -66,12 +95,12 @@ class EncounterTalkOverlay extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.chat_bubble_outline, size: 22, color: Colors.blueAccent),
+                          Icon(Icons.chat_bubble_outline, size: 22, color: typeColor),
                           const SizedBox(width: 8),
                           Text(
-                            "TALKING TO: ${npcName.toUpperCase()}",
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            "TALKING TO: $typeLabel",
+                            style: TextStyle(
+                              color: typeColor,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 2.0,
