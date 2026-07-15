@@ -89,10 +89,10 @@ class EncounterChoiceOverlay extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'ENCOUNTERED:',
+                      Text(
+                        typeLabel.toUpperCase(),
                         style: TextStyle(
-                          color: Colors.white54,
+                          color: typeColor,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2.5,
@@ -104,14 +104,18 @@ class EncounterChoiceOverlay extends StatelessWidget {
                         children: [
                           Icon(typeIcon, color: typeColor, size: 24),
                           const SizedBox(width: 10),
-                          Text(
-                            typeLabel,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.5,
+                          Expanded(
+                            child: Text(
+                              npcName,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                              ),
                             ),
                           ),
                         ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/enemy.dart';
 
 class EncounterTalkOverlay extends StatelessWidget {
+  final String npcName;
   final NpcType npcType;
   final String? gangName;
   final String infoText;
@@ -15,6 +16,7 @@ class EncounterTalkOverlay extends StatelessWidget {
 
   const EncounterTalkOverlay({
     super.key,
+    required this.npcName,
     required this.npcType,
     this.gangName,
     required this.infoText,
@@ -97,13 +99,15 @@ class EncounterTalkOverlay extends StatelessWidget {
                         children: [
                           Icon(Icons.chat_bubble_outline, size: 22, color: typeColor),
                           const SizedBox(width: 8),
-                          Text(
-                            "TALKING TO: $typeLabel",
-                            style: TextStyle(
-                              color: typeColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2.0,
+                          Expanded(
+                            child: Text(
+                              "TALKING TO: $npcName ($typeLabel)",
+                              style: TextStyle(
+                                color: typeColor,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
                             ),
                           ),
                         ],

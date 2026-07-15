@@ -167,16 +167,40 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  isBoss ? 'BOSS: ${enemy.name}' : enemy.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: displayColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: isBoss ? 13 : 10,
-                  ),
-                ),
+                child: () {
+                  String displayName = "";
+                  if (isBoss) {
+                    displayName = 'BOSS: ${enemy.name}';
+                  } else {
+                    switch (enemy.npcType) {
+                      case NpcType.civilian:
+                        displayName = "Civilian";
+                        break;
+                      case NpcType.thug:
+                        displayName = "Thug";
+                        break;
+                      case NpcType.merchant:
+                        displayName = "Merchant";
+                        break;
+                      case NpcType.cop:
+                        displayName = "Police Officer";
+                        break;
+                      case NpcType.gangMember:
+                        displayName = "Gangster";
+                        break;
+                    }
+                  }
+                  return Text(
+                    displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: displayColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: isBoss ? 13 : 10,
+                    ),
+                  );
+                }(),
               ),
               const SizedBox(width: 4),
               Text(
