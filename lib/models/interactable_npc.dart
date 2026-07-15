@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'character_customization.dart';
 
 enum NpcRelationshipTier {
   hostile('Hostile', Color(0xFFD9383A)),
@@ -26,6 +27,7 @@ class InteractableNpc {
   int relationship; // -100 to 100
   String locationStreetId;
   bool isRecruited;
+  final CharacterCustomization? customization;
 
   InteractableNpc({
     required this.id,
@@ -40,6 +42,7 @@ class InteractableNpc {
     this.relationship = 0,
     required this.locationStreetId,
     this.isRecruited = false,
+    this.customization,
   });
 
   NpcRelationshipTier get relationshipTier {

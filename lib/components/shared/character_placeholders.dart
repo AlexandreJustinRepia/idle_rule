@@ -46,6 +46,7 @@ class AllyCharacterPlaceholder extends StatelessWidget {
   final double walkProgress;
   final double idleProgress;
   final double punchProgress;
+  final CharacterCustomization? customization;
 
   const AllyCharacterPlaceholder({
     super.key,
@@ -57,6 +58,7 @@ class AllyCharacterPlaceholder extends StatelessWidget {
     this.walkProgress = 0.0,
     this.idleProgress = 0.0,
     this.punchProgress = 0.0,
+    this.customization,
   });
 
   @override
@@ -108,6 +110,7 @@ class AllyCharacterPlaceholder extends StatelessWidget {
             walkProgress: walkProgress,
             idleProgress: idleProgress,
             punchProgress: punchProgress,
+            customization: customization,
           ),
         ),
       ],
@@ -139,6 +142,8 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
     this.idleProgress = 0.0,
     this.punchProgress = 0.0,
   });
+
+  CharacterCustomization? get customization => enemy.customization;
 
   @override
   Widget build(BuildContext context) {
@@ -225,6 +230,7 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
               walkProgress: walkProgress,
               idleProgress: idleProgress,
               punchProgress: punchProgress,
+              customization: customization,
             ),
           ),
         ),

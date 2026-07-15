@@ -300,6 +300,10 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
         dodgeChance: widget.activeBoss!.dodgeChance,
         themeColor: widget.activeBoss!.themeColor,
         isBoss: true,
+        customization: generateNpcCustomization(
+          widget.activeBoss!.name.hashCode,
+          palette: widget.activeBoss!.themeColor,
+        ),
       );
       _enemies.add(enemy);
       _enemyOriginalIndices[enemy] = 0;
@@ -326,6 +330,10 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
           dodgeChance: 0.15,
           themeColor: occupyingGang?.primaryColor ?? Colors.redAccent,
           isBoss: true,
+          customization: generateNpcCustomization(
+            bossName.hashCode,
+            palette: occupyingGang?.primaryColor ?? Colors.redAccent,
+          ),
         );
         _enemies.add(boss);
 

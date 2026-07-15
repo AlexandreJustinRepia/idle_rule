@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/gang.dart';
 import '../components/environments/turf/turf_map.dart';
 import '../models/interactable_npc.dart';
+import '../models/character_customization.dart';
 
 class WorldGeneratorResult {
   final TurfMapData mapData;
@@ -564,6 +565,7 @@ class WorldGenerator {
           relationship:
               -20 + random.nextInt(40), // Initial relationship -20 to 20
           locationStreetId: streetId,
+          customization: generateNpcCustomization(npcId.hashCode),
         ),
       );
     }

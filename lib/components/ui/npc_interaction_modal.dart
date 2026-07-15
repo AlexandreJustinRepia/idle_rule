@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../controllers/game_controller.dart';
 import '../../../models/interactable_npc.dart';
+import '../../../models/character_customization.dart';
+import '../shared/character_painters.dart';
 
 class NpcInteractionModal extends StatefulWidget {
   final InteractableNpc npc;
@@ -135,7 +137,21 @@ class _NpcInteractionModalState extends State<NpcInteractionModal> {
                   CircleAvatar(
                     radius: 28,
                     backgroundColor: tier.color.withValues(alpha: 0.2),
-                    child: Icon(Icons.person, size: 32, color: tier.color),
+                    child: ClipOval(
+                      child: SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: CustomPaint(
+                          painter: HeroPainter(
+                            accentColor: widget.npc.customization?.outfitAccentColor ??
+                                tier.color,
+                            idleProgress: 0.5,
+                            customization: widget.npc.customization ??
+                                const CharacterCustomization(),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(

@@ -555,6 +555,10 @@ class GameController extends ChangeNotifier {
       )!,
       isExclusive: true,
       maxTrainingLevel: 15,
+      customization: generateNpcCustomization(
+        DateTime.now().microsecondsSinceEpoch,
+        palette: _gang?.primaryColor,
+      ),
     );
   }
 
@@ -575,6 +579,10 @@ class GameController extends ChangeNotifier {
       themeColor: _gang?.primaryColor ?? Colors.greenAccent,
       tier: recruitTier.tier,
       maxTrainingLevel: recruitTier.maxTrainingLevel,
+      customization: generateNpcCustomization(
+        _gangMembers.length * 7919 + recruitTier.tier * 104729,
+        palette: _gang?.primaryColor,
+      ),
     );
   }
 
@@ -636,6 +644,8 @@ class GameController extends ChangeNotifier {
       themeColor: Colors.deepOrangeAccent,
       isExclusive: true,
       maxTrainingLevel: 15,
+      customization: npc.customization ??
+          generateNpcCustomization(npc.id.hashCode, palette: Colors.deepOrange),
     );
 
     if (_gangMembers.length >= gangMemberCapacity) {

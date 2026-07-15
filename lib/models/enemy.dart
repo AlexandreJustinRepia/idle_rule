@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'combat_entity.dart';
+import 'character_customization.dart';
 
 enum EnemyType { regular, fast, tank, counter }
 
@@ -25,6 +26,7 @@ class Enemy implements CombatEntity {
 
   final Color themeColor;
   final bool isBoss;
+  final CharacterCustomization? customization;
 
   @override
   int hp;
@@ -46,6 +48,7 @@ class Enemy implements CombatEntity {
     this.comboChance = 0.0,
     this.themeColor = Colors.redAccent,
     this.isBoss = false,
+    this.customization,
     this.actionState = ActionState.idle,
     this.target,
   }) : hp = health;
@@ -69,6 +72,7 @@ class Enemy implements CombatEntity {
       comboChance: comboChance,
       themeColor: themeColor,
       isBoss: isBoss,
+      customization: customization,
     );
   }
 
@@ -84,6 +88,7 @@ class Enemy implements CombatEntity {
       comboChance: comboChance,
       themeColor: themeColor ?? this.themeColor,
       isBoss: isBoss,
+      customization: customization,
     );
   }
 }

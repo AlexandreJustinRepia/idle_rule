@@ -66,6 +66,12 @@ class GhettoEnemyFactory {
     double adaptiveSpeedMult = 1.0 - ((powerRatio - 1.0) * 0.25);
     double adaptiveCombo = (powerRatio - 1.0) * 0.20;
 
+    // A deterministic, varied look per enemy instance
+    final look = generateNpcCustomization(
+      _random.nextInt(1 << 30),
+      palette: _enemyTypeColor(enemyType),
+    );
+
     switch (enemyType) {
       case EnemyType.fast:
         return Enemy(
@@ -79,6 +85,7 @@ class GhettoEnemyFactory {
           dodgeChance: (0.35 + adaptiveDodge).clamp(0.0, 0.7),
           comboChance: adaptiveCombo * 1.5,
           themeColor: Colors.yellowAccent,
+          customization: look,
         );
       case EnemyType.tank:
         return Enemy(
@@ -92,6 +99,7 @@ class GhettoEnemyFactory {
           dodgeChance: (0.0 + adaptiveDodge).clamp(0.0, 0.4),
           comboChance: adaptiveCombo * 0.5,
           themeColor: Colors.blueAccent,
+          customization: look,
         );
       case EnemyType.counter:
         return Enemy(
@@ -106,6 +114,7 @@ class GhettoEnemyFactory {
           counterChance: (0.4 + adaptiveDodge).clamp(0.0, 0.8),
           comboChance: adaptiveCombo,
           themeColor: Colors.deepPurpleAccent,
+          customization: look,
         );
       case EnemyType.regular:
         return Enemy(
@@ -118,7 +127,21 @@ class GhettoEnemyFactory {
           ),
           dodgeChance: adaptiveDodge.clamp(0.0, 0.4),
           comboChance: adaptiveCombo,
+          customization: look,
         );
+    }
+  }
+
+  static Color? _enemyTypeColor(EnemyType type) {
+    switch (type) {
+      case EnemyType.fast:
+        return Colors.yellowAccent;
+      case EnemyType.tank:
+        return Colors.blueAccent;
+      case EnemyType.counter:
+        return Colors.deepPurpleAccent;
+      case EnemyType.regular:
+        return null;
     }
   }
 }

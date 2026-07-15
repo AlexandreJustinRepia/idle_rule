@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'combat_entity.dart';
 import 'gang.dart';
+import 'character_customization.dart';
 
 class Ally implements CombatEntity {
   @override
@@ -34,6 +35,7 @@ class Ally implements CombatEntity {
   int trainingLevel;
   int maxTrainingLevel;
   bool isInFormation;
+  final CharacterCustomization? customization;
 
   Ally({
     required this.name,
@@ -50,6 +52,7 @@ class Ally implements CombatEntity {
     this.trainingLevel = 0,
     this.maxTrainingLevel = 10,
     this.isInFormation = false,
+    this.customization,
   });
 
   bool get canTrain => trainingLevel < maxTrainingLevel;

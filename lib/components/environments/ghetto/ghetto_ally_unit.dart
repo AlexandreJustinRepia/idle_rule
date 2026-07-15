@@ -82,6 +82,7 @@ class GhettoAllyUnit extends StatelessWidget {
                       walkProgress: walkAnimation.value,
                       idleProgress: idleAnimation.value,
                       punchProgress: attackAnimation.value,
+                      customization: ally.customization,
                     ),
                   ),
                 ),
