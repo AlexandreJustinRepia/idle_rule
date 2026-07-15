@@ -28,28 +28,28 @@ class EncounterTalkOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String typeLabel = "UNKNOWN";
+    String typeLabel = "Unknown";
     Color typeColor = Colors.white70;
 
     switch (npcType) {
       case NpcType.civilian:
-        typeLabel = "CIVILIAN";
+        typeLabel = "Civilian";
         typeColor = Colors.grey[400]!;
         break;
       case NpcType.thug:
-        typeLabel = "THUG";
+        typeLabel = "Thug";
         typeColor = const Color(0xFFE24B4A);
         break;
       case NpcType.merchant:
-        typeLabel = "MERCHANT / HUSTLER";
+        typeLabel = "Merchant";
         typeColor = Colors.greenAccent;
         break;
       case NpcType.cop:
-        typeLabel = "POLICE OFFICER";
+        typeLabel = "Police Officer";
         typeColor = Colors.blueAccent;
         break;
       case NpcType.gangMember:
-        typeLabel = gangName != null ? "${gangName!.toUpperCase()} MEMBER" : "GANG MEMBER";
+        typeLabel = gangName != null ? "$gangName Member" : "Gang Member";
         typeColor = Colors.purpleAccent;
         break;
     }

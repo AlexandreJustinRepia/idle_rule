@@ -20,33 +20,33 @@ class EncounterChoiceOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String typeLabel = "UNKNOWN";
+    String typeLabel = "Unknown";
     Color typeColor = Colors.white70;
     IconData typeIcon = Icons.person;
 
     switch (npcType) {
       case NpcType.civilian:
-        typeLabel = "CIVILIAN";
+        typeLabel = "Civilian";
         typeColor = Colors.grey[400]!;
         typeIcon = Icons.directions_walk;
         break;
       case NpcType.thug:
-        typeLabel = "THUG";
+        typeLabel = "Thug";
         typeColor = const Color(0xFFE24B4A);
         typeIcon = Icons.sentiment_very_dissatisfied;
         break;
       case NpcType.merchant:
-        typeLabel = "MERCHANT / HUSTLER";
+        typeLabel = "Merchant";
         typeColor = Colors.greenAccent;
         typeIcon = Icons.storefront;
         break;
       case NpcType.cop:
-        typeLabel = "POLICE OFFICER";
+        typeLabel = "Police Officer";
         typeColor = Colors.blueAccent;
         typeIcon = Icons.local_police;
         break;
       case NpcType.gangMember:
-        typeLabel = gangName != null ? "${gangName!.toUpperCase()} MEMBER" : "GANG MEMBER";
+        typeLabel = gangName != null ? "$gangName Member" : "Gang Member";
         typeColor = Colors.purpleAccent;
         typeIcon = Icons.group;
         break;
