@@ -426,6 +426,7 @@ class _GameScreen extends StatelessWidget {
                                 )
                             ? null
                             : location.occupyingGangId,
+                        isActive: currentTabIndex == 0,
                       ),
                       GymEnvironment(
                         stats: gameController.stats,

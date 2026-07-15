@@ -139,13 +139,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   String _currentDialogue = "";
   String _talkState = "choices";
 
-  final List<String> _randomInfo = [
-    "The Gym is a great place to build endurance, but it costs money.",
-    "Bosses hit hard! Make sure you recruit allies before facing them.",
-    "If you run out of stamina, your attacks will miss more often.",
-    "Reputation determines how many gang members you can recruit.",
-    "Eating food recovers hunger and stamina.",
-  ];
+
 
   final List<Ally> _allies = [];
   final List<Enemy> _enemies = [];
