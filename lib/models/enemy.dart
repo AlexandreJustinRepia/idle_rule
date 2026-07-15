@@ -3,11 +3,13 @@ import 'combat_entity.dart';
 import 'character_customization.dart';
 
 enum EnemyType { regular, fast, tank, counter }
+enum NpcType { civilian, thug, gangMember, merchant, cop }
 
 class Enemy implements CombatEntity {
   @override
   final String name;
   final EnemyType type;
+  final NpcType npcType;
 
   /// Base health from definition
   final int health;
@@ -40,6 +42,7 @@ class Enemy implements CombatEntity {
   Enemy({
     required this.name,
     this.type = EnemyType.regular,
+    this.npcType = NpcType.thug,
     required this.health,
     required this.damage,
     required this.attackDelay,
@@ -64,6 +67,7 @@ class Enemy implements CombatEntity {
     return Enemy(
       name: name,
       type: type,
+      npcType: npcType,
       health: health,
       damage: damage,
       attackDelay: attackDelay,
@@ -76,10 +80,11 @@ class Enemy implements CombatEntity {
     );
   }
 
-  Enemy copyWith({Color? themeColor}) {
+  Enemy copyWith({Color? themeColor, NpcType? npcType}) {
     return Enemy(
       name: name,
       type: type,
+      npcType: npcType ?? this.npcType,
       health: health,
       damage: damage,
       attackDelay: attackDelay,

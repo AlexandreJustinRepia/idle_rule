@@ -1,6 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
-class ActionCard extends StatelessWidget {
+class ActionCard extends StatefulWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -17,45 +18,99 @@ class ActionCard extends StatelessWidget {
   });
 
   @override
+  State<ActionCard> createState() => _ActionCardState();
+}
+
+class _ActionCardState extends State<ActionCard> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
+    final finalColor = widget.color;
+    final isSelected = widget.isSelected;
+
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 140,
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: color.withValues(alpha: isSelected ? 0.8 : 0.3),
-            width: isSelected ? 3 : 2,
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.94 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 140,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.black.withValues(alpha: 0.75),
+                Colors.black.withValues(alpha: 0.45),
+              ],
+            ),
+            border: Border.all(
+              color: isSelected 
+                  ? finalColor.withValues(alpha: 0.9) 
+                  : finalColor.withValues(alpha: 0.35),
+              width: isSelected ? 2.5 : 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isSelected 
+                    ? finalColor.withValues(alpha: 0.35) 
+                    : finalColor.withValues(alpha: 0.1),
+                blurRadius: isSelected ? 16 : 8,
+                spreadRadius: 0,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.4),
-                    blurRadius: 15,
-                    spreadRadius: 1,
-                  )
-                ]
-              : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                letterSpacing: 1.5,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Icon with soft glow
+                  ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        finalColor,
+                        finalColor.withValues(alpha: 0.7),
+                      ],
+                    ).createShader(bounds),
+                    child: Icon(
+                      widget.icon, 
+                      color: Colors.white, 
+                      size: 34,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.label,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 2.0,
+                      shadows: [
+                        Shadow(
+                          color: finalColor.withValues(alpha: 0.8),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

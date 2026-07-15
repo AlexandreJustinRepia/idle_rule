@@ -521,7 +521,8 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     setState(() {
       _isEncounterChoice = false;
       _isTalking = true;
-      _currentDialogue = _randomInfo[math.Random().nextInt(_randomInfo.length)];
+      _talkState = "choices";
+      _currentDialogue = "Yo, what do you want? I don't have all day.";
     });
   }
 

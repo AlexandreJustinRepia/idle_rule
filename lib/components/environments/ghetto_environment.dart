@@ -135,6 +135,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _isTalking = false;
   bool _isConquestEncounter = false;
   String _currentDialogue = "";
+  String _talkState = "choices";
 
   final List<String> _randomInfo = [
     "The Gym is a great place to build endurance, but it costs money.",
@@ -303,7 +304,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         !_isIntroAnimating &&
         !_isTransitioning &&
         !_isEncounterChoice &&
-        !_isTalking;
+        !_isTalking &&
+        !_walkController.isAnimating;
 
     return Stack(
       children: [
@@ -515,8 +517,55 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
 
         if (_isTalking)
           EncounterTalkOverlay(
+            npcName: _enemies.isNotEmpty ? _enemies.first.name : "Stranger",
             infoText: _currentDialogue,
-            onLeave: _onFinishTalking,
+            talkState: _talkState,
+            onProvoke: () {
+              setState(() {
+                _talkState = "provoked";
+                _currentDialogue = "What did you say to me, punk?! You're dead meat!";
+              });
+            },
+            onCompliment: () {
+              setState(() {
+                _talkState = "complimented";
+                _currentDialogue = "Haha, thanks! You've got good taste. Here, take some cash.";
+              });
+              widget.onStatsGained(reputation: 0.5);
+              widget.onMoneyGained?.call(12);
+            },
+            onRecruit: () {
+              if (widget.hasGang && _allies.length < _effectiveGangCapacity) {
+                final npcToRecruit = _enemies.isNotEmpty ? _enemies.first : null;
+                if (npcToRecruit != null) {
+                  _recruitAlly(npcToRecruit);
+                  setState(() {
+                    _talkState = "recruited";
+                    _currentDialogue = "Sounds like a plan. Let's make some serious money together!";
+                  });
+                } else {
+                  setState(() {
+                    _talkState = "recruitFailed";
+                    _currentDialogue = "No one here to recruit, boss.";
+                  });
+                }
+              } else {
+                setState(() {
+                  _talkState = "recruitFailed";
+                  _currentDialogue = !widget.hasGang 
+                      ? "Create a crew first, then we'll talk." 
+                      : "No room in your crew, boss. Let me know when you have space.";
+                });
+              }
+            },
+            onLeave: () {
+              if (_talkState == "provoked") {
+                _onChooseFight();
+              } else {
+                _onFinishTalking();
+              }
+            },
+            canRecruit: widget.hasGang && _allies.length < _effectiveGangCapacity,
           ),
 
         if (_isRecruiting)
