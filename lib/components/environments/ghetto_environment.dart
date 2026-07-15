@@ -63,6 +63,7 @@ class GhettoEnvironment extends StatefulWidget {
   final List<Gang> rivalGangs;
   final bool isActive;
   final CharacterCustomization? customization;
+  final String? streetControllingGangName;
 
   const GhettoEnvironment({
     super.key,
@@ -98,6 +99,7 @@ class GhettoEnvironment extends StatefulWidget {
     this.rivalGangs = const [],
     required this.isActive,
     this.customization,
+    this.streetControllingGangName,
   });
 
   @override
@@ -511,6 +513,10 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         if (_isEncounterChoice)
           EncounterChoiceOverlay(
             npcName: _introEnemyName,
+            npcType: _enemies.isNotEmpty ? _enemies.first.npcType : NpcType.civilian,
+            gangName: _enemies.isNotEmpty && _enemies.first.npcType == NpcType.gangMember 
+                ? (_isConquestEncounter ? "Rival Gang" : widget.streetControllingGangName) 
+                : null,
             onFight: _onChooseFight,
             onTalk: _isConquestEncounter ? null : _onChooseTalk,
           ),
@@ -521,27 +527,95 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             infoText: _currentDialogue,
             talkState: _talkState,
             onProvoke: () {
+              final npcType = _enemies.isNotEmpty ? _enemies.first.npcType : NpcType.civilian;
+              String msg = "What did you say to me, punk?! You're dead meat!";
+              if (npcType == NpcType.civilian) {
+                msg = "P-please don't hurt me! But if you force me, I will fight back!";
+              } else if (npcType == NpcType.cop) {
+                msg = "You are assaulting a peace officer! Stand down, or face the consequences!";
+              } else if (npcType == NpcType.merchant) {
+                msg = "Messing with a hard worker? I will protect my stand with my life!";
+              }
               setState(() {
                 _talkState = "provoked";
-                _currentDialogue = "What did you say to me, punk?! You're dead meat!";
+                _currentDialogue = msg;
               });
             },
             onCompliment: () {
+              final npcType = _enemies.isNotEmpty ? _enemies.first.npcType : NpcType.civilian;
+              String msg = "Haha, thanks! You've got good taste. Here, take some cash.";
+              double repGain = 0.5;
+              int moneyGain = 12;
+              
+              if (npcType == NpcType.civilian) {
+                msg = "Oh, thank you! Most people around here are so aggressive. Here is a small token.";
+                repGain = 0.3;
+                moneyGain = 6;
+              } else if (npcType == NpcType.cop) {
+                msg = "Just doing my civic duty. Keep the peace and watch your back out here.";
+                repGain = 1.0;
+                moneyGain = 0;
+              } else if (npcType == NpcType.merchant) {
+                msg = "Ah, you appreciate quality! Tell you what, take this energy boost on the house.";
+                repGain = 0.4;
+                moneyGain = 0;
+                widget.onNeedsRecovered(stamina: 25.0, hunger: 0.0);
+              } else if (npcType == NpcType.gangMember) {
+                msg = "Heh, you're not so bad for a newcomer. Don't let me catch you on the turf though.";
+                repGain = 0.6;
+                moneyGain = 8;
+              }
+              
               setState(() {
                 _talkState = "complimented";
-                _currentDialogue = "Haha, thanks! You've got good taste. Here, take some cash.";
+                _currentDialogue = msg;
               });
-              widget.onStatsGained(reputation: 0.5);
-              widget.onMoneyGained?.call(12);
+              if (repGain > 0) widget.onStatsGained(reputation: repGain);
+              if (moneyGain > 0) widget.onMoneyGained?.call(moneyGain);
             },
             onRecruit: () {
+              final npcType = _enemies.isNotEmpty ? _enemies.first.npcType : NpcType.civilian;
+              if (npcType == NpcType.cop) {
+                setState(() {
+                  _talkState = "provoked";
+                  _currentDialogue = "Are you attempting to bribe and recruit a police officer?! That is a felony!";
+                });
+                return;
+              }
+              
+              if (npcType == NpcType.civilian) {
+                setState(() {
+                  _talkState = "recruitFailed";
+                  _currentDialogue = "I'm just a regular resident. I don't want to get involved in gang activities.";
+                });
+                return;
+              }
+              
+              if (npcType == NpcType.merchant) {
+                setState(() {
+                  _talkState = "recruitFailed";
+                  _currentDialogue = "And leave my profitable shop? No way, boss. Business is too good.";
+                });
+                return;
+              }
+
+              if (npcType == NpcType.gangMember && widget.stats.reputation < 35.0) {
+                setState(() {
+                  _talkState = "provoked";
+                  _currentDialogue = "Your reputation is pathetic! Why would I join a weak crew like yours? Let's fight!";
+                });
+                return;
+              }
+              
               if (widget.hasGang && _allies.length < _effectiveGangCapacity) {
                 final npcToRecruit = _enemies.isNotEmpty ? _enemies.first : null;
                 if (npcToRecruit != null) {
                   _recruitAlly(npcToRecruit);
                   setState(() {
                     _talkState = "recruited";
-                    _currentDialogue = "Sounds like a plan. Let's make some serious money together!";
+                    _currentDialogue = npcType == NpcType.gangMember
+                        ? "Fine, you look like a leader with a future. Let's conquer the turf."
+                        : "Alright, boss. Let's make some serious money together!";
                   });
                 } else {
                   setState(() {
@@ -554,7 +628,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
                   _talkState = "recruitFailed";
                   _currentDialogue = !widget.hasGang 
                       ? "Create a crew first, then we'll talk." 
-                      : "No room in your crew, boss. Let me know when you have space.";
+                      : "No room in your crew, boss. Let know when you have space.";
                 });
               }
             },

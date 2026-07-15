@@ -419,8 +419,13 @@ class _GameScreen extends StatelessWidget {
                                   world.mapData!.spawnStreetId,
                             ),
                         rivalGangs: world.rivalGangs,
-                        isActive: currentTabIndex == 0,
                         customization: gameController.customization,
+                        streetControllingGangName: gameController.isTerritoryConquered(
+                                  character.locationStreetId ??
+                                      world.mapData!.spawnStreetId,
+                                )
+                            ? null
+                            : location.occupyingGangId,
                       ),
                       GymEnvironment(
                         stats: gameController.stats,

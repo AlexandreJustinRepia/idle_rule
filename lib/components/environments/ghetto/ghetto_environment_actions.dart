@@ -397,6 +397,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
         final enemy = GhettoEnemyFactory.generateRandomEnemy(
           _enemyNumber,
           widget.stats,
+          streetControllingGangName: widget.streetControllingGangName,
         );
         _enemies.add(enemy);
       }
@@ -469,15 +470,67 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
         }
       }
     } else {
-      setState(() {
-        _introEnemyName = mainName;
-        _isEncounterChoice = true;
-        _isConquestEncounter = false;
-      });
+      if (_enemies.isNotEmpty && _enemies.first.npcType == NpcType.thug) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${_enemies.first.name} ambushes you!'),
+            backgroundColor: Colors.red[900],
+            duration: const Duration(milliseconds: 1500),
+          ),
+        );
+        setState(() {
+          _introEnemyName = mainName;
+          _isIntroAnimating = true;
+        });
+        await _introController.forward(from: 0);
+        if (mounted) {
+          setState(() {
+            _isIntroAnimating = false;
+            _isFighting = true;
+            _isEnemyDying = false;
+            _isRecruiting = false;
+            _enemyWasHit = true;
+            _playerWasHit = false;
+            _playerWasDefeated = false;
+            _playerMissed = false;
+            _isResting = false;
+          });
+          _schedulePlayerAttack();
+          _startAllyCombat();
+          for (var enemy in _enemies) {
+            _startEnemyCharge(enemy);
+          }
+        }
+      } else {
+        setState(() {
+          _introEnemyName = mainName;
+          _isEncounterChoice = true;
+          _isConquestEncounter = false;
+        });
+      }
     }
   }
 
   Future<void> _onChooseFight() async {
+    if (_enemies.isNotEmpty &&
+        _enemies.first.npcType == NpcType.civilian &&
+        math.Random().nextDouble() < 0.5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_enemies.first.name} panicked and ran away!'),
+          backgroundColor: Colors.grey[850],
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      setState(() {
+        _isEncounterChoice = false;
+        _enemies.clear();
+        _scrollController.repeat();
+        _walkController.repeat(reverse: true);
+      });
+      return;
+    }
+
     setState(() {
       _isEncounterChoice = false;
       _isIntroAnimating = true;

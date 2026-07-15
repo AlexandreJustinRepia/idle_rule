@@ -1,20 +1,57 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../models/enemy.dart';
 
 class EncounterChoiceOverlay extends StatelessWidget {
   final String npcName;
+  final NpcType npcType;
+  final String? gangName;
   final VoidCallback onFight;
   final VoidCallback? onTalk;
 
   const EncounterChoiceOverlay({
     super.key,
     required this.npcName,
+    required this.npcType,
+    this.gangName,
     required this.onFight,
     this.onTalk,
   });
 
   @override
   Widget build(BuildContext context) {
+    String typeLabel = "UNKNOWN";
+    Color typeColor = Colors.white70;
+    IconData typeIcon = Icons.person;
+
+    switch (npcType) {
+      case NpcType.civilian:
+        typeLabel = "CIVILIAN";
+        typeColor = Colors.grey[400]!;
+        typeIcon = Icons.directions_walk;
+        break;
+      case NpcType.thug:
+        typeLabel = "THUG";
+        typeColor = const Color(0xFFE24B4A);
+        typeIcon = Icons.sentiment_very_dissatisfied;
+        break;
+      case NpcType.merchant:
+        typeLabel = "MERCHANT / HUSTLER";
+        typeColor = Colors.greenAccent;
+        typeIcon = Icons.storefront;
+        break;
+      case NpcType.cop:
+        typeLabel = "POLICE OFFICER";
+        typeColor = Colors.blueAccent;
+        typeIcon = Icons.local_police;
+        break;
+      case NpcType.gangMember:
+        typeLabel = gangName != null ? "${gangName!.toUpperCase()} MEMBER" : "GANG MEMBER";
+        typeColor = Colors.purpleAccent;
+        typeIcon = Icons.group;
+        break;
+    }
+
     return Positioned.fill(
       child: Container(
         color: Colors.black.withValues(alpha: 0.75),
@@ -52,27 +89,36 @@ class EncounterChoiceOverlay extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'ENCOUNTERED:',
+                      Text(
+                        typeLabel,
                         style: TextStyle(
-                          color: Colors.white54,
+                          color: typeColor,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2.5,
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Text(
-                        npcName.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(typeIcon, color: typeColor, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              npcName.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 32),
                       Row(
