@@ -13,6 +13,7 @@ import 'components/screens/loading_screen.dart';
 import 'components/screens/world_loading_screen.dart';
 import 'components/screens/character_creation_screen.dart';
 import 'components/ui/character_customize_screen.dart';
+import 'components/shared/character_placeholders.dart';
 import 'controllers/game_controller.dart';
 import 'game_state.dart';
 import 'models/world_session.dart';
@@ -477,7 +478,9 @@ class _GameScreen extends StatelessWidget {
   }
 }
 
-class _WorldSelectionScreen extends StatelessWidget {
+enum _LobbyPage { characters, worlds }
+
+class _WorldSelectionScreen extends StatefulWidget {
   final List<GameCharacterSession> characters;
   final List<GameWorld> worlds;
   final GameCharacterSession? selectedCharacter;
@@ -505,6 +508,13 @@ class _WorldSelectionScreen extends StatelessWidget {
     required this.onEnterWorld,
   });
 
+  @override
+  State<_WorldSelectionScreen> createState() => _WorldSelectionScreenState();
+}
+
+class _WorldSelectionScreenState extends State<_WorldSelectionScreen> {
+  _LobbyPage _page = _LobbyPage.characters;
+
   void _promptForWorldName(BuildContext context) {
     final controller = TextEditingController();
 
@@ -531,7 +541,7 @@ class _WorldSelectionScreen extends StatelessWidget {
                 final name = controller.text.trim();
                 if (name.isEmpty) return;
                 Navigator.of(context).pop();
-                onCreateWorld(name);
+                widget.onCreateWorld(name);
               },
               child: const Text('CREATE'),
             ),
@@ -543,6 +553,8 @@ class _WorldSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCharactersPage = _page == _LobbyPage.characters;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       body: SafeArea(
@@ -551,9 +563,9 @@ class _WorldSelectionScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'CHARACTERS & WORLDS',
-                style: TextStyle(
+              Text(
+                isCharactersPage ? 'CHARACTERS' : 'WORLDS',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
@@ -561,63 +573,91 @@ class _WorldSelectionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Select a character first, then enter a world. Deleting a world only removes the world.',
+                isCharactersPage
+                    ? 'Choose who you want to play, or create another fighter.'
+                    : 'Enter a world with the selected character. Deleting a world only removes the world.',
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               ),
               const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
-                    child: _LobbyButton(
-                      icon: Icons.person_add,
-                      label: 'NEW CHARACTER',
-                      onTap: onCreateCharacter,
+                    child: _LobbyTabButton(
+                      icon: Icons.person,
+                      label: 'CHARACTERS',
+                      isSelected: isCharactersPage,
+                      onTap: () => setState(() => _page = _LobbyPage.characters),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _LobbyButton(
+                    child: _LobbyTabButton(
                       icon: Icons.public,
-                      label: 'CREATE WORLD',
-                      onTap: () => _promptForWorldName(context),
+                      label: 'WORLDS',
+                      isSelected: !isCharactersPage,
+                      onTap: () => setState(() => _page = _LobbyPage.worlds),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
+              if (isCharactersPage)
+                _LobbyButton(
+                  icon: Icons.person_add,
+                  label: 'NEW CHARACTER',
+                  onTap: widget.onCreateCharacter,
+                )
+              else
+                _LobbyButton(
+                  icon: Icons.add_location_alt,
+                  label: 'CREATE WORLD',
+                  onTap: () => _promptForWorldName(context),
+                ),
+              const SizedBox(height: 14),
               Expanded(
                 child: ListView(
-                  children: [
-                    const _LobbySectionTitle('CHARACTERS'),
-                    if (characters.isEmpty)
-                      const _EmptyLobbyText('Create a character to begin.'),
-                    for (final character in characters)
-                      _CharacterLobbyCard(
-                        character: character,
-                        currentWorld: worldById(character.worldId),
-                        isSelected: character.id == selectedCharacter?.id,
-                        onSelected: () => onSelectCharacter(character),
-                        onDelete: () => onDeleteCharacter(character),
-                      ),
-                    const SizedBox(height: 12),
-                    const _LobbySectionTitle('WORLDS'),
-                    if (selectedCharacter == null)
-                      const _EmptyLobbyText(
-                        'Pick a character before entering a world.',
-                      ),
-                    if (worlds.isEmpty)
-                      const _EmptyLobbyText('Create a world to enter.'),
-                    for (final world in worlds)
-                      _WorldLobbyCard(
-                        world: world,
-                        selectedCharacter: selectedCharacter,
-                        residents: charactersInWorld(world),
-                        onEnter: selectedCharacter == null
-                            ? null
-                            : () => onEnterWorld(selectedCharacter!, world),
-                        onDelete: () => onDeleteWorld(world),
-                      ),
-                  ],
+                  children: isCharactersPage
+                      ? [
+                          const _LobbySectionTitle('CHARACTERS'),
+                          if (widget.characters.isEmpty)
+                            const _EmptyLobbyText(
+                              'Create a character to begin.',
+                            ),
+                          for (final character in widget.characters)
+                            _CharacterLobbyCard(
+                              character: character,
+                              currentWorld: widget.worldById(character.worldId),
+                              isSelected:
+                                  character.id == widget.selectedCharacter?.id,
+                              onSelected: () {
+                                widget.onSelectCharacter(character);
+                                setState(() => _page = _LobbyPage.worlds);
+                              },
+                              onDelete: () => widget.onDeleteCharacter(character),
+                            ),
+                        ]
+                      : [
+                          const _LobbySectionTitle('WORLDS'),
+                          if (widget.selectedCharacter == null)
+                            const _EmptyLobbyText(
+                              'Pick a character before entering a world.',
+                            ),
+                          if (widget.worlds.isEmpty)
+                            const _EmptyLobbyText('Create a world to enter.'),
+                          for (final world in widget.worlds)
+                            _WorldLobbyCard(
+                              world: world,
+                              selectedCharacter: widget.selectedCharacter,
+                              residents: widget.charactersInWorld(world),
+                              onEnter: widget.selectedCharacter == null
+                                  ? null
+                                  : () => widget.onEnterWorld(
+                                      widget.selectedCharacter!,
+                                      world,
+                                    ),
+                              onDelete: () => widget.onDeleteWorld(world),
+                            ),
+                        ],
                 ),
               ),
             ],
@@ -627,7 +667,6 @@ class _WorldSelectionScreen extends StatelessWidget {
     );
   }
 }
-
 class _CharacterLobbyCard extends StatelessWidget {
   final GameCharacterSession character;
   final GameWorld? currentWorld;
@@ -656,9 +695,9 @@ class _CharacterLobbyCard extends StatelessWidget {
         onTap: onSelected,
         child: Row(
           children: [
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.person,
-              color: isSelected ? const Color(0xFFE24B4A) : Colors.white54,
+            _CharacterAvatarPreview(
+              customization: controller.customization,
+              isSelected: isSelected,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -706,6 +745,38 @@ class _CharacterLobbyCard extends StatelessWidget {
   }
 }
 
+class _CharacterAvatarPreview extends StatelessWidget {
+  final CharacterCustomization customization;
+  final bool isSelected;
+
+  const _CharacterAvatarPreview({
+    required this.customization,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 58,
+      height: 72,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0A0A),
+        border: Border.all(
+          color: isSelected ? const Color(0xFFE24B4A) : Colors.white12,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: SizedBox(
+          width: 52,
+          height: 112,
+          child: HeroCharacterPlaceholder(customization: customization),
+        ),
+      ),
+    );
+  }
+}
 class _WorldLobbyCard extends StatelessWidget {
   final GameWorld world;
   final GameCharacterSession? selectedCharacter;
@@ -853,6 +924,39 @@ class _GameMenuSheet extends StatelessWidget {
   }
 }
 
+class _LobbyTabButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _LobbyTabButton({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: isSelected ? Colors.white : Colors.white60,
+        backgroundColor: isSelected
+            ? const Color(0xFFE24B4A)
+            : const Color(0xFF111111),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFFE24B4A) : Colors.white12,
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+}
 class _LobbyButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -937,3 +1041,8 @@ class _EmptyLobbyText extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
