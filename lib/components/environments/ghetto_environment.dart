@@ -303,16 +303,18 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         !_isTalking &&
         !_walkController.isAnimating;
 
+    final showSafeHouse = _isAtHome && !_isTransitioning && widget.hasSafeHouse;
+
     return Stack(
       children: [
-        GhettoBackground(
-          scrollAnimation: _scrollController,
-          sceneWidth: sceneWidth,
-          backgroundAsset: widget.backgroundAsset,
-        ),
-
-        if (_isAtHome && !_isTransitioning && widget.hasSafeHouse)
-          const GhettoSafeHouseOverlay(),
+        if (showSafeHouse)
+          const GhettoSafeHouseOverlay()
+        else
+          GhettoBackground(
+            scrollAnimation: _scrollController,
+            sceneWidth: sceneWidth,
+            backgroundAsset: widget.backgroundAsset,
+          ),
 
         for (int i = 0; i < _allies.length; i++)
           GhettoAllyUnit(
@@ -668,3 +670,4 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     );
   }
 }
+
