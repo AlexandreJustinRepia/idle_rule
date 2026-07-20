@@ -156,6 +156,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       _playerWasDefeated = false;
       _selectedCombatant = null;
       _playerTarget = null;
+      _civilianFightProvoked = false;
       _enemies.clear();
       _dyingEnemies.clear();
       _damageIndicators.clear();
@@ -324,6 +325,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     _enemyOriginalIndices.clear();
     _selectedCombatant = null;
     _playerTarget = null;
+    _civilianFightProvoked = false;
     for (var c in _enemyChargeControllers.values) {
       c.dispose();
     }
@@ -558,30 +560,33 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     if (!_isTalking &&
         _enemies.isNotEmpty &&
         _enemies.first.npcType == NpcType.civilian &&
-        math.Random().nextDouble() < 0.5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${_enemies.first.name} panicked and ran away!'),
-          backgroundColor: Colors.grey[850],
-          duration: const Duration(seconds: 2),
-        ),
-      );
+        !_civilianFightProvoked) {
+      final civilian = _enemies.first;
       setState(() {
+        _civilianFightProvoked = true;
         _isEncounterChoice = false;
-        _enemies.clear();
+        _isResting = false;
         _scrollController.repeat();
         _walkController.repeat(reverse: true);
       });
-      Future.delayed(const Duration(milliseconds: 2000), () {
-        if (mounted &&
-            !_isFighting &&
-            !_isRecruiting &&
-            !_isAtHome &&
-            !_isResting &&
-            !_isEncounterChoice &&
-            !_isTalking) {
-          _startEncounter();
+
+      Future.delayed(const Duration(milliseconds: 1400), () {
+        if (!mounted ||
+            _isFighting ||
+            _isRecruiting ||
+            _isAtHome ||
+            _isTalking ||
+            !_enemies.contains(civilian)) {
+          return;
         }
+
+        setState(() {
+          _introEnemyName = civilian.name;
+          _isEncounterChoice = true;
+          _scrollController.stop();
+          _walkController.stop();
+          _walkController.value = 0.5;
+        });
       });
       return;
     }
@@ -589,6 +594,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     setState(() {
       _isEncounterChoice = false;
       _isTalking = false;
+      _civilianFightProvoked = false;
       _isIntroAnimating = true;
     });
 
@@ -630,6 +636,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     setState(() {
       _isEncounterChoice = false;
       _isTalking = true;
+      _civilianFightProvoked = false;
       _talkState = "choices";
       _currentDialogue = "Yo, what do you want? I don't have all day.";
     });
@@ -638,6 +645,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
   void _onFinishTalking() {
     setState(() {
       _isTalking = false;
+      _civilianFightProvoked = false;
       _enemies.clear();
       _scrollController.repeat();
       _walkController.repeat(reverse: true);
@@ -1128,5 +1136,4 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     }
   }
 }
-
 

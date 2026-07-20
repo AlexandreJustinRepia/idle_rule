@@ -152,6 +152,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _isEncounterChoice = false;
   bool _isTalking = false;
   bool _isConquestEncounter = false;
+  bool _civilianFightProvoked = false;
   String _currentDialogue = "";
   String _talkState = "choices";
 
@@ -308,6 +309,24 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     super.dispose();
   }
 
+  String _introSlamTitle() {
+    if (_enemies.isEmpty) return _introEnemyName;
+    final enemy = _enemies.first;
+    if (enemy.isBoss) return 'Boss';
+
+    switch (enemy.npcType) {
+      case NpcType.civilian:
+        return 'Civilian';
+      case NpcType.thug:
+        return 'Thug';
+      case NpcType.gangMember:
+        return 'Gang Member';
+      case NpcType.merchant:
+        return 'Merchant';
+      case NpcType.cop:
+        return 'Cop';
+    }
+  }
   @override
   Widget build(BuildContext context) {
     bool isIdle =
@@ -526,7 +545,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         if (_isIntroAnimating)
           CinematicSlamOverlay(
             animation: _introController,
-            title: _introEnemyName,
+            title: _introSlamTitle(),
             subtitle: "Territory Raid",
           ),
 
@@ -749,5 +768,4 @@ class _DamageIndicatorView extends StatelessWidget {
     );
   }
 }
-
 
