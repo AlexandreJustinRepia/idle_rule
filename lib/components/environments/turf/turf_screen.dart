@@ -164,7 +164,6 @@ class _TurfScreenState extends State<TurfScreen> {
     );
 
     widget.onSoloTurfConquestStarted?.call(request);
-    widget.onLocationChanged?.call(territory.id);
 
     if (!mounted) return;
 
