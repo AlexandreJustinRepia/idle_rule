@@ -40,6 +40,47 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     );
   }
 
+  void _pushDamageIndicator({
+    required int amount,
+    required _DamageIndicatorTarget target,
+    int targetIndex = 0,
+  }) {
+    if (amount <= 0) return;
+    final indicator = _DamageIndicator(
+      id: _nextDamageIndicatorId++,
+      amount: amount,
+      target: target,
+      targetIndex: targetIndex,
+    );
+    _damageIndicators.add(indicator);
+
+    Future.delayed(const Duration(milliseconds: 760), () {
+      if (!mounted) return;
+      setState(() {
+        _damageIndicators.removeWhere((item) => item.id == indicator.id);
+      });
+    });
+  }
+
+  void _pushEnemyDamageIndicator(Enemy enemy, int amount) {
+    final currentIndex = _enemies.indexOf(enemy);
+    final targetIndex = currentIndex >= 0
+        ? currentIndex
+        : (_enemyOriginalIndices[enemy] ?? 0);
+    _pushDamageIndicator(
+      amount: amount,
+      target: _DamageIndicatorTarget.enemy,
+      targetIndex: targetIndex,
+    );
+  }
+
+  void _pushPlayerDamageIndicator(int amount) {
+    _pushDamageIndicator(
+      amount: amount,
+      target: _DamageIndicatorTarget.player,
+    );
+  }
+
   Future<void> _startSoloTurfConquest(PendingTurfConquest request) async {
     if (_activeSoloConquestId == request.territoryId &&
         (_isFighting || _isIntroAnimating || _isRecruiting)) {
@@ -117,6 +158,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       _playerTarget = null;
       _enemies.clear();
       _dyingEnemies.clear();
+      _damageIndicators.clear();
       _scrollController.stop();
       _walkController.stop();
       _walkController.value = 0;
@@ -278,6 +320,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
   }) async {
     _enemies.clear();
     _dyingEnemies.clear();
+    _damageIndicators.clear();
     _enemyOriginalIndices.clear();
     _selectedCombatant = null;
     _playerTarget = null;
@@ -680,6 +723,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
     setState(() {
       target.hp -= damage;
+      _pushEnemyDamageIndicator(target, damage);
       _enemyWasHit = true;
       if (target.hp <= 0) {
         _handleEnemyDefeat(target);
@@ -864,6 +908,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     int damage = CombatEngine.calculatePlayerDamage(widget.stats, _isLowHunger);
     setState(() {
       target.hp -= damage;
+      _pushEnemyDamageIndicator(target, damage);
       _enemyWasHit = true;
       if (target.hp <= 0) {
         _handleEnemyDefeat(target);
@@ -926,6 +971,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     int damage = CombatEngine.calculatePlayerDamage(widget.stats, _isLowHunger);
     setState(() {
       target.hp -= damage;
+      _pushEnemyDamageIndicator(target, damage);
       _enemyWasHit = true;
       if (target.hp <= 0) {
         _handleEnemyDefeat(target);
@@ -993,7 +1039,10 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       hunger: -0.25,
     );
 
-    setState(() => _playerWasHit = true);
+    setState(() {
+      _pushPlayerDamageIndicator(damage);
+      _playerWasHit = true;
+    });
     _playerHitController.forward(from: 0);
     if (willDefeatPlayer) {
       bool hasAliveAllies = _allies.any((ally) => ally.hp > 0);
@@ -1079,3 +1128,5 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     }
   }
 }
+
+

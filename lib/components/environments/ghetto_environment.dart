@@ -23,6 +23,22 @@ import 'ghetto/ghetto_safe_house_overlay.dart';
 import 'ghetto/ghetto_transition_overlay.dart';
 part 'ghetto/ghetto_environment_actions.dart';
 
+enum _DamageIndicatorTarget { player, enemy }
+
+class _DamageIndicator {
+  final int id;
+  final int amount;
+  final _DamageIndicatorTarget target;
+  final int targetIndex;
+
+  const _DamageIndicator({
+    required this.id,
+    required this.amount,
+    required this.target,
+    this.targetIndex = 0,
+  });
+}
+
 class GhettoEnvironment extends StatefulWidget {
   final PlayerStats stats;
   final int playerHealth;
@@ -159,6 +175,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   dynamic _selectedCombatant;
   Enemy? _playerTarget;
   String? _activeSoloConquestId;
+  int _nextDamageIndicatorId = 1;
+  final List<_DamageIndicator> _damageIndicators = [];
 
   @override
   void initState() {
@@ -401,6 +419,12 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             enemyChargeController: const AlwaysStoppedAnimation<double>(0.0),
             idleAnimation: const AlwaysStoppedAnimation<double>(0.0),
             onTap: (_) => _onRecruitTapped(enemy),
+          ),
+
+        for (final indicator in _damageIndicators)
+          _DamageIndicatorView(
+            key: ValueKey(indicator.id),
+            indicator: indicator,
           ),
 
         Positioned(
@@ -670,4 +694,60 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     );
   }
 }
+
+class _DamageIndicatorView extends StatelessWidget {
+  final _DamageIndicator indicator;
+
+  const _DamageIndicatorView({super.key, required this.indicator});
+
+  @override
+  Widget build(BuildContext context) {
+    final isPlayer = indicator.target == _DamageIndicatorTarget.player;
+    final right = (72.0 + indicator.targetIndex * 12.0)
+        .clamp(0.0, 220.0)
+        .toDouble();
+    final bottom = isPlayer
+        ? 168.0
+        : 182.0 + (indicator.targetIndex.isEven ? 10.0 : -4.0);
+
+    return Positioned(
+      left: isPlayer ? 78 : null,
+      right: isPlayer ? null : right,
+      bottom: bottom,
+      child: IgnorePointer(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 720),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            final opacity = value < 0.72 ? 1.0 : (1.0 - value) / 0.28;
+            return Opacity(
+              opacity: opacity.clamp(0.0, 1.0).toDouble(),
+              child: Transform.translate(
+                offset: Offset(0, -34 * value),
+                child: Transform.scale(
+                  scale: 1.2 - value * 0.18,
+                  child: child,
+                ),
+              ),
+            );
+          },
+          child: Text(
+            '-${indicator.amount}',
+            style: TextStyle(
+              color: isPlayer ? Colors.redAccent : const Color(0xFFFFD54F),
+              fontSize: isPlayer ? 24 : 22,
+              fontWeight: FontWeight.w900,
+              shadows: const [
+                Shadow(color: Colors.black, blurRadius: 8),
+                Shadow(color: Colors.black, offset: Offset(1, 2)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
