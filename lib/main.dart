@@ -451,10 +451,7 @@ class _GameScreen extends StatelessWidget {
                         characterName: gameController.playerName,
                         worldName: world.name,
                         locationStreetId: character.locationStreetId,
-                        residents: worldResidents
-                            .where((resident) => resident.id != character.id)
-                            .map((resident) => resident.controller.playerName)
-                            .toList(),
+                        worldResidents: worldResidents,
                         onLocationChanged: onLocationChanged,
                         onSoloTurfConquestStarted: onTurfConquestStarted,
                         rivalGangs: world.rivalGangs,
@@ -575,7 +572,7 @@ class _WorldSelectionScreenState extends State<_WorldSelectionScreen> {
               Text(
                 isCharactersPage
                     ? 'Choose who you want to play, or create another fighter.'
-                    : 'Enter a world with the selected character. Deleting a world only removes the world.',
+                    : 'Choose a world, then pick which character enters it. Deleting a world only removes the world.',
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               ),
               const SizedBox(height: 14),
@@ -638,23 +635,22 @@ class _WorldSelectionScreenState extends State<_WorldSelectionScreen> {
                         ]
                       : [
                           const _LobbySectionTitle('WORLDS'),
-                          if (widget.selectedCharacter == null)
+                          if (widget.characters.isEmpty)
                             const _EmptyLobbyText(
-                              'Pick a character before entering a world.',
+                              'Create a character before entering a world.',
                             ),
                           if (widget.worlds.isEmpty)
                             const _EmptyLobbyText('Create a world to enter.'),
                           for (final world in widget.worlds)
                             _WorldLobbyCard(
                               world: world,
+                              characters: widget.characters,
                               selectedCharacter: widget.selectedCharacter,
                               residents: widget.charactersInWorld(world),
-                              onEnter: widget.selectedCharacter == null
-                                  ? null
-                                  : () => widget.onEnterWorld(
-                                      widget.selectedCharacter!,
-                                      world,
-                                    ),
+                              onEnter: (character) {
+                                widget.onSelectCharacter(character);
+                                widget.onEnterWorld(character, world);
+                              },
                               onDelete: () => widget.onDeleteWorld(world),
                             ),
                         ],
@@ -667,6 +663,7 @@ class _WorldSelectionScreenState extends State<_WorldSelectionScreen> {
     );
   }
 }
+
 class _CharacterLobbyCard extends StatelessWidget {
   final GameCharacterSession character;
   final GameWorld? currentWorld;
@@ -777,25 +774,98 @@ class _CharacterAvatarPreview extends StatelessWidget {
     );
   }
 }
+
 class _WorldLobbyCard extends StatelessWidget {
   final GameWorld world;
+  final List<GameCharacterSession> characters;
   final GameCharacterSession? selectedCharacter;
   final List<GameCharacterSession> residents;
-  final VoidCallback? onEnter;
+  final ValueChanged<GameCharacterSession> onEnter;
   final VoidCallback onDelete;
 
   const _WorldLobbyCard({
     required this.world,
+    required this.characters,
     required this.selectedCharacter,
     required this.residents,
     required this.onEnter,
     required this.onDelete,
   });
 
+  String _locationLabelFor(GameCharacterSession character) {
+    final mapData = world.mapData;
+    if (mapData == null) return 'Generating on first entry';
+
+    final streetId = character.locationStreetId ?? mapData.spawnStreetId;
+    try {
+      final location = mapData.territoryById(streetId);
+      final streetType = location.streetType?.label;
+      return streetType == null ? location.label : '${location.label} / $streetType';
+    } catch (_) {
+      return 'Unknown street';
+    }
+  }
+  void _showCharacterPicker(BuildContext context) {
+    if (characters.isEmpty) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF111111),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'ENTER ${world.name.toUpperCase()}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Choose a character for this world.',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+                ),
+                const SizedBox(height: 14),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.55,
+                  ),
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                       for (final character in characters)
+                         _WorldCharacterChoice(
+                           character: character,
+                           isSelected: character.id == selectedCharacter?.id,
+                           isResident: character.worldId == world.id,
+                           onTap: () {
+                             Navigator.of(context).pop();
+                             onEnter(character);
+                           },
+                         ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isCurrentWorld =
-        selectedCharacter != null && selectedCharacter!.worldId == world.id;
+    final isCurrentWorld = residents.any(
+      (resident) => resident.id == selectedCharacter?.id,
+    );
 
     return _LobbyCard(
       isSelected: isCurrentWorld,
@@ -814,23 +884,33 @@ class _WorldLobbyCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                Text(
-                  residents.isEmpty
-                      ? 'No characters inside'
-                      : residents
-                            .map((resident) => resident.controller.playerName)
-                            .join(', '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
-                ),
+                const SizedBox(height: 6),
+                if (residents.isEmpty)
+                  Text(
+                    'No characters inside',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.55),
+                    ),
+                  )
+                else
+                  Column(
+                    children: [
+                      for (final resident in residents)
+                        _WorldResidentRow(
+                          character: resident,
+                          locationLabel: _locationLabelFor(resident),
+                        ),
+                    ],
+                  ),
               ],
             ),
           ),
           ElevatedButton.icon(
-            onPressed: onEnter,
+            onPressed: characters.isEmpty
+                ? null
+                : () => _showCharacterPicker(context),
             icon: const Icon(Icons.login, size: 16),
-            label: Text(isCurrentWorld ? 'ENTER' : 'GO'),
+            label: const Text('ENTER'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE24B4A),
               disabledBackgroundColor: const Color(0xFF2A2A2A),
@@ -843,6 +923,110 @@ class _WorldLobbyCard extends StatelessWidget {
             tooltip: 'Delete world',
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline, color: Colors.white54),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorldCharacterChoice extends StatelessWidget {
+  final GameCharacterSession character;
+  final bool isSelected;
+  final bool isResident;
+  final VoidCallback onTap;
+
+  const _WorldCharacterChoice({
+    required this.character,
+    required this.isSelected,
+    required this.isResident,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = character.controller;
+
+    return _LobbyCard(
+      isSelected: isSelected,
+      child: InkWell(
+        onTap: onTap,
+        child: Row(
+          children: [
+            _CharacterAvatarPreview(
+              customization: controller.customization,
+              isSelected: isSelected,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    controller.playerName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isResident
+                        ? 'Already in this world'
+                        : 'Enter this world',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.58),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              isResident ? Icons.home_work_rounded : Icons.login,
+              color: isResident ? const Color(0xFFE24B4A) : Colors.white54,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorldResidentRow extends StatelessWidget {
+  final GameCharacterSession character;
+  final String locationLabel;
+
+  const _WorldResidentRow({
+    required this.character,
+    required this.locationLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          const Icon(Icons.person, size: 12, color: Colors.white54),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              character.controller.playerName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            locationLabel,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -1041,7 +1225,6 @@ class _EmptyLobbyText extends StatelessWidget {
     );
   }
 }
-
 
 
 

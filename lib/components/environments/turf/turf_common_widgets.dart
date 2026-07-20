@@ -244,6 +244,63 @@ class TravelOptionCard extends StatelessWidget {
   }
 }
 
+class WorldResidentRow extends StatelessWidget {
+  final String name;
+  final String locationLabel;
+  final bool isActivePlayer;
+
+  const WorldResidentRow({
+    super.key,
+    required this.name,
+    required this.locationLabel,
+    this.isActivePlayer = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2125),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isActivePlayer
+              ? const Color(0xFFE24B4A).withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.06),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isActivePlayer ? Icons.person_pin : Icons.person_outline,
+            size: 16,
+            color: isActivePlayer ? const Color(0xFFE24B4A) : Colors.white54,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(
+                color: isActivePlayer ? const Color(0xFFE24B4A) : Colors.white,
+                fontSize: 13,
+                fontWeight: isActivePlayer ? FontWeight.w900 : FontWeight.w700,
+              ),
+            ),
+          ),
+          Text(
+            locationLabel,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class TurfNpcCard extends StatelessWidget {
   final InteractableNpc npc;
   final VoidCallback onTap;

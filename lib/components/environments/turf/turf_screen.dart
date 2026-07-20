@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../controllers/game_controller.dart';
 import '../../../models/gang.dart';
+import '../../../models/world_session.dart';
 import 'ghetto_turf_map.dart';
 import 'travel_animation_overlay.dart';
 import 'turf_map.dart';
@@ -16,6 +17,7 @@ class TurfScreen extends StatefulWidget {
   final String? worldName;
   final String? locationStreetId;
   final List<String> residents;
+  final List<GameCharacterSession> worldResidents;
   final ValueChanged<String>? onLocationChanged;
   final ValueChanged<PendingTurfConquest>? onSoloTurfConquestStarted;
   final List<Gang> rivalGangs;
@@ -29,6 +31,7 @@ class TurfScreen extends StatefulWidget {
     this.worldName,
     this.locationStreetId,
     this.residents = const [],
+    this.worldResidents = const [],
     this.onLocationChanged,
     this.onSoloTurfConquestStarted,
     this.rivalGangs = const [],
@@ -82,6 +85,17 @@ class _TurfScreenState extends State<TurfScreen> {
     }
     if (updated && mounted) {
       setState(() {});
+    }
+  }
+
+  String _locationLabelFor(GameCharacterSession character) {
+    final streetId = character.locationStreetId ?? _mapData.spawnStreetId;
+    try {
+      final location = _mapData.territoryById(streetId);
+      final streetType = location.streetType?.label;
+      return streetType == null ? location.label : '${location.label} / $streetType';
+    } catch (_) {
+      return 'Unknown street';
     }
   }
 
@@ -305,6 +319,11 @@ class _TurfScreenState extends State<TurfScreen> {
     final currentStreetId = widget.locationStreetId ?? _mapData.spawnStreetId;
     final currentStreet = _mapData.territoryById(currentStreetId);
 
+    final streetResidentNames = widget.worldResidents
+        .where((r) => r.locationStreetId == currentStreetId)
+        .map((r) => r.controller.playerName)
+        .toList();
+
     final crumbs = _breadcrumbs;
     final children = _childrenOf(_currentParentId);
 
@@ -355,7 +374,7 @@ class _TurfScreenState extends State<TurfScreen> {
             // Current Location Indicator Banner
             LocationIndicatorBanner(
               currentStreet: currentStreet,
-              residents: widget.residents,
+              residents: streetResidentNames,
               characterName: widget.characterName,
             ),
             const SizedBox(height: 12),
@@ -423,6 +442,41 @@ class _TurfScreenState extends State<TurfScreen> {
                       .toList(),
                 ),
               ),
+              const SizedBox(height: 12),
+            ],
+
+            // World Residents Section
+            if (widget.worldResidents.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.public, color: Color(0xFFE24B4A), size: 14),
+                    const SizedBox(width: 8),
+                    Text(
+                      'WORLD RESIDENTS',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...widget.worldResidents.map((resident) {
+                final isCurrentPlayer =
+                    resident.controller.playerName == widget.characterName;
+                return WorldResidentRow(
+                  name: isCurrentPlayer
+                      ? '${resident.controller.playerName} (You)'
+                      : resident.controller.playerName,
+                  locationLabel: _locationLabelFor(resident),
+                  isActivePlayer: isCurrentPlayer,
+                );
+              }),
               const SizedBox(height: 12),
             ],
 
