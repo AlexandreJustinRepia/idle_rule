@@ -397,6 +397,8 @@ class _GameScreen extends StatelessWidget {
                         onBossDefeated: gameController.onBossDefeated,
                         onStartBossFight: gameController.startBossFight,
                         bossIndex: gameController.bossIndex,
+                        activePlayerChallenge: gameController.activePlayerChallenge,
+                        onPlayerChallengeDefeated: gameController.onPlayerChallengeDefeated,
                         onMoneyGained: gameController.gainMoney,
                         hasGang: gameController.hasGang,
                         gangMembers: gameController.formationMembers,

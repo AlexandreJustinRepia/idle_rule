@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../game_state.dart';
+import '../models/world_session.dart';
 
 class GangTrainingJob {
   final RecruitTier tier;
@@ -84,6 +85,7 @@ class GameController extends ChangeNotifier {
   int _money = 0;
   Boss? _activeBoss;
   int _bossIndex = 0;
+  GameCharacterSession? _activePlayerChallenge;
   String _playerName = '';
   CharacterClass _characterClass = CharacterClasses.allClasses.first;
   CharacterCustomization _customization = const CharacterCustomization();
@@ -164,6 +166,7 @@ class GameController extends ChangeNotifier {
   Set<String> get ownedWeaponIds => Set.unmodifiable(_ownedWeaponIds);
   Boss? get activeBoss => _activeBoss;
   int get bossIndex => _bossIndex;
+  GameCharacterSession? get activePlayerChallenge => _activePlayerChallenge;
   String get playerName => _playerName;
   CharacterClass get characterClass => _characterClass;
   CharacterCustomization get customization => _customization;
@@ -1021,10 +1024,38 @@ class GameController extends ChangeNotifier {
   void onBossDefeated() {
     _activeBoss = null;
     _bossIndex++;
-    // Bosses give a significant reputation and money boost
     gainStats(reputation: 25.0);
     gainMoney(500);
     notifyListeners();
+  }
+
+  void startPlayerChallenge(GameCharacterSession target) {
+    if (_activeBoss != null || _activePlayerChallenge != null) return;
+    final targetStats = target.controller.stats;
+    final targetName = target.controller.playerName;
+    _activeBoss = Boss(
+      name: targetName,
+      health: targetStats.maxHealth,
+      damage: targetStats.attackDamage,
+      attackDelay: targetStats.attackDelay,
+      dodgeChance: targetStats.dodgeChance,
+      themeColor: Colors.purpleAccent,
+    );
+    _activePlayerChallenge = target;
+    _playerHealth = _stats.maxHealth;
+    notifyListeners();
+  }
+
+  void onPlayerChallengeDefeated() {
+    _activeBoss = null;
+    _activePlayerChallenge = null;
+    gainStats(reputation: 10.0);
+    gainMoney(100);
+    notifyListeners();
+  }
+
+  bool isInPlayerChallenge() {
+    return _activePlayerChallenge != null;
   }
 
   bool buyItem({

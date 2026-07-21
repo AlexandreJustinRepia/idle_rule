@@ -17,6 +17,21 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       widget.hasGang ? widget.stats.gangCapacity : 0;
   bool get _isBossFight => widget.activeBoss != null;
 
+  NpcType _pickEncounterNpcType() {
+    final random = math.Random();
+    if (widget.streetControllingGangName != null &&
+        widget.streetControllingGangName!.isNotEmpty) {
+      return random.nextDouble() < 0.7
+          ? NpcType.gangMember
+          : NpcType.thug;
+    }
+    final roll = random.nextDouble();
+    if (roll < 0.35) return NpcType.thug;
+    if (roll < 0.55) return NpcType.civilian;
+    if (roll < 0.75) return NpcType.merchant;
+    return NpcType.cop;
+  }
+
   void _applyCombatGains({
     required double strength,
     required double speed,
@@ -311,6 +326,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
         vsync: this,
         duration: const Duration(milliseconds: 300),
       );
+      _assignSpawnOffset(newAlly);
     });
     widget.onGangMemberRecruited?.call(newAlly);
   }
@@ -326,6 +342,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     _selectedCombatant = null;
     _playerTarget = null;
     _civilianFightProvoked = false;
+    _isPlayerChallenge = widget.activePlayerChallenge != null;
     for (var c in _enemyChargeControllers.values) {
       c.dispose();
     }
@@ -384,11 +401,13 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
         final guardCount = 2;
         final levelBase = (conquest.territoryDefense / 18).ceil().clamp(1, 99);
+        final guardType = occupyingGang != null ? NpcType.gangMember : null;
         for (int i = 0; i < guardCount; i++) {
           _enemyNumber++;
           final enemy = GhettoEnemyFactory.generateRandomEnemy(
             levelBase + i,
             widget.stats,
+            forceNpcType: guardType,
           );
           _enemies.add(enemy.copyWith(
             themeColor: occupyingGang?.primaryColor ?? enemy.themeColor,
@@ -397,11 +416,13 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
       } else {
         final count = (conquest.territoryDefense / 35).ceil().clamp(2, 8);
         final levelBase = (conquest.territoryDefense / 18).ceil().clamp(1, 99);
+        final conquestType = occupyingGang != null ? NpcType.gangMember : null;
         for (int i = 0; i < count; i++) {
           _enemyNumber++;
           final enemy = GhettoEnemyFactory.generateRandomEnemy(
             levelBase + i,
             widget.stats,
+            forceNpcType: conquestType,
           );
           _enemies.add(occupyingGang != null
               ? enemy.copyWith(themeColor: occupyingGang.primaryColor)
@@ -437,12 +458,14 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
       int count =
           math.Random().nextInt(maxEnemies - minEnemies + 1) + minEnemies;
+      final encounterNpcType = _pickEncounterNpcType();
       for (int i = 0; i < count; i++) {
         _enemyNumber++;
         final enemy = GhettoEnemyFactory.generateRandomEnemy(
           _enemyNumber,
           widget.stats,
           streetControllingGangName: widget.streetControllingGangName,
+          forceNpcType: encounterNpcType,
         );
         _enemies.add(enemy);
       }
@@ -836,7 +859,11 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
 
     await _deathController.forward(from: 0);
     if (mounted) {
-      if (widget.activeBoss != null) widget.onBossDefeated?.call();
+      if (_isPlayerChallenge) {
+        widget.onPlayerChallengeDefeated?.call();
+      } else if (widget.activeBoss != null) {
+        widget.onBossDefeated?.call();
+      }
       if (_activeSoloConquestId != null) _finishSoloTurfConquest();
       _stopAllCombatAnimations();
       setState(() {
@@ -1111,6 +1138,9 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
   Future<void> _handlePlayerDefeated() async {
     _stopAllCombatAnimations();
     _failSoloTurfConquest();
+    if (_isPlayerChallenge) {
+      widget.onPlayerChallengeDefeated?.call();
+    }
     widget.onPlayerDefeated();
 
     setState(() {

@@ -13,6 +13,7 @@ class GhettoAllyUnit extends StatelessWidget {
   final int index;
   final bool isSelected;
   final VoidCallback? onTap;
+  final Offset? spawnOffset;
 
   const GhettoAllyUnit({
     super.key,
@@ -25,16 +26,22 @@ class GhettoAllyUnit extends StatelessWidget {
     this.index = 0,
     this.isSelected = false,
     this.onTap,
+    this.spawnOffset,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasSpawnOffset = spawnOffset != null;
     return Align(
       alignment: Alignment.bottomLeft,
       child: Padding(
         padding: EdgeInsets.only(
-          bottom: 48.0 + ((index % 2 == 0) ? 10.0 : -4.0), // Stagger vertically for depth
-          left: (40.0 - (index + 1) * 12.0).clamp(0.0, 60.0), // Behind the leader (hero is at left: 60)
+          bottom: hasSpawnOffset
+              ? spawnOffset!.dy
+              : (48.0 + ((index % 2 == 0) ? 10.0 : -4.0)),
+          left: hasSpawnOffset
+              ? spawnOffset!.dx
+              : (40.0 - (index + 1) * 12.0).clamp(0.0, 60.0),
         ),
         child: AnimatedBuilder(
           animation: Listenable.merge([

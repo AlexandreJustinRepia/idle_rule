@@ -19,41 +19,66 @@ class GhettoEnemyFactory {
     return '$first "$alias" $last';
   }
 
-  static Enemy generateRandomEnemy(int level, PlayerStats playerStats, {String? streetControllingGangName}) {
+  static Enemy generateRandomEnemy(int level, PlayerStats playerStats, {String? streetControllingGangName, NpcType? forceNpcType}) {
     final typeIndex = _random.nextInt(4);
     final enemyType = EnemyType.values[typeIndex];
 
-    // Select NPC Type
-    final npcRandom = _random.nextDouble();
     NpcType npcType;
     String alias = 'Ace';
     Color defaultColor = Colors.redAccent;
 
-    if (npcRandom < 0.25) {
-      npcType = NpcType.civilian;
-      alias = 'Civilian';
-      defaultColor = Colors.grey;
-    } else if (npcRandom < 0.55) {
-      npcType = NpcType.thug;
-      alias = 'Thug';
-      defaultColor = Colors.deepOrangeAccent;
-    } else if (npcRandom < 0.70) {
-      npcType = NpcType.merchant;
-      alias = 'Hustler';
-      defaultColor = Colors.greenAccent;
-    } else if (npcRandom < 0.85) {
-      npcType = NpcType.cop;
-      alias = 'Officer';
-      defaultColor = Colors.blueAccent;
+    if (forceNpcType != null) {
+      npcType = forceNpcType;
+      switch (npcType) {
+        case NpcType.civilian:
+          alias = 'Civilian';
+          defaultColor = Colors.grey;
+          break;
+        case NpcType.thug:
+          alias = 'Thug';
+          defaultColor = Colors.deepOrangeAccent;
+          break;
+        case NpcType.merchant:
+          alias = 'Hustler';
+          defaultColor = Colors.greenAccent;
+          break;
+        case NpcType.cop:
+          alias = 'Officer';
+          defaultColor = Colors.blueAccent;
+          break;
+        case NpcType.gangMember:
+          alias = 'Gangster';
+          defaultColor = Colors.purpleAccent;
+          break;
+      }
     } else {
-      if (streetControllingGangName != null && streetControllingGangName.isNotEmpty) {
-        npcType = NpcType.gangMember;
-        alias = 'Gangster';
-        defaultColor = Colors.purpleAccent;
-      } else {
+      final npcRandom = _random.nextDouble();
+      if (npcRandom < 0.25) {
+        npcType = NpcType.civilian;
+        alias = 'Civilian';
+        defaultColor = Colors.grey;
+      } else if (npcRandom < 0.55) {
         npcType = NpcType.thug;
         alias = 'Thug';
         defaultColor = Colors.deepOrangeAccent;
+      } else if (npcRandom < 0.70) {
+        npcType = NpcType.merchant;
+        alias = 'Hustler';
+        defaultColor = Colors.greenAccent;
+      } else if (npcRandom < 0.85) {
+        npcType = NpcType.cop;
+        alias = 'Officer';
+        defaultColor = Colors.blueAccent;
+      } else {
+        if (streetControllingGangName != null && streetControllingGangName.isNotEmpty) {
+          npcType = NpcType.gangMember;
+          alias = 'Gangster';
+          defaultColor = Colors.purpleAccent;
+        } else {
+          npcType = NpcType.thug;
+          alias = 'Thug';
+          defaultColor = Colors.deepOrangeAccent;
+        }
       }
     }
 

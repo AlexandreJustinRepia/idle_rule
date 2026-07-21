@@ -9,6 +9,7 @@ import 'turf_common_widgets.dart';
 import 'turf_territory_card.dart';
 import '../../../models/interactable_npc.dart';
 import '../../ui/npc_interaction_modal.dart';
+import '../../ui/player_interaction_modal.dart';
 
 class TurfScreen extends StatefulWidget {
   final GameController gameController;
@@ -323,6 +324,12 @@ class _TurfScreenState extends State<TurfScreen> {
         .map((r) => r.controller.playerName)
         .toList();
 
+    final sameStreetResidents = widget.worldResidents
+        .where((r) =>
+            r.controller.playerName != widget.characterName &&
+            r.locationStreetId == currentStreetId)
+        .toList();
+
     final crumbs = _breadcrumbs;
     final children = _childrenOf(_currentParentId);
 
@@ -439,6 +446,52 @@ class _TurfScreenState extends State<TurfScreen> {
                         ),
                       )
                       .toList(),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Street Encounters Section (other players on same street)
+            if (sameStreetResidents.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.warning,
+                      color: Color(0xFFE24B4A),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'STREET ENCOUNTERS',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 70,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: sameStreetResidents.map((resident) {
+                    return PlayerEncounterCard(
+                      name: resident.controller.playerName,
+                      onTap: () {
+                        PlayerInteractionModal.show(
+                          context,
+                          resident,
+                          widget.gameController,
+                        );
+                      },
+                    );
+                  }).toList(),
                 ),
               ),
               const SizedBox(height: 12),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../controllers/game_controller.dart';
 import '../../game_state.dart';
+import '../../models/world_session.dart';
 import '../../logic/combat_engine.dart';
 import '../../logic/combat_stat_rewards.dart';
 import '../../logic/player_needs_logic.dart';
@@ -64,6 +65,8 @@ class GhettoEnvironment extends StatefulWidget {
   final VoidCallback? onBossDefeated;
   final VoidCallback? onStartBossFight;
   final int bossIndex;
+  final GameCharacterSession? activePlayerChallenge;
+  final VoidCallback? onPlayerChallengeDefeated;
   final void Function(int amount)? onMoneyGained;
   final bool hasGang;
   final List<Ally> gangMembers;
@@ -101,6 +104,8 @@ class GhettoEnvironment extends StatefulWidget {
     this.onBossDefeated,
     this.onStartBossFight,
     this.bossIndex = 0,
+    this.activePlayerChallenge,
+    this.onPlayerChallengeDefeated,
     this.onMoneyGained,
     this.hasGang = false,
     this.gangMembers = const [],
@@ -153,6 +158,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   bool _isTalking = false;
   bool _isConquestEncounter = false;
   bool _civilianFightProvoked = false;
+  bool _isPlayerChallenge = false;
   String _currentDialogue = "";
   String _talkState = "choices";
 
@@ -167,6 +173,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
   final Map<Enemy, AnimationController> _enemyChargeControllers = {};
   final Map<Enemy, AnimationController> _enemyAttackControllers = {};
   final Map<Enemy, int> _enemyOriginalIndices = {};
+
+  final Map<Ally, Offset> _allySpawnOffsets = {};
+  final Set<Ally> _initializedAllies = {};
 
   int _enemyNumber = 0;
   double _encounterTotalThreat = 0;
@@ -225,6 +234,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
     );
 
     _allies.addAll(widget.gangMembers);
+    _initializedAllies.addAll(_allies);
     for (final ally in _allies) {
       _allyChargeControllers[ally] = AnimationController(
         vsync: this,
@@ -278,6 +288,9 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         vsync: this,
         duration: const Duration(milliseconds: 300),
       );
+      if (!_initializedAllies.contains(ally)) {
+        _assignSpawnOffset(ally);
+      }
     }
   }
 
@@ -327,6 +340,25 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         return 'Cop';
     }
   }
+
+  void _assignSpawnOffset(Ally ally) {
+    final random = math.Random();
+    final offset = Offset(
+      random.nextDouble() * 280.0 + 20.0,
+      random.nextDouble() * 200.0 + 20.0,
+    );
+    setState(() {
+      _allySpawnOffsets[ally] = offset;
+    });
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted) {
+        setState(() {
+          _allySpawnOffsets.remove(ally);
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isIdle =
@@ -364,6 +396,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
             idleAnimation: _idleAnimation,
             isFighting: _isFighting,
             isSelected: _selectedCombatant == _allies[i],
+            spawnOffset: _allySpawnOffsets[_allies[i]],
             onTap: () {
               if (!_isFighting || _allies[i].hp <= 0) return;
               setState(() {
