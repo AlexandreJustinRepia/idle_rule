@@ -277,6 +277,58 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       });
     }
 
+    final bossJustActivated =
+        widget.activeBoss != null && oldWidget.activeBoss == null;
+    final playerChallengeJustActivated =
+        widget.activePlayerChallenge != null &&
+        oldWidget.activePlayerChallenge == null;
+
+    if (playerChallengeJustActivated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_isFighting ||
+            _isRecruiting ||
+            _isEnemyDying ||
+            _playerWasDefeated ||
+            _isIntroAnimating ||
+            _isTransitioning ||
+            _isEncounterChoice ||
+            _isTalking) {
+          return;
+        }
+        final challenge = widget.activePlayerChallenge;
+        if (challenge == null) return;
+        if (_isAtHome) {
+          _exitHouse().then((_) {
+            if (mounted) _startEncounter(playerChallenge: challenge);
+          });
+        } else {
+          _startEncounter(playerChallenge: challenge);
+        }
+      });
+    } else if (bossJustActivated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_isFighting ||
+            _isRecruiting ||
+            _isEnemyDying ||
+            _playerWasDefeated ||
+            _isIntroAnimating ||
+            _isTransitioning ||
+            _isEncounterChoice ||
+            _isTalking) {
+          return;
+        }
+        if (_isAtHome) {
+          _exitHouse().then((_) {
+            if (mounted) _startEncounter(isBoss: true);
+          });
+        } else {
+          _startEncounter(isBoss: true);
+        }
+      });
+    }
+
     for (final ally in widget.gangMembers) {
       if (_allies.contains(ally)) continue;
       _allies.add(ally);
@@ -338,6 +390,8 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
         return 'Merchant';
       case NpcType.cop:
         return 'Cop';
+      case NpcType.playerCharacter:
+        return 'Rival';
     }
   }
 

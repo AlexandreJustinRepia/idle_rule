@@ -50,6 +50,10 @@ class GhettoEnemyFactory {
           alias = 'Gangster';
           defaultColor = Colors.purpleAccent;
           break;
+        case NpcType.playerCharacter:
+          alias = 'Rival';
+          defaultColor = Colors.amberAccent;
+          break;
       }
     } else {
       final npcRandom = _random.nextDouble();
@@ -128,6 +132,10 @@ class GhettoEnemyFactory {
         baseHealth = 11;
         baseDamage = 3;
         counterChance = 0.1;
+        break;
+      case NpcType.playerCharacter:
+        baseHealth = 10;
+        baseDamage = 3;
         break;
     }
 

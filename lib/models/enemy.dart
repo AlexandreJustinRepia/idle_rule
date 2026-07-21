@@ -3,7 +3,7 @@ import 'combat_entity.dart';
 import 'character_customization.dart';
 
 enum EnemyType { regular, fast, tank, counter }
-enum NpcType { civilian, thug, gangMember, merchant, cop }
+enum NpcType { civilian, thug, gangMember, merchant, cop, playerCharacter }
 
 class Enemy implements CombatEntity {
   @override

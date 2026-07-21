@@ -169,27 +169,30 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
               Expanded(
                 child: () {
                   String displayName = "";
-                  if (isBoss) {
-                    displayName = 'BOSS: ${enemy.name}';
-                  } else {
-                    switch (enemy.npcType) {
-                      case NpcType.civilian:
-                        displayName = "Civilian";
-                        break;
-                      case NpcType.thug:
-                        displayName = "Thug";
-                        break;
-                      case NpcType.merchant:
-                        displayName = "Merchant";
-                        break;
-                      case NpcType.cop:
-                        displayName = "Police Officer";
-                        break;
-                      case NpcType.gangMember:
-                        displayName = "Gangster";
-                        break;
-                    }
-                  }
+                   if (isBoss) {
+                     displayName = 'BOSS: ${enemy.name}';
+                   } else {
+                     switch (enemy.npcType) {
+                       case NpcType.civilian:
+                         displayName = "Civilian";
+                         break;
+                       case NpcType.thug:
+                         displayName = "Thug";
+                         break;
+                       case NpcType.merchant:
+                         displayName = "Merchant";
+                         break;
+                       case NpcType.cop:
+                         displayName = "Police Officer";
+                         break;
+                       case NpcType.gangMember:
+                         displayName = "Gangster";
+                         break;
+                       case NpcType.playerCharacter:
+                         displayName = enemy.name;
+                         break;
+                     }
+                   }
                   return Text(
                     displayName,
                     maxLines: 1,
@@ -255,6 +258,7 @@ class EnemyCharacterPlaceholder extends StatelessWidget {
               idleProgress: idleProgress,
               punchProgress: punchProgress,
               customization: customization,
+              npcType: enemy.npcType,
             ),
           ),
         ),

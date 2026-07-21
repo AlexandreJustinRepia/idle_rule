@@ -458,6 +458,7 @@ class _GameScreen extends StatelessWidget {
                         onSoloTurfConquestStarted: onTurfConquestStarted,
                         rivalGangs: world.rivalGangs,
                         interactableNpcs: world.interactableNpcs,
+                        onFightStarted: () => onTabChanged(0),
                       ),
                       GangsView(gameController: gameController),
                     ],

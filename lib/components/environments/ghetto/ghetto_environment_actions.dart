@@ -334,6 +334,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
   Future<void> _startEncounter({
     bool isBoss = false,
     PendingTurfConquest? conquest,
+    GameCharacterSession? playerChallenge,
   }) async {
     _enemies.clear();
     _dyingEnemies.clear();
@@ -342,7 +343,7 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     _selectedCombatant = null;
     _playerTarget = null;
     _civilianFightProvoked = false;
-    _isPlayerChallenge = widget.activePlayerChallenge != null;
+    _isPlayerChallenge = playerChallenge != null;
     for (var c in _enemyChargeControllers.values) {
       c.dispose();
     }
@@ -353,7 +354,24 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
     _enemyAttackControllers.clear();
 
     String mainName = "";
-    if (isBoss && widget.activeBoss != null) {
+    if (playerChallenge != null) {
+      final targetStats = playerChallenge.controller.stats;
+      final enemy = Enemy(
+        name: playerChallenge.controller.playerName,
+        health: targetStats.maxHealth,
+        damage: targetStats.attackDamage,
+        attackDelay: targetStats.attackDelay,
+        dodgeChance: targetStats.dodgeChance,
+        themeColor: Colors.amberAccent,
+        npcType: NpcType.playerCharacter,
+        isBoss: false,
+        customization: playerChallenge.controller.customization,
+      );
+      _enemies.add(enemy);
+      _enemyOriginalIndices[enemy] = 0;
+      mainName = enemy.name;
+    } else if (isBoss && widget.activeBoss != null) {
+      final bossCustomization = widget.activeBoss!.customization;
       final enemy = Enemy(
         name: widget.activeBoss!.name,
         health: widget.activeBoss!.health,
@@ -362,10 +380,11 @@ extension _GhettoEnvironmentActions on _GhettoEnvironmentState {
         dodgeChance: widget.activeBoss!.dodgeChance,
         themeColor: widget.activeBoss!.themeColor,
         isBoss: true,
-        customization: generateNpcCustomization(
-          widget.activeBoss!.name.hashCode,
-          palette: widget.activeBoss!.themeColor,
-        ),
+        customization: bossCustomization ??
+            generateNpcCustomization(
+              widget.activeBoss!.name.hashCode,
+              palette: widget.activeBoss!.themeColor,
+            ),
       );
       _enemies.add(enemy);
       _enemyOriginalIndices[enemy] = 0;

@@ -50,6 +50,11 @@ class EncounterChoiceOverlay extends StatelessWidget {
         typeColor = Colors.purpleAccent;
         typeIcon = Icons.group;
         break;
+      case NpcType.playerCharacter:
+        typeLabel = "Rival";
+        typeColor = Colors.amberAccent;
+        typeIcon = Icons.person;
+        break;
     }
 
     return Positioned.fill(

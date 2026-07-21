@@ -1033,6 +1033,7 @@ class GameController extends ChangeNotifier {
     if (_activeBoss != null || _activePlayerChallenge != null) return;
     final targetStats = target.controller.stats;
     final targetName = target.controller.playerName;
+    final targetCustomization = target.controller.customization;
     _activeBoss = Boss(
       name: targetName,
       health: targetStats.maxHealth,
@@ -1040,6 +1041,7 @@ class GameController extends ChangeNotifier {
       attackDelay: targetStats.attackDelay,
       dodgeChance: targetStats.dodgeChance,
       themeColor: Colors.purpleAccent,
+      customization: targetCustomization,
     );
     _activePlayerChallenge = target;
     _playerHealth = _stats.maxHealth;

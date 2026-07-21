@@ -6,18 +6,21 @@ import '../../../models/world_session.dart';
 class PlayerInteractionModal extends StatefulWidget {
   final GameCharacterSession targetCharacter;
   final GameController controller;
+  final VoidCallback? onFightStarted;
 
   const PlayerInteractionModal({
     super.key,
     required this.targetCharacter,
     required this.controller,
+    this.onFightStarted,
   });
 
   static void show(
     BuildContext context,
     GameCharacterSession target,
-    GameController controller,
-  ) {
+    GameController controller, {
+    VoidCallback? onFightStarted,
+  }) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.8),
@@ -26,6 +29,7 @@ class PlayerInteractionModal extends StatefulWidget {
         builder: (context, _) => PlayerInteractionModal(
           targetCharacter: target,
           controller: controller,
+          onFightStarted: onFightStarted,
         ),
       ),
     );
@@ -62,6 +66,7 @@ class _PlayerInteractionModalState extends State<PlayerInteractionModal> {
   }
 
   void _onFight() {
+    widget.onFightStarted?.call();
     widget.controller.startPlayerChallenge(widget.targetCharacter);
     Navigator.pop(context, 'FIGHT');
   }

@@ -54,6 +54,10 @@ class EncounterTalkOverlay extends StatelessWidget {
         typeLabel = gangName != null ? "$gangName Member" : "Gang Member";
         typeColor = Colors.purpleAccent;
         break;
+      case NpcType.playerCharacter:
+        typeLabel = "Rival";
+        typeColor = Colors.amberAccent;
+        break;
     }
 
     return Positioned.fill(

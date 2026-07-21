@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/character_customization.dart';
 
 class Boss {
   final String name;
@@ -7,6 +8,7 @@ class Boss {
   final double dodgeChance;
   final Duration attackDelay;
   final Color themeColor;
+  final CharacterCustomization? customization;
 
   const Boss({
     required this.name,
@@ -15,6 +17,7 @@ class Boss {
     required this.attackDelay,
     this.dodgeChance = 0.05,
     this.themeColor = Colors.red,
+    this.customization,
   });
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/character_customization.dart';
+import '../../models/enemy.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared drawing helpers (used by Hero, Enemy and Ally painters)
@@ -1225,6 +1226,7 @@ class EnemyPainter extends CustomPainter {
   final double idleProgress;
   final double punchProgress;
   final CharacterCustomization? customization;
+  final NpcType npcType;
 
   const EnemyPainter({
     required this.accentColor,
@@ -1235,6 +1237,7 @@ class EnemyPainter extends CustomPainter {
     this.idleProgress = 0.0,
     this.punchProgress = 0.0,
     this.customization,
+    this.npcType = NpcType.thug,
   });
 
   @override
@@ -1269,10 +1272,14 @@ class EnemyPainter extends CustomPainter {
 
     final bodyColor = isBoss
         ? const Color(0xFF1A0000)
-        : Color.lerp(const Color(0xFF3D0000), custom.outfitColor, 0.4)!;
+        : npcType == NpcType.playerCharacter
+            ? custom.outfitColor
+            : Color.lerp(const Color(0xFF3D0000), custom.outfitColor, 0.4)!;
     final bodyColorDark = isBoss
         ? const Color(0xFF0D0000)
-        : Color.lerp(const Color(0xFF2D0000), custom.outfitColor, 0.4)!;
+        : npcType == NpcType.playerCharacter
+            ? custom.outfitSecondaryColor
+            : Color.lerp(const Color(0xFF2D0000), custom.outfitColor, 0.4)!;
 
     final shoulder = Offset(cx, bodyTop + 10);
     final hip = Offset(cx, legTop);
@@ -1632,6 +1639,7 @@ class EnemyPainter extends CustomPainter {
       old.accentColor != accentColor ||
       old.wasHit != wasHit ||
       old.isBoss != isBoss ||
+      old.npcType != npcType ||
       old.customization != customization ||
       (old.chargeValue - chargeValue).abs() > 0.01 ||
       old.walkProgress != walkProgress ||

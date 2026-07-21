@@ -23,6 +23,7 @@ class TurfScreen extends StatefulWidget {
   final ValueChanged<PendingTurfConquest>? onSoloTurfConquestStarted;
   final List<Gang> rivalGangs;
   final List<InteractableNpc> interactableNpcs;
+  final VoidCallback? onFightStarted;
 
   const TurfScreen({
     super.key,
@@ -37,6 +38,7 @@ class TurfScreen extends StatefulWidget {
     this.onSoloTurfConquestStarted,
     this.rivalGangs = const [],
     this.interactableNpcs = const [],
+    this.onFightStarted,
   });
 
   @override
@@ -488,6 +490,7 @@ class _TurfScreenState extends State<TurfScreen> {
                           context,
                           resident,
                           widget.gameController,
+                          onFightStarted: widget.onFightStarted,
                         );
                       },
                     );
