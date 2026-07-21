@@ -391,7 +391,7 @@ class _GhettoEnvironmentState extends State<GhettoEnvironment>
       case NpcType.cop:
         return 'Cop';
       case NpcType.playerCharacter:
-        return 'Rival';
+        return enemy.name;
     }
   }
 
